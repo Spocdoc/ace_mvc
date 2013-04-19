@@ -122,6 +122,30 @@ Views & controllers have outlet methods -- methods
 
 outlet methods:
 
+    var x = new Outlet(1);
+    var y = new Outlet(2);
+    var foo = function (a, b) {
+    };
+
+    // optional context
+    foo = new OutletMethod(this, foo, {a: x, b: y})
+
+    foo.rebind({a: y, b: x})
+
+equivalent to
+
+    foo = new Autorun(function () {
+        originalFoo(x.get(), y.get());
+    });
+
+except that detaching also removes references to x and y (so when they change, the value doesn't change)
+
+  1. extract the function argument names
+  1. store the names to an array
+  1. store an array of outlets corresponding to the arguments
+  1. on invocation, `apply` the function with this array
+
+
 ## autorun
 
 Whenever an Autorun is `run()`, it tracks all the calls to `get()` for Outlets and adds them as inflows.

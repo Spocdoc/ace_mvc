@@ -14,12 +14,11 @@ class Cascade
   class Outflow
     constructor: (@cascade) ->
 
-    add: (outflows...) ->
-      for outflow in outflows
-        outflow.cid ?= uniqueId()
-        return if @[outflow.cid]?
-        @[outflow.cid] = outflow
-        outflow.inflows?[@cascade.cid] = @cascade
+    add: (outflow) ->
+      outflow.cid ?= uniqueId()
+      return if @[outflow.cid]?
+      @[outflow.cid] = outflow
+      outflow.inflows?[@cascade.cid] = @cascade
       return
 
     remove: (outflow) ->

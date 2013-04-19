@@ -112,5 +112,51 @@ describe 'Outlet hot', ->
       expect(@callCounts[@b.cid]).eq 2
       expect(func).calledOnce
 
+  describe 'automatic outflows', ->
+    it 'should assign inflows when input is a function calling other outlet\'s getters', ->
+      x = new Outlet(1)
+      y = new Outlet -> 2 * x.get()
+
+      x.set(2)
+      expect(y.get()).eq 4
+      expect(@callCounts[x.cid]).eq 2
+      expect(@callCounts[y.cid]).eq 2
+
+      expect(y.inflows[x.cid]).to.exist
+      expect(x.outflows[y.cid]).to.exist
+
+      expect(Object.keys(y.inflows).length).eq 1
+      expect(Object.keys(y.outflows).length-1).eq 0
+
+      expect(Object.keys(x.inflows).length).eq 0
+      expect(Object.keys(x.outflows).length-1).eq 1
+
+    it 'should assign inflows only to the direct -- not indirect -- inflows', ->
+      x = new Outlet(1)
+      y = new Outlet -> 2 * x.get()
+      z = new Outlet -> 2 * y.get()
+
+      x.set(2)
+      expect(y.get()).eq 4
+      expect(z.get()).eq 8
+      expect(@callCounts[x.cid]).eq 2
+      expect(@callCounts[y.cid]).eq 2
+      expect(@callCounts[z.cid]).eq 2
+
+      expect(x.outflows[y.cid]).to.exist
+      expect(y.inflows[x.cid]).to.exist
+      expect(y.outflows[z.cid]).to.exist
+      expect(z.inflows[y.cid]).to.exist
+
+      expect(Object.keys(x.inflows).length).eq 0
+      expect(Object.keys(x.outflows).length-1).eq 1
+
+      expect(Object.keys(y.inflows).length).eq 1
+      expect(Object.keys(y.outflows).length-1).eq 1
+
+      expect(Object.keys(z.inflows).length).eq 1
+      expect(Object.keys(z.outflows).length-1).eq 0
+
+
 
 

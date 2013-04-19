@@ -15,8 +15,11 @@ hot = ->
   @e = new Cascade @efn
   @f = new Cascade @ffn
 
-  @f.outflows.add @a, @d, @c
-  @a.outflows.add @b, @c
+  @f.outflows.add @a
+  @f.outflows.add @d
+  @f.outflows.add @c
+  @a.outflows.add @b
+  @a.outflows.add @c
   @d.outflows.add @c
   @c.outflows.add @e
 

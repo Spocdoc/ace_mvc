@@ -1,0 +1,1 @@
+class Autorun extends Cascade

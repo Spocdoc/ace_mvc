@@ -23,9 +23,10 @@ getCaller = ->
   stack[0].receiver.id
 
 global.lib = (file) ->
+  lib = if process.env['MOCHA_COV']? then 'lib-cov' else 'lib'
   dirname = getCaller()
   testDir = path.join process.cwd(), 'test'
-  libDir = path.join process.cwd(), 'lib'
+  libDir = path.join process.cwd(), lib
   base = path.dirname path.join libDir, dirname.slice(testDir.length)
   p = path.resolve base, file
   require path.resolve base, file

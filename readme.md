@@ -23,7 +23,12 @@
 
       1. look 
 
-# PopStates
+# HistoryState (HS)
+
+# Server-side DOM manipulation
+
+Uses [tmpvar/jsdom  GitHub](https://github.com/tmpvar/jsdom)
+
 
 
 # Client-side bootstrap from server render

@@ -1,5 +1,5 @@
-Autorun = require '../autorun'
-Outlet = require '../outlet'
+Autorun = lib 'autorun'
+Outlet = lib 'outlet'
 
 describe 'Autorun', ->
   it 'should return nothing and run automatically when invoked as a block', ->

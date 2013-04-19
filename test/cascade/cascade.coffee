@@ -1,4 +1,4 @@
-Cascade = require '../cascade'
+Cascade = lib 'cascade'
 
 hot = ->
   `this.afn = sinon.spy(function afn() {})`

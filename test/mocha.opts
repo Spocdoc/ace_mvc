@@ -2,3 +2,5 @@
 --reporter spec
 --require coffee-script
 --require test/env
+--recursive
+

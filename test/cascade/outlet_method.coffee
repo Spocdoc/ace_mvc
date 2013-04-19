@@ -1,6 +1,6 @@
-OutletMethod = require '../outlet_method'
-Outlet = require '../outlet'
-Cascade = require '../cascade'
+OutletMethod = lib 'outlet_method'
+Outlet = lib 'outlet'
+Cascade = lib 'cascade'
 
 addCallCounts = ->
   callCounts = {}

@@ -1,5 +1,5 @@
-Outlet = require '../outlet'
-Cascade = require '../cascade'
+Outlet = lib 'outlet'
+Cascade = lib 'cascade'
 
 describe 'Outlet mild', ->
   beforeEach ->

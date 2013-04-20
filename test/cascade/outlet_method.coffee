@@ -39,13 +39,13 @@ describe 'OutletMethod mild', ->
 
     expect(@m.get()).eq (2*@x.get())
     expect(@callCounts[@foo.cid]).eq 1
-    expect(@callCounts[@x.cid]).eq 1
+    expect(@callCounts[@x.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 1
 
   it 'should recalculate when an inflow changes', ->
     @x.set(42)
 
-    expect(@callCounts[@x.cid]).eq 2
+    expect(@callCounts[@x.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 2
     expect(@callCounts[@foo.cid]).eq 2
     expect(@m.get()).eq 84
@@ -53,7 +53,7 @@ describe 'OutletMethod mild', ->
   it 'should not recalculate when detached and prior inflow changes', ->
     @m.detach()
     @x.set(42)
-    expect(@callCounts[@x.cid]).eq 2
+    expect(@callCounts[@x.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 1
     expect(@callCounts[@foo.cid]).eq 1
     expect(@m.get()).eq 2
@@ -62,7 +62,7 @@ describe 'OutletMethod mild', ->
     @y = new Outlet(2)
     @m.rebind x: @y
 
-    expect(@callCounts[@x.cid]).eq 1
+    expect(@callCounts[@x.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 2
     expect(@callCounts[@foo.cid]).eq 2
     expect(@m.get()).eq 4
@@ -72,14 +72,13 @@ describe 'OutletMethod mild', ->
     @m.rebind x: @y
 
     expectations = =>
+      expect(@callCounts[@x.cid]).not.exist
       expect(@callCounts[@m.cid]).eq 2
       expect(@callCounts[@foo.cid]).eq 2
       expect(@m.get()).eq 4
 
-    expect(@callCounts[@x.cid]).eq 1
     expectations()
     @x.set(42)
-    expect(@callCounts[@x.cid]).eq 2
     expectations()
 
 describe 'OutletMethod medium', ->
@@ -117,16 +116,16 @@ describe 'OutletMethod medium', ->
 
     expect(@m.get()).eq (2*@x.get() + 3*@y.get())
     expect(@callCounts[@foo.cid]).eq 1
-    expect(@callCounts[@x.cid]).eq 1
-    expect(@callCounts[@y.cid]).eq 1
+    expect(@callCounts[@x.cid]).not.exist
+    expect(@callCounts[@y.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 1
 
   it 'should recalculate when any of the inputs change', ->
     @x.set(42)
 
     expect(@callCounts[@foo.cid]).eq 2
-    expect(@callCounts[@x.cid]).eq 2
-    expect(@callCounts[@y.cid]).eq 1
+    expect(@callCounts[@x.cid]).not.exist
+    expect(@callCounts[@y.cid]).not.exist
     expect(@callCounts[@m.cid]).eq 2
 
   it 'should have the right value when rebound', ->
@@ -136,8 +135,8 @@ describe 'OutletMethod medium', ->
 
     expect(@callCounts[@foo.cid]).eq 2
     expect(@callCounts[@m.cid]).eq 2
-    expect(@callCounts[@x.cid]).eq 1
-    expect(@callCounts[@y.cid]).eq 1
+    expect(@callCounts[@x.cid]).not.exist
+    expect(@callCounts[@y.cid]).not.exist
     expect(@m.get()).eq 7
 
 

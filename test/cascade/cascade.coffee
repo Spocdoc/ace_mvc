@@ -1,4 +1,6 @@
 Cascade = lib 'cascade'
+Outlet = lib 'outlet'
+Autorun = lib 'autorun'
 
 hot = ->
   `this.afn = sinon.spy(function afn() {})`
@@ -40,10 +42,10 @@ describe 'Cascade mild', ->
 
   it 'should run an outflow function once', ->
     foo = sinon.spy ->
-    # @a.outflows.add(foo)
-    # @a.outflows.add(foo)
+    @a.outflows.add(foo)
+    @a.outflows.add(foo)
     @a.run()
-    # expect(foo).calledOnce
+    expect(foo).calledOnce
 
   it 'should not run removed outflows', ->
     foo = sinon.spy ->
@@ -250,3 +252,24 @@ describe 'Cascade.Block medium', ->
     expect(@cfn).calledAfter(@dfn)
     expect(@bfn).calledAfter(@afn)
     expect(@efn).calledAfter(@cfn)
+
+  it 'should cascade values only once', ->
+    @modelWidth = new Outlet(1)
+    @modelHeight = new Outlet(1)
+    
+    foo = sinon.spy ->
+
+    a = new Autorun =>
+      @modelWidth.get()
+      @modelHeight.get()
+      foo()
+
+    expect(foo).calledOnce
+
+    Cascade.Block =>
+      @modelWidth.set(2)
+      @modelHeight.set(3)
+
+    expect(foo).calledTwice
+
+

@@ -8,9 +8,17 @@ class Outlet extends Cascade
       if @indirect?
         Outlet.stack.push Outlet.stackLast if Outlet.stackLast
         Outlet.stackLast = this
-        @value = @indirect.get() if @indirect.get
-        @value = @indirect.function() if @indirect.function
+
+        value = @indirect.get() if @indirect.get
+        value = @indirect.function() if @indirect.function
+
         Outlet.stackLast = Outlet.stack.pop()
+
+        if value == @value
+          @stopPropagation()
+        else
+          @value = value
+
     @set value if value?
 
   get: ->
@@ -19,24 +27,35 @@ class Outlet extends Cascade
 
   set: (value) ->
     if @value != value
-      @indirect?.value.outflows?.remove?(this)
 
-      @value = value
+      indirect = undefined
+      sync = undefined
 
-      if @value
-        if typeof @value.get is 'function'
-          @indirect = { value: @value, get: -> value.get.call(value) }
-        else if typeof @value is 'function'
-          @indirect = { value: @value, function: @value }
-        else delete @indirect
+      if value and typeof value.get is 'function'
+        indirect = { value: value, get: -> value.get.call(value) }
 
-        @value.outflows?.add?(this)
-      @run()
+        if typeof value.set is 'function'
+          sync = => value.set.call(value, @value)
+          @outflows.add sync
+
+      else if typeof value is 'function'
+        indirect = { value: value, function: value }
+
+      if indirect
+        @detach()
+        @sync = sync if sync
+        @indirect = indirect
+        value.outflows?.add?(this)
+        @run()
+      else
+        @value = value
+        @cascade()
+
     return @value
 
   detach: ->
     delete @indirect
+    @outflows.remove @sync if @sync?
     super
-
 
 module.exports = Outlet

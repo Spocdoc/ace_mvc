@@ -1,6 +1,16 @@
 Outlet = lib 'outlet'
 Cascade = lib 'cascade'
 
+addCallCounts = ->
+  callCounts = {}
+  @callCounts = callCounts
+
+  orig = Cascade.prototype._calculate
+  Cascade.prototype._calculate = ->
+    callCounts[this.cid] ?= 0
+    ++callCounts[this.cid]
+    orig.apply(this, arguments)
+
 describe 'Outlet mild', ->
   beforeEach ->
     @a = new Outlet(1)
@@ -43,19 +53,41 @@ describe 'Outlet medium', ->
     @a.set(3)
     expect(@b.get()).eq 3
 
+describe 'Outlet synchronization', ->
+  beforeEach ->
+
+  it 'should keep two outlets in sync when one is set to the other', ->
+    @a = new Outlet(1)
+    @b = new Outlet(2)
+
+    addCallCounts.call this
+
+    @b.set(@a)
+    @b.set(42)
+    expect(@a.get()).eq 42
+
+  it 'should keep multiple outlets in sync', ->
+    @model = new Outlet(1)
+    @view1 = new Outlet @model
+    @view2 = new Outlet @model
+
+    @model.set(2)
+    expect(@model.get()).eq 2
+    expect(@view1.get()).eq 2
+    expect(@view2.get()).eq 2
+
+    @view1.set(3)
+    expect(@model.get()).eq 3
+    expect(@view1.get()).eq 3
+    expect(@view2.get()).eq 3
+
+
 describe 'Outlet hot', ->
   beforeEach ->
     @a = new Outlet(1)
     @b = new Outlet(2)
 
-    callCounts = {}
-    @callCounts = callCounts
-
-    orig = Cascade.prototype._calculate
-    Cascade.prototype._calculate = ->
-      callCounts[this.cid] ?= 0
-      ++callCounts[this.cid]
-      orig.apply(this, arguments)
+    addCallCounts.call this
 
     @b.set(@a)
 
@@ -83,6 +115,33 @@ describe 'Outlet hot', ->
     expect(@callCounts[@b.cid]).eq 3
     expect(@callCounts[@a.cid]).eq 2
     expect(func).calledTwice
+
+  it 'should not cascade outflows when assigned to a function whose value is the same as the previous value', ->
+    x = new Outlet 1
+    foo = -> 1
+    bar = sinon.spy ->
+    x.outflows.add bar
+    expect(bar).not.called
+    x.set foo
+    expect(bar).not.called
+
+  it 'should not cascade outflows when assigned to the same inflow', ->
+    foo = -> 1
+    x = new Outlet foo
+    bar = sinon.spy ->
+    x.outflows.add bar
+    x.set foo
+    expect(bar).not.called
+
+  it 'should not cascade outflows when assigned to a new inflow that gives the same value', ->
+    foo = -> 1
+    bar = -> 1
+    x = new Outlet foo
+    out = sinon.spy ->
+    x.outflows.add out
+
+    x.set bar
+    expect(out).not.called
 
   describe '#detach', ->
     beforeEach ->
@@ -115,11 +174,11 @@ describe 'Outlet hot', ->
   describe 'automatic outflows', ->
     it 'should assign inflows when input is a function calling other outlet\'s getters', ->
       x = new Outlet(1)
-      y = new Outlet -> 2 * x.get()
+      y = new Outlet -> 2 * x.get() + 0*x.get()
 
       x.set(2)
       expect(y.get()).eq 4
-      expect(@callCounts[x.cid]).eq 2
+      expect(@callCounts[x.cid]).not.exist
       expect(@callCounts[y.cid]).eq 2
 
       expect(y.inflows[x.cid]).to.exist
@@ -139,7 +198,7 @@ describe 'Outlet hot', ->
       x.set(2)
       expect(y.get()).eq 4
       expect(z.get()).eq 8
-      expect(@callCounts[x.cid]).eq 2
+      expect(@callCounts[x.cid]).not.exist
       expect(@callCounts[y.cid]).eq 2
       expect(@callCounts[z.cid]).eq 2
 
@@ -157,6 +216,95 @@ describe 'Outlet hot', ->
       expect(Object.keys(z.inflows).length).eq 1
       expect(Object.keys(z.outflows).length-1).eq 0
 
+describe 'Outlet habanero', ->
+  beforeEach ->
+    @f = new Outlet 2
+
+    @afn = sinon.spy => Math.floor(@f.get())
+    @a = new Outlet @afn
+
+    @bfn = sinon.spy => @a.get()*2
+    @b = new Outlet @bfn
+
+    @dfn = sinon.spy => @f.get()*2
+    @d = new Outlet @dfn
+
+    @cfn = sinon.spy => @a.get()*3 + @d.get()*2 + @f.get()
+    @c = new Outlet @cfn
+
+    @efn = sinon.spy => @c.get()*2
+    @e = new Outlet @efn
+
+    @expectValues = (f) ->
+      expect(@f.get()).eq(f)
+      expect(@a.get()).eq(a = Math.floor(f))
+      expect(@b.get()).eq(b = 2*a)
+      expect(@d.get()).eq(d = 2*f)
+      expect(@c.get()).eq(c = 3*a+2*d+f)
+      expect(@e.get()).eq(e = 2*c)
+
+  it 'should have the expected values given complex initial dependencies', ->
+    @expectValues(2)
+
+  it 'should have the expected inflows & outflows given complex initial dependencies', ->
+    expect(@f.outflows[@a.cid]).to.exist
+    expect(@f.outflows[@d.cid]).to.exist
+    expect(@f.outflows[@c.cid]).to.exist
+    expect(@a.outflows[@b.cid]).to.exist
+    expect(@a.outflows[@c.cid]).to.exist
+    expect(@d.outflows[@c.cid]).to.exist
+    expect(@c.outflows[@e.cid]).to.exist
+
+    expect(@a.inflows[@f.cid]).to.exist
+    expect(@d.inflows[@f.cid]).to.exist
+    expect(@c.inflows[@f.cid]).to.exist
+    expect(@b.inflows[@a.cid]).to.exist
+    expect(@c.inflows[@a.cid]).to.exist
+    expect(@c.inflows[@d.cid]).to.exist
+    expect(@e.inflows[@c.cid]).to.exist
+
+    # outflows always 1 greater than actual number
+
+    expect(Object.keys(@f.inflows).length).eq(0)
+    expect(Object.keys(@f.outflows).length-1).eq(3)
+
+    expect(Object.keys(@a.inflows).length).eq(1)
+    expect(Object.keys(@a.outflows).length-1).eq(2)
+
+    expect(Object.keys(@d.inflows).length).eq(1)
+    expect(Object.keys(@d.outflows).length-1).eq(1)
+
+    expect(Object.keys(@c.inflows).length).eq(3)
+    expect(Object.keys(@c.outflows).length-1).eq(1)
+
+    expect(Object.keys(@b.inflows).length).eq(1)
+    expect(Object.keys(@b.outflows).length-1).eq(0)
+
+    expect(Object.keys(@e.inflows).length).eq(1)
+    expect(Object.keys(@e.outflows).length-1).eq(0)
 
 
+  it 'should have run the calculation functions exactly once with complex dependencies', ->
+    expect(@afn).calledOnce
+    expect(@bfn).calledOnce
+    expect(@cfn).calledOnce
+    expect(@dfn).calledOnce
+    expect(@efn).calledOnce
+
+  it 'should run the appropriate outflows in the right order', ->
+    @f.set(2.2)
+
+    expect(@cfn).calledAfter(@afn)
+    expect(@cfn).calledAfter(@dfn)
+    expect(@efn).calledAfter(@cfn)
+
+  it 'should run the appropriate outflows when some results change and others don\'t', ->
+    @f.set(2.2)
+    @expectValues(2.2)
+
+    expect(@afn).calledTwice
+    expect(@bfn).calledOnce
+    expect(@cfn).calledTwice
+    expect(@dfn).calledTwice
+    expect(@efn).calledTwice
 

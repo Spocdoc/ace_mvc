@@ -22,21 +22,27 @@ class OutletMethod extends Outlet
       func = context
       context = null
 
-    @names = getArgNames(func)
-    @rebind outlets, false
-
+    # prevent super from running immediately
+    @run = ->
     super =>
       # simplifying the below causes CoffeeScript to execute an anonymous function...
       args = []
       args.push outlet.get() for outlet in @argOutlets
       func.apply(context, args)
 
+    delete @run
+    @names = getArgNames(func)
+    @rebind outlets
+
+  # disallow setting
+  # @set: ->
+
   # outlets is a hash from argument name to outlet
   # eg, {a: outletX, b: outletY}
   rebind: (outlets) ->
     @detach()
     @argOutlets.push outlets[name] for name in @names
-    @run() if arguments[1] != false
+    @run()
 
   detach: ->
     # retain the func, but remove arg outlets

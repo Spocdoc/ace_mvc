@@ -27,7 +27,17 @@
 
 # Server-side DOM manipulation
 
-Uses [tmpvar/jsdom  GitHub](https://github.com/tmpvar/jsdom)
+Uses Cheerio to manipulate fragments from templates, build a page the same way it's constructed on the client, then send it
+
+# Templates
+
+Templates are stored in a `Template` variable by name, e.g.
+
+    Template['EditableCell']
+
+The template consists of a root element and $ references to elements in the template source that have ids.
+
+
 
 
 
@@ -60,6 +70,12 @@ So structure is
         // generated script loading all the models, etc.
       </script>
     </html>
+
+Server stores serialized state in the HistoryState so the views, controllers, etc. can retrieve it. This data must be JSON-serializable (no functions, no references to other objects -- just data).
+
+When the views are constructed, before they clone any templates, they look at the document DOM to see if an element with the right `id` is present. If so, they bind to that and restore the memoized values of all their outlets. This way, when the outlets are bound to inflows, if those inflows have identical values, the outflows aren't called (so the DOM isn't re-rendered).
+
+
 
 # auto-updating dependencies
 

@@ -58,4 +58,13 @@ class Outlet extends Cascade
     @outflows.remove @sync if @sync?
     super
 
+  # returns an opaque string representation of the value (not the inflows/outflows)
+  serializedValue: ->
+    JSON.stringify @value
+
+  # restores the value (not the inflows/outflows) of the outlet
+  # complement to `serializedValue`
+  restoreValue: (data) ->
+    @value = JSON.parse data
+
 module.exports = Outlet

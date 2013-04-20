@@ -81,6 +81,22 @@ describe 'Outlet synchronization', ->
     expect(@view1.get()).eq 3
     expect(@view2.get()).eq 3
 
+  it 'should keep outlets in sync even when one is a function', ->
+    @x = new Outlet 42
+    @first = new Outlet => 2*@x.get()
+    @second = new Outlet @first
+
+    expect(@second.get()).eq 84
+
+    @second.set(2)
+    expect(@first.get()).eq 2
+    expect(@second.get()).eq 2
+    expect(@x.get()).eq 42
+
+    @x.set(43)
+    expect(@first.get()).eq 86
+    expect(@second.get()).eq 86
+
 
 describe 'Outlet hot', ->
   beforeEach ->

@@ -139,4 +139,66 @@ describe 'OutletMethod medium', ->
     expect(@callCounts[@y.cid]).not.exist
     expect(@m.get()).eq 7
 
+  it 'should no recalculate when released and prior inputs change', ->
+    @m.detach()
+    @x.set(42)
+    @y.set(43)
+
+    expect(@m.get()).eq 8
+    expect(@callCounts[@m.cid]).eq 1
+
+  it 'should not recalculate when rebound to outlets with the same value', ->
+    @m.detach()
+    expect(@m.get()).eq 8
+    expect(@callCounts[@foo.cid]).eq 1
+    x1 = new Outlet(1)
+    y1 = new Outlet(2)
+    @m.rebind x: x1, y: y1
+    expect(@m.get()).eq 8
+    expect(@callCounts[@foo.cid]).eq 1
+
+  it 'should recalculate when rebound to outlets that have changed', ->
+    @m.detach()
+    @x.set(2)
+    expect(@m.get()).eq 8
+    expect(@callCounts[@m.cid]).eq 1
+    @m.rebind x: @x, y: @y
+    expect(@m.get()).eq 10
+    expect(@callCounts[@m.cid]).eq 2
+
+describe 'OutletMethod #restoreValue', ->
+  it 'should not call method when restored and rebound to the same inflow values', ->
+    x = new Outlet 2
+    y = new Outlet 3
+
+    mServer = new OutletMethod (x,y) -> x*y
+    mServer.rebind x: x, y: y
+    expect(mServer.get()).eq 6
+
+    value = mServer.serializedValue()
+
+    # now on the client, restore the value...
+
+    foo = sinon.spy (x,y) -> x*y
+    m = new OutletMethod (x,y) -> foo(x,y)
+
+    expect(foo).not.called
+    expect(m.get()).not.exist
+    m.restoreValue(value)
+    expect(foo).not.called
+    expect(m.get()).eq 6
+
+    mOutflow = new Outlet (bar = sinon.spy -> m.get())
+    expect(m.outflows[mOutflow.cid]).exist
+    expect(bar).calledOnce
+    expect(mOutflow.get()).eq 6
+
+    # also, shouldn't call when rebound
+
+    x1 = new Outlet 2
+    y1 = new Outlet 3
+
+    m.rebind x: x1, y: y1
+    expect(foo).not.called
+    expect(bar).calledOnce
 

@@ -14,6 +14,7 @@ class OutletMethod extends Outlet
       argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',').split(',')
 
   # context is optional
+  # outlets is optional
   constructor: (context, func, outlets) ->
     return new OutletMethod(context, func, outlets) if not (this instanceof Outlet)
 
@@ -22,20 +23,34 @@ class OutletMethod extends Outlet
       func = context
       context = null
 
-    # prevent super from running immediately
+    # prevent super constructor from calling `run` immediately
     @run = ->
     super =>
-      # simplifying the below causes CoffeeScript to execute an anonymous function...
+      changed = false
       args = []
-      args.push outlet.get() for outlet in @argOutlets
-      func.apply(context, args)
+      @values ||= []
+
+      `
+      var i, len, arg;
+      for (i = 0, len = _this.argOutlets.length; i < len; i = i + 1) {
+        arg = _this.argOutlets[i].get();
+        changed || (changed = (arg != _this.values[i]));
+        args.push(arg);
+      }
+      `
+
+      if changed
+        @values = args
+        return func.apply(context, @values)
+      else
+        return @value
 
     delete @run
     @names = getArgNames(func)
-    @rebind outlets
+    @rebind outlets if outlets
 
-  # disallow setting
-  # @set: ->
+    # disallow assigning the value or changing the func
+    # @set = ->
 
   # outlets is a hash from argument name to outlet
   # eg, {a: outletX, b: outletY}
@@ -51,5 +66,12 @@ class OutletMethod extends Outlet
     ret = super
     @indirect = indirect
     return ret
+
+  serializedValue: ->
+    JSON.stringify { @value, @values }
+
+  restoreValue: (data) ->
+    { @value, @values } = JSON.parse data
+    return @value
 
 module.exports = OutletMethod

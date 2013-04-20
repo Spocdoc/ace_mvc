@@ -6,4 +6,6 @@
 
     the same could be done with inflows and outflows so the function wouldn't have properties added to it
 
+    another alternative is to just make such functions autoruns
+
 

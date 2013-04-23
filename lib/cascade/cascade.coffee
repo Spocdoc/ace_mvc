@@ -7,21 +7,19 @@ class Cascade
   constructor: (@func) ->
     @func ||= ->
     @inflows = {}
-    @outflows = new Outflow(this)
+    @outflows = new Outflows(this)
     @pending = new Pending(this)
     @cid = uniqueId()
 
-  class Outflow
+  class Outflows
     constructor: (@cascade) ->
       # uses an array for faster iteration
       # uses itself as a dictionary for uniqueness
       @arr = []
 
     add: (outflow) ->
-      outflow.cid ?= uniqueId()
       return if @[outflow.cid]?
-      index = @arr.push(outflow)-1
-      @[outflow.cid] = index
+      @[outflow.cid ?= uniqueId()] = @arr.push(outflow)-1
       outflow.inflows?[@cascade.cid] = @cascade
       return
 
@@ -32,23 +30,39 @@ class Cascade
       delete outflow.inflows?[@cascade.cid]
       return
 
-    _calculate: (dry) ->
-      for outflow in @arr
+    # removes all the outflows (and removes this cascade from the inflows of
+    # each). These can be restored with #attach
+    # @returns array of outflows
+    detach: ->
+      ret = @arr
+      @arr = []
+      for outflow in ret
+        delete outflow.inflows?[@cascade.cid]
+        delete @[outflow.cid]
+      return ret
+
+    # @param arr [Array] array of outflows to (re)attach
+    attach: (arr) ->
+      @add outflow for outflow in arr
+      @_run arr
+
+    _calculate: (dry=false, arr=@arr) ->
+      for outflow in arr
         if typeof outflow._calculate == 'function'
           outflow._calculate(dry)
         else if not dry
           outflow()
       return
 
-    _run: ->
-      @_setPending()
+    _run: (arr=@arr) ->
+      @_setPending arr
       if Cascade.roots
-        Cascade.roots.push outflow for outflow in @arr
+        Cascade.roots.push outflow for outflow in arr
       else
-        @_calculate(false)
+        @_calculate(false, arr)
 
-    _setPending: ->
-      outflow.pending?.set?(true) for outflow in @arr
+    _setPending: (arr=@arr) ->
+      outflow.pending?.set?(true) for outflow in arr
       return
 
   class Pending

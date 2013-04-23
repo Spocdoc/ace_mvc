@@ -13,21 +13,27 @@ class Cascade
 
   class Outflow
     constructor: (@cascade) ->
+      # uses an array for faster iteration
+      # uses itself as a dictionary for uniqueness
+      @arr = []
 
     add: (outflow) ->
       outflow.cid ?= uniqueId()
       return if @[outflow.cid]?
-      @[outflow.cid] = outflow
+      index = @arr.push(outflow)-1
+      @[outflow.cid] = index
       outflow.inflows?[@cascade.cid] = @cascade
       return
 
     remove: (outflow) ->
+      index = @[outflow.cid]
       delete @[outflow.cid]
+      @arr.splice(index, 1) if index?
       delete outflow.inflows?[@cascade.cid]
       return
 
     _calculate: (dry) ->
-      for cid, outflow of @ when @hasOwnProperty(cid) and cid != 'cascade'
+      for outflow in @arr
         if typeof outflow._calculate == 'function'
           outflow._calculate(dry)
         else if not dry
@@ -37,14 +43,12 @@ class Cascade
     _run: ->
       @_setPending()
       if Cascade.roots
-        for cid, outflow of @ when @hasOwnProperty(cid) and cid != 'cascade'
-          Cascade.roots.push outflow
+        Cascade.roots.push outflow for outflow in @arr
       else
         @_calculate(false)
 
     _setPending: ->
-      for cid, outflow of @ when @hasOwnProperty(cid) and cid != 'cascade'
-        outflow.pending?.set?(true)
+      outflow.pending?.set?(true) for outflow in @arr
       return
 
   class Pending

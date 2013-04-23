@@ -2,6 +2,8 @@ OutletMethod = lib 'outlet_method'
 Outlet = lib 'outlet'
 Cascade = lib 'cascade'
 
+numOutflowKeys = 2
+
 addCallCounts = ->
   callCounts = {}
   @callCounts = callCounts
@@ -31,11 +33,11 @@ describe 'OutletMethod mild', ->
     expect(@m.inflows[@x.cid]).to.exist
 
     expect(Object.keys(@m.inflows).length).eq 1
-    expect(Object.keys(@m.outflows).length-1).eq 0
+    expect(Object.keys(@m.outflows).length-numOutflowKeys).eq 0
 
     expect(@x.outflows[@m.cid]).to.exist
     expect(Object.keys(@x.inflows).length).eq 0
-    expect(Object.keys(@x.outflows).length-1).eq 1
+    expect(Object.keys(@x.outflows).length-numOutflowKeys).eq 1
 
     expect(@m.get()).eq (2*@x.get())
     expect(@callCounts[@foo.cid]).eq 1
@@ -104,15 +106,15 @@ describe 'OutletMethod medium', ->
     expect(@m.inflows[@y.cid]).to.exist
 
     expect(Object.keys(@m.inflows).length).eq 2
-    expect(Object.keys(@m.outflows).length-1).eq 0
+    expect(Object.keys(@m.outflows).length-numOutflowKeys).eq 0
 
     expect(@x.outflows[@m.cid]).to.exist
     expect(Object.keys(@x.inflows).length).eq 0
-    expect(Object.keys(@x.outflows).length-1).eq 1
+    expect(Object.keys(@x.outflows).length-numOutflowKeys).eq 1
 
     expect(@y.outflows[@m.cid]).to.exist
     expect(Object.keys(@y.inflows).length).eq 0
-    expect(Object.keys(@y.outflows).length-1).eq 1
+    expect(Object.keys(@y.outflows).length-numOutflowKeys).eq 1
 
     expect(@m.get()).eq (2*@x.get() + 3*@y.get())
     expect(@callCounts[@foo.cid]).eq 1

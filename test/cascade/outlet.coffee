@@ -1,6 +1,8 @@
 Outlet = lib 'outlet'
 Cascade = lib 'cascade'
 
+numOutflowKeys = 2
+
 addCallCounts = ->
   callCounts = {}
   @callCounts = callCounts
@@ -187,6 +189,15 @@ describe 'Outlet hot', ->
       expect(@callCounts[@b.cid]).eq 2
       expect(func).calledOnce
 
+    it 'should not update a previously attached inflow when updated after detached', ->
+      x = new Outlet 1
+      y = new Outlet x
+      y.set(2)
+      expect(x.get()).eq 2
+      y.detach()
+      y.set(3)
+      expect(x.get()).eq 2
+
   describe 'automatic outflows', ->
     it 'should assign inflows when input is a function calling other outlet\'s getters', ->
       x = new Outlet(1)
@@ -201,10 +212,10 @@ describe 'Outlet hot', ->
       expect(x.outflows[y.cid]).to.exist
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(Object.keys(y.outflows).length-1).eq 0
+      expect(Object.keys(y.outflows).length-numOutflowKeys).eq 0
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(Object.keys(x.outflows).length-1).eq 1
+      expect(Object.keys(x.outflows).length-numOutflowKeys).eq 1
 
     it 'should assign inflows only to the direct -- not indirect -- inflows', ->
       x = new Outlet(1)
@@ -224,13 +235,13 @@ describe 'Outlet hot', ->
       expect(z.inflows[y.cid]).to.exist
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(Object.keys(x.outflows).length-1).eq 1
+      expect(Object.keys(x.outflows).length-numOutflowKeys).eq 1
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(Object.keys(y.outflows).length-1).eq 1
+      expect(Object.keys(y.outflows).length-numOutflowKeys).eq 1
 
       expect(Object.keys(z.inflows).length).eq 1
-      expect(Object.keys(z.outflows).length-1).eq 0
+      expect(Object.keys(z.outflows).length-numOutflowKeys).eq 0
 
 describe 'Outlet habanero', ->
   beforeEach ->
@@ -282,22 +293,22 @@ describe 'Outlet habanero', ->
     # outflows always 1 greater than actual number
 
     expect(Object.keys(@f.inflows).length).eq(0)
-    expect(Object.keys(@f.outflows).length-1).eq(3)
+    expect(Object.keys(@f.outflows).length-numOutflowKeys).eq(3)
 
     expect(Object.keys(@a.inflows).length).eq(1)
-    expect(Object.keys(@a.outflows).length-1).eq(2)
+    expect(Object.keys(@a.outflows).length-numOutflowKeys).eq(2)
 
     expect(Object.keys(@d.inflows).length).eq(1)
-    expect(Object.keys(@d.outflows).length-1).eq(1)
+    expect(Object.keys(@d.outflows).length-numOutflowKeys).eq(1)
 
     expect(Object.keys(@c.inflows).length).eq(3)
-    expect(Object.keys(@c.outflows).length-1).eq(1)
+    expect(Object.keys(@c.outflows).length-numOutflowKeys).eq(1)
 
     expect(Object.keys(@b.inflows).length).eq(1)
-    expect(Object.keys(@b.outflows).length-1).eq(0)
+    expect(Object.keys(@b.outflows).length-numOutflowKeys).eq(0)
 
     expect(Object.keys(@e.inflows).length).eq(1)
-    expect(Object.keys(@e.outflows).length-1).eq(0)
+    expect(Object.keys(@e.outflows).length-numOutflowKeys).eq(0)
 
 
   it 'should have run the calculation functions exactly once with complex dependencies', ->

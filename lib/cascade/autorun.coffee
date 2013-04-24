@@ -11,9 +11,9 @@ class Autorun extends Outlet
 
   detach: ->
     # retain indirect reference -- the func -- so Autorun can be manually run() again
-    indirect = @indirect
+    indirect = @_indirect
     ret = super
-    @indirect = indirect
+    @_indirect = indirect
     return ret
 
 

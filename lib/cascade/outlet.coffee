@@ -3,30 +3,33 @@ Cascade = require './cascade'
 class Outlet extends Cascade
   @stack = []
 
-  constructor: (value) ->
+  constructor: (value, options) ->
     super ->
-      if @indirect?
+      if @_indirect?
         Outlet.stack.push Outlet.stackLast if Outlet.stackLast
         Outlet.stackLast = this
 
-        value = @indirect.get() if @indirect.get
-        value = @indirect.function() if @indirect.function
+        value = @_indirect.get() if @_indirect.get
+        value = @_indirect.function() if @_indirect.function
 
         Outlet.stackLast = Outlet.stack.pop()
 
-        if value == @value
+        if value == @_value
           @stopPropagation()
         else
-          @value = value
+          @_value = value
 
-    @set value if value?
+    @set value, options if value?
 
   get: ->
     @outflows.add Outlet.stackLast if Outlet.stackLast
-    @value
+    @_value
 
-  set: (value) ->
-    if @value != value
+  unset: (value) ->
+    @_removeIndirect() if @_indirect?.value == value
+
+  set: (value, options={}) ->
+    if @_value != value
 
       indirect = undefined
       sync = undefined
@@ -35,7 +38,7 @@ class Outlet extends Cascade
         indirect = { value: value, get: -> value.get.call(value) }
 
         if typeof value.set is 'function'
-          sync = => value.set.call(value, @value)
+          sync = => value.set.call(value, @_value)
           @outflows.add sync
 
       else if typeof value is 'function'
@@ -43,28 +46,31 @@ class Outlet extends Cascade
 
       if indirect
         @detach()
-        @sync = sync if sync
-        @indirect = indirect
+        @_sync = sync if sync
+        @_indirect = indirect
         value.outflows?.add?(this)
-        @run()
+        @run() if not options.silent?
       else
-        @value = value
-        @cascade()
+        @_value = value
+        @cascade() if not options.silent?
 
-    return @value
+    return @_value
+
+  _removeIndirect: ->
+    delete @_indirect
+    @outflows.remove @_sync if @_sync?
 
   detach: ->
-    delete @indirect
-    @outflows.remove @sync if @sync?
+    @_removeIndirect()
     super
 
   # returns an opaque string representation of the value (not the inflows/outflows)
   serializedValue: ->
-    JSON.stringify @value
+    JSON.stringify @_value
 
   # restores the value (not the inflows/outflows) of the outlet
   # complement to `serializedValue`
   restoreValue: (data) ->
-    @value = JSON.parse data
+    @_value = JSON.parse data
 
 module.exports = Outlet

@@ -15,18 +15,18 @@ class Cascade
     constructor: (@cascade) ->
       # uses an array for faster iteration
       # uses itself as a dictionary for uniqueness
-      @arr = []
+      @_arr = []
 
     add: (outflow) ->
       return if @[outflow.cid]?
-      @[outflow.cid ?= uniqueId()] = @arr.push(outflow)-1
+      @[outflow.cid ?= uniqueId()] = @_arr.push(outflow)-1
       outflow.inflows?[@cascade.cid] = @cascade
       return
 
     remove: (outflow) ->
       index = @[outflow.cid]
       delete @[outflow.cid]
-      @arr.splice(index, 1) if index?
+      @_arr.splice(index, 1) if index?
       delete outflow.inflows?[@cascade.cid]
       return
 
@@ -34,8 +34,8 @@ class Cascade
     # each). These can be restored with #attach
     # @returns array of outflows
     detach: ->
-      ret = @arr
-      @arr = []
+      ret = @_arr
+      @_arr = []
       for outflow in ret
         delete outflow.inflows?[@cascade.cid]
         delete @[outflow.cid]
@@ -46,7 +46,7 @@ class Cascade
       @add outflow for outflow in arr
       @_run arr
 
-    _calculate: (dry=false, arr=@arr) ->
+    _calculate: (dry=false, arr=@_arr) ->
       for outflow in arr
         if typeof outflow._calculate == 'function'
           outflow._calculate(dry)
@@ -54,14 +54,14 @@ class Cascade
           outflow()
       return
 
-    _run: (arr=@arr) ->
+    _run: (arr=@_arr) ->
       @_setPending arr
       if Cascade.roots
         Cascade.roots.push outflow for outflow in arr
       else
         @_calculate(false, arr)
 
-    _setPending: (arr=@arr) ->
+    _setPending: (arr=@_arr) ->
       outflow.pending?.set?(true) for outflow in arr
       return
 

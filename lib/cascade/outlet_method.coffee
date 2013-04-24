@@ -13,65 +13,63 @@ class OutletMethod extends Outlet
       argsBody = fnText.match(regexFunction)
       argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',').split(',')
 
-  # context is optional
   # outlets is optional
-  constructor: (context, func, outlets) ->
-    return new OutletMethod(context, func, outlets) if not (this instanceof Outlet)
-
-    if outlets is undefined
-      outlets = func
-      func = context
-      context = null
+  # func [, outlets [, options]]
+  constructor: (func, outlets, options={}) ->
+    return new OutletMethod(options.context, func, outlets) if not (this instanceof Outlet)
 
     # prevent super constructor from calling `run` immediately
     @run = ->
     super =>
       changed = false
       args = []
-      @values ||= []
+      @_values ||= []
 
       `
       var i, len, arg;
-      for (i = 0, len = _this.argOutlets.length; i < len; i = i + 1) {
-        arg = _this.argOutlets[i].get();
-        changed || (changed = (arg != _this.values[i]));
+      for (i = 0, len = _this._argOutlets.length; i < len; i = i + 1) {
+        arg = _this._argOutlets[i].get();
+        changed || (changed = (arg != _this._values[i]));
         args.push(arg);
       }
       `
 
       if changed
-        @values = args
-        return func.apply(context, @values)
+        @_values = args
+        return func.apply(options.context, @_values) if not @_silent
       else
-        return @value
+        return @_value
 
     delete @run
-    @names = getArgNames(func)
-    @rebind outlets if outlets
+    @_names = getArgNames(func)
+    @rebind outlets, options if outlets
 
     # disallow assigning the value or changing the func
     # @set = ->
 
   # outlets is a hash from argument name to outlet
   # eg, {a: outletX, b: outletY}
-  rebind: (outlets) ->
+  rebind: (outlets, options={}) ->
     @detach()
-    @argOutlets.push outlets[name] for name in @names
+    @_argOutlets.push outlets[name] for name in @_names
+    @_silent = options.silent
     @run()
+    delete @_silent
+    return
 
   detach: ->
     # retain the func, but remove arg outlets
-    @argOutlets = []
-    indirect = @indirect
+    @_argOutlets = []
+    indirect = @_indirect
     ret = super
-    @indirect = indirect
+    @_indirect = indirect
     return ret
 
   serializedValue: ->
-    JSON.stringify { @value, @values }
+    JSON.stringify { @_value, @_values }
 
   restoreValue: (data) ->
-    { @value, @values } = JSON.parse data
-    return @value
+    { @_value, @_values } = JSON.parse data
+    return @_value
 
 module.exports = OutletMethod

@@ -8,4 +8,12 @@
 
     another alternative is to just make such functions autoruns
 
+# HistoryOutlet
+
+  - if you call `noInherit` after `ensurePath`, which creates an inherited object, then call `noInherit` on that object, it does nothing because the object is own property (despite inheriting)
+
+        // initially, all of foo is inherited
+        noInherit ['foo','bar'] // undefines foo.bar locally
+        noInherit ['foo'] // will do nothing
+
 

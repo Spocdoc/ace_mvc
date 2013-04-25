@@ -1,8 +1,13 @@
+Emitter = require '../events/emitter'
+{include, extend} = require '../mixin/mixin'
+
 class Cascade
   count = 0
 
   uniqueId = ->
-    "Cascade-#{++count}"
+    "#{++count}-Cascade"
+
+  include Cascade, Emitter
 
   constructor: (@func) ->
     @func ||= ->
@@ -15,18 +20,25 @@ class Cascade
     constructor: (@cascade) ->
       # uses an array for faster iteration
       # uses itself as a dictionary for uniqueness
-      @_arr = []
+      # addition is O(1), iteration is fast, deletion is O(n), but searches
+      # from the end so repeated add/delete is likely to be fast
+     @_arr = []
 
     add: (outflow) ->
       return if @[outflow.cid]?
-      @[outflow.cid ?= uniqueId()] = @_arr.push(outflow)-1
+      @[outflow.cid ?= uniqueId()] = 1
+      @_arr.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
       return
 
     remove: (outflow) ->
-      index = @[outflow.cid]
       delete @[outflow.cid]
-      @_arr.splice(index, 1) if index?
+      `for (var i = this._arr.length; i >= 0; --i) {
+        if (this._arr[i] === outflow) {
+          this._arr.splice(i,1);
+          break;
+        }
+      }`
       delete outflow.inflows?[@cascade.cid]
       return
 
@@ -72,7 +84,9 @@ class Cascade
     set: (pending) ->
       return if !!pending == @_pending
       @_pending = !!pending
-      @cascade.outflows._setPending() if @_pending
+      if @_pending
+        @cascade.emit 'pendingTrue', @cascade
+        @cascade.outflows._setPending()
 
   # remove all the inflows
   detach: ->

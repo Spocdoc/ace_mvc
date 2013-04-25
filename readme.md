@@ -636,6 +636,221 @@ This means:
   - outlets have a name: a dash-delimited path
 
 
+### routes
+
+  - route URI
+
+        /:user/:id.:format?
+
+    becomes a regex the server uses to extract variables. The client may also have to do this if doing hash-based routing
+
+    hash -> proper URI -> set variable values -> controllers respond
+
+  - route variables
+
+      - can be "route inducing"  (meaning `pushState` rather than `replaceState`)
+
+      - form a tree under different routes 
+
+Router listens to changes in the route variables sets a global flag that this is a "route event", emits beforeNavigation event before any cascades
+
+The route variables are chosen to correspond to how the page is setup. e.g., there could be a "top level" variable that the top level controller uses to determine what controllers to delegate to. If top level is 
+
+The route variables have to be set when you navigate, so their values have to be in the Snapshots. The route variables are all `ToHistoryOutlet`s that are never replaced (no `noInherit` calls)
+
+Server-side routing:
+
+  - use express to parse params
+  - the `function (req,res,next)` builds an Ace instance passing a new document root from Cheerio and the parsed URI params along with the matched "route number"
+  - construct the script for the bottom
+  - serialize & send the html in the response
+
+Client-side (URI-based) routing: 
+
+  - if URI passed instead of params hash, parse params and search all the routes until one of the parsed regular expressions matches
+
+    if on the server, the regex is the same object used in the express routing
+
+  - translate each parameter to a route variable and update them all in a cascade block
+
+The routes are stored in an array
+
+Two options for transient state (scroll position, focus, etc.)
+
+  1. have a hook on beforeNavigate that re-fetches the information
+
+    may (or not) also want a hook before window removal for cases where it's removed without inducing navigation
+
+  2. have a `scroll` event listener that updates it immediately
+
+    there are timeout issues with this. if the updates are throttled, when the timeout expires the outlet could be set to a different dataStore in history outlets
+
+You'd want to store some of this in the URL -- like selection. If selection is set, scroll position should also be set. Option 1 is better
+
+The route variable outlets have to set a global "routing" flag and emit the event whenever they're set to pending
+
+Components:
+
+  - route outlets that set the routing flag, emit the event and call navigate
+
+  - the URI composer that listens to route variable changes, forms a URI and sets the URI HistoryOutlet
+
+    it loops through the array of routes and finds the first one that matches all the required variables, then substitutes the variable values to form the URI
+
+  - the URI listener that does normalized pushState/replaceState
+
+  - browser navigation normalizer
+
+      - hashchange/popstate listener that
+
+          - determines which history index the change corresponds to, or if it's a new one
+
+          - fires a "navigation" event containing the index associated with the change
+
+      - takes normalized pushState/replaceState calls and translates these to either hash changes or window.pushState/window.replaceState
+
+      - translates hash URLs to push state if supported
+
+      - if the current URL is push state and the browser doesn't support it, the next call to pushState will replace the URL (which will cause a page reload)
+
+        this doesn't happen immediately because it would introduce latency for single page viewing
+
+    hashes are supported with a state prefix, e.g.
+
+        foo.com/#0:/bar
+        foo.com/#1:/baz
+
+    these numbers are not the same as the index. (1) the entry page could have been a hash URL with a non-0 prefix and (2) the user could change the URL. In both cases it can change the fragment using `window.location.replace('#...')`
+
+    manually changing the hash erases future history and *may* cause a new state, so it has to be treated as a push
+
+  - listener for this normalized "navigation" event that
+
+    if given an index, 
+
+      - calls `navigate(index)`
+
+    if not, 
+
+      - calls the client-side URI parser
+
+        this *must* navigate, even if no route-inducing variables have been changed. so the client-side URI parser has a bool to "force navigate"
+
+  - client-side URI parser
+
+    takes a proper URI (possibly with a fragment, but the fragment should be a "client fragment" not a fragment to support push state)
+
+    finds the matching route and calls match (which sets its keys) then calls the client-side route function
+
+  - client-side route function
+
+    receives a Route instance, which has keys and associated values from the parsed route
+
+    in a Cascade.Block...
+
+    takes these keys & assigns associated route variables. By default, the key to variable association is `user_username` becomes `['route','user','username']`. This can be overwritten per URI variable
+
+    then assigns route variables specific to this route function
+
+
+Routes can also contain fragments identifying variables that only affect client-side presentation (rather than content or server-side presentation). Scroll position, focus, and text selection are examples. The server-side can also handle these fragments (with a bit of a hack):
+
+    ./route_regex.coffee '/:user_foo_bar#?(#/:baz/:bo,:ho?)?' '/mike#/one/two,three'
+
+The server doesn't have any route variable listeners. If anything changes the route variables, it doesn't matter.
+
+Routes thus consist of these URIs and an optional set of associated variable values that are set when this route matches or must be set for this route to match. Can also have an optional association from URI variables to an array identifying a path for the variable
+
+
+#### using express routing
+express in principle could be used for the client-side routing
+
+  - can have hooks to parameter names that set outlets
+  - can attach a function to the routes that set other outlets
+
+obstacles:
+
+  - callbacks pass req, res
+
+  - the router uses req properties
+
+    e.g., `req.method` for HTTP method
+
+        method
+        url
+        originalUrl
+
+    but `Router.prototype.match` constructs its own `req` from `method` and `url`
+
+  - won't be able to reuse the connect core
+
+    the logic for the middleware stack has a default error handler that modifies the response with Buffer objects, `setHeader`, etc.
+
+    this would have to be extracted and replaced on the client side with suitable modifiers
+
+    the "response" object on the client could be an object in the Ace instance that sets the outlets
+
+  - some code uses ES5 (e.g., forEach) so won't work in the browser
+
+    this could be resolved with polyfills -- forEach is trivial to add
+
+  - some dependence on Node functions
+
+    url parser in connect
+
+  - the router itself is private API
+
+  - there may be code bloat given that the client won't use much of what's included in the router
+
+    e.g., view rendering
+
+  - param callbacks are invoked before the function callback
+
+
+Options:
+
+  - fork express and make the necessary changes
+
+      - modularize the routing part and use only that on the client & server
+
+      - could hook into all the route variables
+
+        these hooks are just functions in a hash that's searched by the parameter name
+
+  - rewrite the routing code
+
+    you still have to parse on the client and may want to use express middleware
+
+#### replace state throttling
+variables that are updated frequently may be linked to replace state events -- e.g., the contents of a search box
+
+There's a HistoryOutlet called 'URI' that has this function as an outflow. When the function is called, it checks if the "route event" flag is set. If so, it stops its debounce timer, `replaceState` (abstracted) with the previous value then calls `pushState`, otherwise it sets the debounce.
+
+`replaceState` takes the URI proper and transforms it to a hash change or a `window.replaceState` call.
+
+On the server the abstracted `pushState` stops the cascade and responds with a redirect. (this should never happen -- it would mean a given route leads to a set of variable values that immediately causes a push state)
+
+#### QA
+
+unanswered questions:
+
+  - how do cookies and session variables work
+
+  - what does the client do if the set of variables doesn't correspond to a particular route
+
+  - the route variables may have to be re-created if no-reuse controllers/views that hook into them are created. how does this work with both directions (URI change -> variable update and variable update -> URI change)?
+
+  - how does the URI listener know when it's push state vs replace state?
+
+  - how do you ensure when a navigation event happens from the browser that the URI listener doesn't
+
+    the thing forming the URI can all be within the URI function. it can be an OutletMethod with an outflow
+
+answered questions:
+
+  - how do variable changes lead to a uniquely identified URI?
+
+    each route has a set of required variables and a set of optional variables. the first route that matches given the current set of variable values is the route. That is, it need not be unique -- the first one matching is used (just like express & rails routing)
 
 
 ## URIs, client vs server routing, undo/redo

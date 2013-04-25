@@ -272,6 +272,23 @@ describe 'Cascade.Block medium', ->
 
     expect(foo).calledTwice
 
+describe 'Cascade events', ->
+  it 'should emit a \'pendingTrue\' event when pending is changed', ->
+    @a = new Cascade foo = sinon.spy ->
+    @args = []
+    @event = sinon.spy => @args = arguments
+    Cascade.Block =>
+      args = undefined
+      @a.on 'pendingTrue', @event
+      @a.run()
+      expect(@event).calledOnce
+      expect(@args.length).eq 1
+      expect(@args[0]).eq @a
+      expect(foo).not.called
+    expect(foo).calledOnce
+    expect(@event).calledOnce
+
+
 describe 'Cascade.Outflows', ->
   describe '#detach and #attach', ->
     it 'when its outflows are detached, it doesn\'t update them', ->

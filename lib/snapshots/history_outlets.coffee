@@ -3,7 +3,7 @@ Outlet = require '../cascade/outlet'
 Cascade = require '../cascade/cascade'
 
 class HistoryOutlets extends Snapshots
-  class ToHistoryOutlet extends Outlet
+  class @ToHistoryOutlet extends Outlet
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
       @outflows.add =>
@@ -53,7 +53,7 @@ class HistoryOutlets extends Snapshots
 
     get: (path, key) ->
       [path..., key] = path if not key?
-      @ensurePath(path)[key] ?= new ToHistoryOutlet(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
+      @ensurePath(path)[key] ?= new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
 
     # sets the path to undefined if it isn't own property
     noInherit: (path, key) ->
@@ -65,7 +65,9 @@ class HistoryOutlets extends Snapshots
     @to = @[0]
     @from = new FromHistorySnapshot this
 
-  snapshotImpl: => new ToHistorySnapshot(this)
+  snapshotFactory: => new ToHistorySnapshot(this)
+
+  historyOutletFactory: @ToHistoryOutlet
 
   push: ->
     @dataStore.push()

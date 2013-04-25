@@ -47,7 +47,7 @@ class Snapshots extends Array
     _inherit: ->
       Object.create(this)
 
-  snapshotImpl: -> new Snapshots.Snapshot
+  snapshotFactory: -> new Snapshots.Snapshot
 
   constructor: ->
     @push()
@@ -58,6 +58,6 @@ class Snapshots extends Array
     if len
       @push @[len-1]._inherit()
     else
-      @push new @snapshotImpl
+      @push new @snapshotFactory
 
 module.exports = Snapshots

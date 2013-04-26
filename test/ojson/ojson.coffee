@@ -93,3 +93,17 @@ describe 'OJSON', ->
     expect(doc.a.toString()).eq 'orange1 1'
     expect(doc.b.toString()).eq 'orange2 2'
 
+  it 'should not include "classes" that haven\'t been registered, but should include objects', ->
+    class View
+      constructor: (@_value) ->
+
+    doc = {a: new View(42), b: "foo!", c: -> }
+    str = OJSON.stringify(doc)
+    expect(typeof str).eq 'string'
+    doc = OJSON.parse str
+    expect(doc).exist
+    expect(doc.a).not.exist
+    expect(doc.c).not.exist
+    expect(doc.b).eq 'foo!'
+
+

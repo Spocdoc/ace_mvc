@@ -46,7 +46,9 @@ module.exports = OJSON =
     fn = (k, v) ->
       return v if typeof v isnt 'object'
       n = v.constructor._ojson || v.constructor.name
-      return v if not OJSON._types[n]?
+      if not OJSON._types[n]?
+        return undefined if v.constructor != Object
+        return v
       doc = {}
       doc["$#{n}"] = if v.toJSON? then v.toJSON() else toJSON v
       doc

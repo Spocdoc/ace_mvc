@@ -33,20 +33,22 @@
 # they're referenced, so it's sensitive to the order of key traversal in the
 # parse function
 
-count = 0
-uniqueId = ->
-  "#{++count}js"
 register = {}
 
 # used to restore ojson object references
 class OJSONRef
+  count = 0
+  uniqueId = ->
+    "#{++count}js"
   cache = {}
   constructor: (obj) ->
     cache[@id = uniqueId()] = obj
   toJSON: -> @id
   @fromJSON: (id) -> cache[id] || id
   @add: (id, obj) -> cache[id] = obj
-  @clear: -> cache = {}
+  @clear: ->
+    cache = {}
+    count = 0
 
 module.exports = OJSON =
 

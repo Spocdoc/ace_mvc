@@ -1,11 +1,11 @@
 class Snapshots extends Array
-  Compound = ->
+  @Compound = ->
 
   class @Snapshot
 
     syncTarget = (src, dst) ->
       for key, value of src when key[0] != '_' and !src.constructor.prototype[key]? and dst[key]?
-        if not (value instanceof Compound)
+        if not (value instanceof Snapshots.Compound)
           dst[key].sync(value)
         else
           syncTarget src[key], dst[key]
@@ -15,16 +15,17 @@ class Snapshots extends Array
       o = this
       for p in arr
         if not o[p]?
-          o[p] = new Compound
+          o[p] = new Snapshots.Compound
         else if not {}.hasOwnProperty.call(o, p)
-          o[p] = Object.create o[p]
+          o[p] = Object.create(parent = o[p])
+          o[p]._parent = parent
         o = o[p]
       return o
 
     ensurePath: (arr) ->
       o = this
       for p in arr
-        o[p] = new Compound if not o[p]?
+        o[p] = new Snapshots.Compound if not o[p]?
         o = o[p]
       return o
 
@@ -56,8 +57,14 @@ class Snapshots extends Array
     return super if arguments.length
     len = @length
     if len
-      @push @[len-1]._inherit()
+      parent = @[len-1]
+      next = parent._inherit()
+      next._parent = parent
+      @push next
     else
       @push new @snapshotFactory
 
 module.exports = Snapshots
+
+# add OJSON serialization functions
+require('./snapshots_ojson')(Snapshots)

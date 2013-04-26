@@ -1,42 +1,52 @@
 Snapshots = lib 'snapshots'
 
-module.exports = snapshotTests = (clazz) ->
+module.exports = snapshotTests = (clazz, options) ->
+  thruJSON = options?.thruJSON || (obj) -> obj
+
   beforeEach ->
     @a = new clazz
 
   it 'should inherit values in push', ->
+    @a = thruJSON @a
     expect(@a.push()).eq 2
     expect(@a.length).eq 2
     @a[0].foo = 'bar'
+    @a = thruJSON @a
     expect(@a[1].foo).eq 'bar'
     @a[0].foo = 'baz'
+    @a = thruJSON @a
     expect(@a[1].foo).eq 'baz'
 
   it 'should not inherit in reverse', ->
     @a.push()
     @a[1].foo = 'bar'
+    @a = thruJSON @a
     expect(@a[1].foo).eq 'bar'
     expect(@a[0].foo).not.exist
 
   describe '#ensurePath', ->
     it 'should construct the necessary path', ->
       @a[0].ensurePath(['foo','bar'])
+      @a = thruJSON @a
       expect(@a[0].foo.bar).exist
 
     it 'should return an object at the given path', ->
       o = @a[0].ensurePath(['foo','bar'])
       o.baz = 'bo'
+      @a = thruJSON @a
       expect(@a[0].foo.bar.baz).eq 'bo'
 
     it 'should return the top level object if passed empty array', ->
       o = @a[0].ensurePath([])
       o.baz = 'bo'
+      @a = thruJSON @a
       expect(@a[0].baz).eq 'bo'
 
     it 'should only build the parts that aren\'t local or inherited', ->
       @a[0].ensurePath(['foo']).bar = 'baz'
       @a.push()
       @a[1].ensurePath(['foo','mo']).bo = 'ho'
+      @a = thruJSON @a
       expect(@a[1].foo.bar).eq 'baz'
       expect(@a[1].foo.mo.bo).eq 'ho'
       expect(@a[0].foo.mo.bo).eq 'ho'
@@ -44,21 +54,25 @@ module.exports = snapshotTests = (clazz) ->
   describe '#localPath', ->
     it 'should construct the necessary path', ->
       @a[0].localPath(['foo','bar'])
+      @a = thruJSON @a
       expect(@a[0].foo.bar).exist
 
     it 'should return an object at the given path', ->
       o = @a[0].localPath(['foo','bar'])
       o.baz = 'bo'
+      @a = thruJSON @a
       expect(@a[0].foo.bar.baz).eq 'bo'
 
     it 'should return the top level object if passed empty array', ->
       o = @a[0].localPath([])
       o.baz = 'bo'
+      @a = thruJSON @a
       expect(@a[0].baz).eq 'bo'
 
     it 'should ensure that keys added are always local, not in parent', ->
       @a.push()
       @a[1].localPath(['foo']).bar = 'baz'
+      @a = thruJSON @a
       expect(@a[1].foo.bar).eq 'baz'
       expect(@a[0].foo).not.exist
 
@@ -66,6 +80,7 @@ module.exports = snapshotTests = (clazz) ->
       @a[0].ensurePath(['foo','bar']).baz = 'bo'
       @a.push()
       @a[1].localPath(['foo','bar','ho']).no = 'yo'
+      @a = thruJSON @a
       expect(@a[0].foo.bar.baz).eq 'bo'
       expect(@a[1].foo.bar.baz).eq 'bo'
       expect(@a[0].foo.bar.ho).not.exist
@@ -75,6 +90,7 @@ module.exports = snapshotTests = (clazz) ->
       @a[0].ensurePath(['foo','bar']).baz = 'bo'
       @a.push()
       @a[1].localPath(['foo','bar']).no = 'yo'
+      @a = thruJSON @a
       expect(@a[0].foo.bar.baz).eq 'bo'
       expect(@a[1].foo.bar.baz).eq 'bo'
       expect(@a[0].foo.bar.no).not.exist
@@ -99,12 +115,13 @@ module.exports = snapshotTests = (clazz) ->
 
       b.ensurePath(['charlie']).delta = new Leaf('zzzz')
 
+      a = thruJSON a
+      b = thruJSON b
+
       a.syncTarget b
 
       expect(b.charlie.delta.value).eq 'echo'
 
-
 describe 'Snapshots', ->
   snapshotTests(Snapshots)
-
 

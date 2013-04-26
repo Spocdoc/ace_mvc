@@ -12,7 +12,7 @@ class Bar extends Foo
 OJSON.register Foo
 OJSON.register Bar
 
-describe.only 'OJSON', ->
+describe 'OJSON', ->
   describe '#stringify', ->
     it 'should form a string', ->
       a = new Bar(42)

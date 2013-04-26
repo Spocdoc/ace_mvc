@@ -177,16 +177,11 @@ describe 'OutletMethod #restoreValue', ->
     mServer.rebind x: x, y: y
     expect(mServer.get()).eq 6
 
-    value = mServer.serializedValue()
-
     # now on the client, restore the value...
 
     foo = sinon.spy (x,y) -> x*y
-    m = new OutletMethod (x,y) -> foo(x,y)
+    m = new OutletMethod ((x,y) -> foo(x,y)), {x: x, y:y}, {silent: true, value: 6}
 
-    expect(foo).not.called
-    expect(m.get()).not.exist
-    m.restoreValue(value)
     expect(foo).not.called
     expect(m.get()).eq 6
 

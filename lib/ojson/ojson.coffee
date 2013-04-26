@@ -28,25 +28,54 @@
 #
 # This works well for other types. Date, for instance, has a toJSON(), whose
 # value can be passed to the constructor to re-create it.
+#
+# Note that the reference mechanism requires that objects are defined before
+# they're referenced, so it's sensitive to the order of key traversal in the
+# parse function
+
+count = 0
+uniqueId = ->
+  "#{++count}js"
+register = {}
+
+# used to restore ojson object references
+class OJSONRef
+  cache = {}
+  constructor: (obj) ->
+    cache[@id = uniqueId()] = obj
+  toJSON: -> @id
+  @fromJSON: (id) -> cache[id] || id
+  @add: (id, obj) -> cache[id] = obj
+  @clear: -> cache = {}
+
 module.exports = OJSON =
-  _types: {}
 
   parse: do ->
     fn = (k, v) ->
       return v if typeof v isnt 'object'
-      break for key of v
-      return v if not key or key[0] != '$'
-      return v if not (constructor = OJSON._types[key.substr(1)])?
-      return constructor.fromJSON v[key] if constructor.fromJSON
-      return new constructor v[key]
+      try
+        ojsonID = v._ojson
+        break for key of v
+        return v if not key or key[0] != '$'
+        return v if not (constructor = register[key.substr(1)])?
+        ojsonID = v[key]._ojson
+        return v = constructor.fromJSON(v[key]) if constructor.fromJSON
+        return v = new constructor(v[key])
+      finally
+        OJSONRef.add ojsonID, v if ojsonID
       
-    (str) -> JSON.parse str, fn
+    (str) ->
+      try
+        JSON.parse str, fn
+      finally
+        OJSONRef.clear()
 
   stringify: do ->
     fn = (k, v) ->
       return v if typeof v isnt 'object'
+      return fn '', v._ojson if v._ojson instanceof OJSONRef
       n = v.constructor._ojson || v.constructor.name
-      if not OJSON._types[n]?
+      if not register[n]?
         return undefined if v.constructor != Object
         return v
       doc = {}
@@ -58,6 +87,7 @@ module.exports = OJSON =
     toJSON = (obj) ->
       return obj if typeof obj != 'object'
       ret = {}
+      obj._ojson = new OJSONRef(obj) if obj._ojson == true
       for k, v of obj when hasOwn.call(obj, k)
         nv = fn k, v
         if nv != v
@@ -67,9 +97,13 @@ module.exports = OJSON =
       ret
 
     (obj) ->
-      ret = fn '', obj
-      return JSON.stringify ret if ret != obj
-      JSON.stringify toJSON obj
+      try
+        ret = fn '', obj
+        return JSON.stringify ret if ret != obj
+        JSON.stringify toJSON obj
+      finally
+        OJSONRef.clear()
+
 
   # can register custom names with the form {name: constructor}. This adds a
   # `_ojson` property to the constructor. For custom names, prefer starting
@@ -79,7 +113,7 @@ module.exports = OJSON =
     addToSet = (set,k,v) ->
       throw new Error("OJSON: can't register anonymous functions") if not k? or not k.length
       throw new Error("OJSON: multiple instance of same type #{k} in registration list") if set[k]?
-      throw new Error("OJSON: already registered type #{k}") if OJSON._types[k]?
+      throw new Error("OJSON: already registered type #{k}") if register[k]?
       set[k] = v
 
     (constructors...) ->
@@ -95,7 +129,7 @@ module.exports = OJSON =
           addToSet(set, o.name, o)
 
       # add types
-      OJSON._types[k] = c for k,c of set
+      register[k] = c for k,c of set
       return
 
   # use by including this into classes where instead of calling the constructor
@@ -107,6 +141,6 @@ module.exports = OJSON =
       inst[k] = v for k,v of obj
       inst
 
-OJSON.register Date, Array
+OJSON.register Date, Array, OJSONRef
 extend Array, OJSON.copyKeys
 

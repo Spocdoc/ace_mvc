@@ -132,4 +132,69 @@ describe 'OJSON', ->
     expect(b.foo).not.exist
     expect(jsonF).not.called
 
+  it 'should rebuild arrays in order', ->
+    a = sinon.spy ->
+    b = sinon.spy ->
+    c = sinon.spy ->
+    class A
+      constructor: -> @foo = 'bar'
+      @fromJSON: a
+    class B
+      @fromJSON: b
+    class C
+      @fromJSON: c
+
+    OJSON.register A, B, C
+
+    obj = [new A, new B, new C]
+    obj = OJSON.parse OJSON.stringify obj
+    expect(a).calledBefore(b)
+    expect(b).calledBefore(c)
+
+  describe 'references', ->
+    before ->
+      class @A
+        constructor: -> @foo = 'bar'
+        _ojson: true
+      OJSON.register {another_a: @A}
+
+      class @B
+      extend @B, OJSON.copyKeys
+      OJSON.register {another_b: @B}
+
+    it 'should create unique ids for objects with `true` _ojson fields (including inherited)', ->
+      a = new @A
+      str = OJSON.stringify a
+      expect(str.indexOf('_ojson')).not.eq -1
+      console.log str
+
+    it 'should not create unique ids if the object has a toJSON method', ->
+      a = new Bar(42)
+      a._ojson = true
+      str = OJSON.stringify a
+      expect(str.indexOf('_ojson')).eq -1
+
+    it 'should add OJSONRef\'s to the object when referenced', ->
+      a = new @A
+      b = new @B
+      b.a = a
+
+      doc = [a, b]
+      str = OJSON.stringify doc
+      console.log "START PARSE"
+      doc = OJSON.parse str
+      console.log doc
+      expect(doc[1].a).eq doc[0]
+      expect(doc[0].foo).eq 'bar'
+      expect(doc[0]._ojson).eq true
+
+    it 'should also restore references to plain objects', ->
+      a = {foo: 'bar', _ojson: true}
+      b = {a: a, b: 'yay b'}
+      doc = [a, b]
+      str = OJSON.stringify doc
+      doc = OJSON.parse str
+      expect(doc[1].a).eq doc[0]
+
+
 

@@ -71,9 +71,11 @@ module.exports = OJSON =
         OJSONRef.clear()
 
   stringify: do ->
+    hasOwn = {}.hasOwnProperty
+
     fn = (k, v) ->
       return v if typeof v isnt 'object'
-      return fn '', v._ojson if v._ojson instanceof OJSONRef
+      return fn '', v._ojson if hasOwn.call(v,'_ojson') && v._ojson instanceof OJSONRef
       n = v.constructor._ojson || v.constructor.name
       if not register[n]?
         return undefined if v.constructor != Object
@@ -82,12 +84,10 @@ module.exports = OJSON =
       doc["$#{n}"] = if v.toJSON? then v.toJSON() else toJSON v
       doc
 
-    hasOwn = {}.hasOwnProperty
-
     toJSON = (obj) ->
       return obj if typeof obj != 'object'
       ret = {}
-      obj._ojson = new OJSONRef(obj) if obj._ojson == true
+      obj._ojson = new OJSONRef(obj) if obj._ojson? and (!hasOwn.call(obj,'_ojson') or !(obj._ojson instanceof OJSONRef))
       for k, v of obj when hasOwn.call(obj, k)
         nv = fn k, v
         if nv != v

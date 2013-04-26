@@ -166,7 +166,6 @@ describe 'OJSON', ->
       a = new @A
       str = OJSON.stringify a
       expect(str.indexOf('_ojson')).not.eq -1
-      console.log str
 
     it 'should not create unique ids if the object has a toJSON method', ->
       a = new Bar(42)
@@ -181,9 +180,7 @@ describe 'OJSON', ->
 
       doc = [a, b]
       str = OJSON.stringify doc
-      console.log "START PARSE"
       doc = OJSON.parse str
-      console.log doc
       expect(doc[1].a).eq doc[0]
       expect(doc[0].foo).eq 'bar'
       expect(doc[0]._ojson).eq true
@@ -196,5 +193,39 @@ describe 'OJSON', ->
       doc = OJSON.parse str
       expect(doc[1].a).eq doc[0]
 
+    it 'should allow a chain of referenced, inherited objects', ->
+      class C
+        _ojson: true
+        OJSON.register {C123: @}
+        @fromJSON: (obj) ->
+          if obj._parent?
+            inst = Object.create obj._parent
+          else
+            inst = new @
+          inst[k] = v for k,v of obj when k not in ['_parent', '_ojson']
+          inst
 
+      chain = []
+      chain[0] = new C
+      for i in [1..10]
+        chain[i] = Object.create(parent=chain[i-1])
+        chain[i]._parent = parent
+
+      chain[0].foo = {foo: 'bar'}
+      chain[3].foo = {foo: 'baz'}
+
+      str = OJSON.stringify chain
+      chain = OJSON.parse str
+
+      for i in [0..10]
+        expect(chain[i]).instanceof C
+
+      for i in [1...3]
+        expect(chain[i].foo).eq chain[0].foo
+
+      for i in [3..10]
+        expect(chain[i].foo).eq chain[3].foo
+
+      expect(chain[0].foo.foo).eq 'bar'
+      expect(chain[3].foo.foo).eq 'baz'
 

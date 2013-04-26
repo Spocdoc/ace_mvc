@@ -106,4 +106,30 @@ describe 'OJSON', ->
     expect(doc.c).not.exist
     expect(doc.b).eq 'foo!'
 
+  it 'should not register anonymous types', ->
+    Compound = ->
+    expect(-> OJSON.register Compound).to.throw(Error)
+
+  it 'should only include own properties', ->
+    class Compound
+    a = new Compound
+    jsonF = sinon.spy ->
+    class F
+      toJSON: jsonF
+    a.foo = new F
+    b = Object.create a
+    b.bar = 'baz'
+
+    OJSON.register F
+    OJSON.register Compound
+    extend Compound, OJSON.copyKeys
+    str = OJSON.stringify b
+    expect(typeof str).eq 'string'
+
+    b = OJSON.parse str
+    expect(b).exist
+    expect(b.bar).eq 'baz'
+    expect(b.foo).not.exist
+    expect(jsonF).not.called
+
 

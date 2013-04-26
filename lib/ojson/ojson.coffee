@@ -53,10 +53,12 @@ module.exports = OJSON =
       doc["$#{n}"] = if v.toJSON? then v.toJSON() else toJSON v
       doc
 
+    hasOwn = {}.hasOwnProperty
+
     toJSON = (obj) ->
       return obj if typeof obj != 'object'
       ret = {}
-      for k, v of obj
+      for k, v of obj when hasOwn.call(obj, k)
         nv = fn k, v
         if nv != v
           ret[k] = nv
@@ -75,6 +77,7 @@ module.exports = OJSON =
   register: do ->
 
     addToSet = (set,k,v) ->
+      throw new Error("OJSON: can't register anonymous functions") if not k? or not k.length
       throw new Error("OJSON: multiple instance of same type #{k} in registration list") if set[k]?
       throw new Error("OJSON: already registered type #{k}") if OJSON._types[k]?
       set[k] = v

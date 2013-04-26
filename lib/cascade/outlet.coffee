@@ -64,13 +64,7 @@ class Outlet extends Cascade
     @_removeIndirect()
     super
 
-  # returns an opaque string representation of the value (not the inflows/outflows)
-  serializedValue: ->
-    JSON.stringify @_value
-
-  # restores the value (not the inflows/outflows) of the outlet
-  # complement to `serializedValue`
-  restoreValue: (data) ->
-    @_value = JSON.parse data
+  toJSON: -> @_value
+  @fromJSON: (data) -> new @(data)
 
 module.exports = Outlet

@@ -691,7 +691,7 @@ The route variable outlets have to set a global "routing" flag and emit the even
 
 Components:
 
-  - route outlets that set the routing flag, emit the event and call navigate
+  - route outlets that set the routing flag, emit the event and call navigate if the flag is not already set
 
   - the URI composer that listens to route variable changes, forms a URI and sets the URI HistoryOutlet
 
@@ -720,7 +720,7 @@ Components:
         foo.com/#0:/bar
         foo.com/#1:/baz
 
-    these numbers are not the same as the index. (1) the entry page could have been a hash URL with a non-0 prefix and (2) the user could change the URL. In both cases it can change the fragment using `window.location.replace('#...')`
+    The implementation must ensure these indices are the same as the history index. (1) the entry page could have been a hash URL with a non-0 prefix and (2) the user could change the URL. In both cases it can change the fragment using `window.location.replace('#...')`
 
     manually changing the hash erases future history and *may* cause a new state, so it has to be treated as a push
 
@@ -728,19 +728,36 @@ Components:
 
     if given an index, 
 
-      - calls `navigate(index)`
+      - in a Cascade Block:
+
+          1. sets the navigate flag
+          2. calls `navigate(index)`
+
+      - after the block:
+
+          1. unsets the navigate flag
 
     if not, 
 
-      - calls the client-side URI parser
+      - in a Cascade Block:
 
-        this *must* navigate, even if no route-inducing variables have been changed. so the client-side URI parser has a bool to "force navigate"
+          1. sets the route inducing and navigate flags
+          2. calls navigate()
+          3. calls the client-side URI parser
 
-  - client-side URI parser
+      - after the block:
+
+          1. unsets the flags
+
+  - client-side URI parser / Router
 
     takes a proper URI (possibly with a fragment, but the fragment should be a "client fragment" not a fragment to support push state)
 
     finds the matching route and calls match (which sets its keys) then calls the client-side route function
+
+    equivalent to the express `Router`, but its whole function is called in a Cascade.Block
+
+    set of parameter callbacks set various route variables
 
   - client-side route function
 
@@ -759,7 +776,7 @@ Routes can also contain fragments identifying variables that only affect client-
 
 The server doesn't have any route variable listeners. If anything changes the route variables, it doesn't matter.
 
-Routes thus consist of these URIs and an optional set of associated variable values that are set when this route matches or must be set for this route to match. Can also have an optional association from URI variables to an array identifying a path for the variable
+Routes thus consist of these URIs, a function that's called when the var is pending (e.g., "induce route", which sets the route inducing flag and calls navigate()) and an optional set of associated variable values that are set when this route matches and must be set for this route to match. Can also have an optional association from URI variables to an array identifying a path for the variable
 
 
 #### using express routing
@@ -845,6 +862,8 @@ unanswered questions:
   - how do you ensure when a navigation event happens from the browser that the URI listener doesn't
 
     the thing forming the URI can all be within the URI function. it can be an OutletMethod with an outflow
+
+  - suppose the URI listener has pending replace states and the user navigates. this means there's a popstate event. that popstate has to tell the this URI listener to cancel the replacements
 
 answered questions:
 

@@ -55,21 +55,29 @@ class HistoryOutlets extends Snapshots
       [path..., key] = path if not key?
       @ensurePath(path)[key] ?= new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
 
-    # sets the path to undefined if it isn't own property
+    # sets the path to null (NOT undefined) if it isn't own property
     noInherit: (path, key) ->
       @_snapshots.dataStore[@index].noInherit path, key
       super
 
   constructor: (@dataStore = new Snapshots) ->
+    # when constructing, don't want to push to dataStore again
+    @push = push = => HistoryOutlets.__super__.push.apply(this, arguments)
     super
+    delete @push
+
     @to = @[0]
     @from = new FromHistorySnapshot this
+
+    `var len = this.dataStore.length, i;
+    for (i=1; i < len; ++i) push();`
 
   snapshotFactory: => new ToHistorySnapshot(this)
 
   historyOutletFactory: @ToHistoryOutlet
 
   push: ->
+    return super if arguments.length
     @dataStore.push()
     super
 
@@ -92,3 +100,6 @@ class HistoryOutlets extends Snapshots
     return
 
 module.exports = HistoryOutlets
+
+# add OJSON serialization functions
+require('./history_outlets_ojson')(HistoryOutlets)

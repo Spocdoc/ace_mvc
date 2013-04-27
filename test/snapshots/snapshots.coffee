@@ -1,10 +1,14 @@
 Snapshots = lib 'snapshots'
+OJSON = lib '../ojson/ojson'
 
 module.exports = snapshotTests = (clazz, options) ->
   thruJSON = options?.thruJSON || (obj) -> obj
 
   beforeEach ->
     @a = new clazz
+
+  it 'should begin with 1 entry', ->
+    expect(@a.length).eq 1
 
   it 'should inherit values in push', ->
     @a = thruJSON @a
@@ -96,24 +100,37 @@ module.exports = snapshotTests = (clazz, options) ->
       expect(@a[0].foo.bar.no).not.exist
       expect(@a[1].foo.bar.no).eq 'yo'
 
+  describe '#noInherit', ->
+    it 'should prevent inheritance', ->
+      @a[0].ensurePath(['controller']).delegate = 42
+      @a.push()
+      @a[1].noInherit(['controller','delegate'])
+      expect(@a[1].controller.delegate).not.exist
+      @a = thruJSON @a
+      expect(@a[1].controller.delegate).not.exist
+
   describe '#syncTarget', ->
     beforeEach ->
       @a = new Snapshots # should always be Snapshots, even if testing HistoryOutlets
       @b = new clazz
 
+      class @Leaf
+        constructor: (@value) ->
+        sync: (@value) ->
+
+      OJSON.unregister @Leaf
+      OJSON.register @Leaf
+      @Leaf.prototype.toJSON = -> @value
+
     it 'should set the keys of the target if and only if they exist', ->
       a = @a[0]
       b = @b[0]
-
-      class Leaf
-        constructor: (@value) ->
-        sync: (@value) ->
 
       a.ensurePath([1,2,3]).foo = 'bar'
       a.alpha = 'bravo'
       a.ensurePath(['charlie']).delta = 'echo'
 
-      b.ensurePath(['charlie']).delta = new Leaf('zzzz')
+      b.ensurePath(['charlie']).delta = new @Leaf('zzzz')
 
       a = thruJSON a
       b = thruJSON b
@@ -121,6 +138,7 @@ module.exports = snapshotTests = (clazz, options) ->
       a.syncTarget b
 
       expect(b.charlie.delta.value).eq 'echo'
+
 
 describe 'Snapshots', ->
   snapshotTests(Snapshots)

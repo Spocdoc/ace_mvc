@@ -39,11 +39,12 @@ class Snapshots extends Array
     syncTarget: (dst) ->
       syncTarget this, dst
 
-    # sets the path to undefined if it isn't own property
+    # sets the path to null (NOT undefined) if it isn't own property
+    # null is used because it's too difficult to serialize undefined values over JSON
     noInherit: (path, key) ->
       [path..., key] = path if not key?
       o = @localPath(path)
-      o[key] = undefined if !{}.hasOwnProperty.call(o, key)
+      o[key] = null if !{}.hasOwnProperty.call(o, key)
 
     _inherit: ->
       Object.create(this)
@@ -60,9 +61,9 @@ class Snapshots extends Array
       parent = @[len-1]
       next = parent._inherit()
       next._parent = parent
-      @push next
+      super next
     else
-      @push new @snapshotFactory
+      super new @snapshotFactory
 
 module.exports = Snapshots
 

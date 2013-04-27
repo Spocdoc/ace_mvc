@@ -32,21 +32,30 @@
 # Note that the reference mechanism requires that objects are defined before
 # they're referenced, so it's sensitive to the order of key traversal in the
 # parse function
+#
+# Also note that you can't serialize values that are set to void 0. It's
+# possible to send it, but because JSON.parse treats a void 0 return value from
+# its reviver as "remove from the object", reviving void 0 values would require
+# re-implementing JSON.parse.
 
-register = {}
+registry = {}
 
 # used to restore ojson object references
 class OJSONRef
   count = 0
-  uniqueId = ->
-    "#{++count}js"
+  uniqueId = -> "#{++count}js"
   cache = {}
-  constructor: (obj) ->
-    cache[@id = uniqueId()] = obj
+  constructor: (obj, @inherit=false) -> cache[@id = uniqueId()] = obj
   toJSON: -> @id
   @fromJSON: (id) -> cache[id] || id
   @add: (id, obj) -> cache[id] = obj
   @clear: ->
+    # reset all the ojson objects
+    for id, obj of cache when j = obj?._ojson
+      if j.inherit
+        delete obj._ojson
+      else
+        obj._ojson = true
     cache = {}
     count = 0
 
@@ -54,13 +63,13 @@ module.exports = OJSON =
 
   parse: do ->
     fn = (k, v) ->
-      return v if typeof v isnt 'object'
+      return v if v == null or typeof v isnt 'object'
       try
         ojsonID = v._ojson
         break for key of v
         return v if not key or key[0] != '$'
-        return v if not (constructor = register[key.substr(1)])?
-        ojsonID = v[key]._ojson
+        return v if not (constructor = registry[key.substr(1)])?
+        ojsonID = v[key]?._ojson
         return v = constructor.fromJSON(v[key]) if constructor.fromJSON
         return v = new constructor(v[key])
       finally
@@ -72,14 +81,16 @@ module.exports = OJSON =
       finally
         OJSONRef.clear()
 
-  stringify: do ->
+  stringify: (obj) -> JSON.stringify OJSON.toOJSON obj
+
+  toOJSON: do ->
     hasOwn = {}.hasOwnProperty
 
     fn = (k, v) ->
-      return v if typeof v isnt 'object'
+      return v if v == null or typeof v isnt 'object'
       return fn '', v._ojson if hasOwn.call(v,'_ojson') && v._ojson instanceof OJSONRef
       n = v.constructor._ojson || v.constructor.name
-      if not register[n]?
+      if not registry[n]?
         return undefined if v.constructor != Object
         return v
       doc = {}
@@ -87,10 +98,14 @@ module.exports = OJSON =
       doc
 
     toJSON = (obj) ->
-      return obj if typeof obj != 'object'
+      return obj if obj == null or typeof obj != 'object'
       ret = {}
-      obj._ojson = new OJSONRef(obj) if obj._ojson? and (!hasOwn.call(obj,'_ojson') or !(obj._ojson instanceof OJSONRef))
-      for k, v of obj when hasOwn.call(obj, k)
+
+      # add ojson ref object
+      if obj._ojson? and (inherit = !hasOwn.call(obj,'_ojson') or !(obj._ojson instanceof OJSONRef))
+        obj._ojson = new OJSONRef(obj, inherit)
+
+      for k,v of obj when hasOwn.call(obj, k)
         nv = fn k, v
         if nv != v
           ret[k] = nv
@@ -101,8 +116,8 @@ module.exports = OJSON =
     (obj) ->
       try
         ret = fn '', obj
-        return JSON.stringify ret if ret != obj
-        JSON.stringify toJSON obj
+        return ret if ret != obj
+        toJSON obj
       finally
         OJSONRef.clear()
 
@@ -115,7 +130,7 @@ module.exports = OJSON =
     addToSet = (set,k,v) ->
       throw new Error("OJSON: can't register anonymous functions") if not k? or not k.length
       throw new Error("OJSON: multiple instance of same type #{k} in registration list") if set[k]?
-      throw new Error("OJSON: already registered type #{k}") if register[k]?
+      throw new Error("OJSON: already registered type #{k}") if registry[k]?
       set[k] = v
 
     (constructors...) ->
@@ -131,8 +146,16 @@ module.exports = OJSON =
           addToSet(set, o.name, o)
 
       # add types
-      register[k] = c for k,c of set
+      registry[k] = c for k,c of set
       return
+
+  unregister: (constructors...) ->
+    for o in constructors
+      if typeof o is 'object'
+        delete registry[k] for k of o
+      else
+        delete registry[o.name]
+    return
 
   # use by including this into classes where instead of calling the constructor
   # with the argument, a new instance should be constructed and the properties

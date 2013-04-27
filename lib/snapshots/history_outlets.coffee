@@ -1,8 +1,12 @@
 Snapshots = require './snapshots'
 Outlet = require '../cascade/outlet'
 Cascade = require '../cascade/cascade'
+Emitter = require '../events/emitter'
+{include, extend} = require '../mixin/mixin'
 
 class HistoryOutlets extends Snapshots
+  include HistoryOutlets, Emitter
+
   class @ToHistoryOutlet extends Outlet
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
@@ -53,7 +57,11 @@ class HistoryOutlets extends Snapshots
 
     get: (path, key) ->
       [path..., key] = path if not key?
-      @ensurePath(path)[key] ?= new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
+      current = (base = @ensurePath(path))[key]
+      return current if current?
+      base[key] = outlet = new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
+      @_snapshots.emit 'newOutlet', path, key, outlet
+      outlet
 
     # sets the path to null (NOT undefined) if it isn't own property
     noInherit: (path, key) ->

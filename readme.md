@@ -759,6 +759,8 @@ Components:
 
     set of parameter callbacks set various route variables
 
+    the client-side function sets the additional variables for the matching route. if on the server, this function 
+
   - client-side route function
 
     receives a Route instance, which has keys and associated values from the parsed route
@@ -870,6 +872,62 @@ answered questions:
   - how do variable changes lead to a uniquely identified URI?
 
     each route has a set of required variables and a set of optional variables. the first route that matches given the current set of variable values is the route. That is, it need not be unique -- the first one matching is used (just like express & rails routing)
+
+### route objects
+  - each knows its parameters & whether optional or required
+  - can match a URL and assign its parameters
+
+    the *router* object then takes these and calls param hooks
+
+  - can match a set of variables and return a URL
+
+    given a hash of params
+
+### RouteHistory
+
+
+
+### URIBuilder
+
+constructor arguments:
+
+  - route array
+  - mapper from route variable paths to URI variable names
+  - HistoryOutlets instance
+
+    it has to subscribe to outlet creation events (`newOutlet` event) and add them
+
+
+outlet. every time a route outlet is created, it attaches 
+
+uses a variable translator that takes a route variable path (an array like `['route','user','username']`) and returns a string giving the URI variable like `user_username`
+
+it maintains a hash from these URI names to values.
+
+when a new route variable is added, it hooks an outflow to it that assigns to this hash (so it is itself an outflow of the route variables and assigns another outflow functions to the route variable outlets that assigns to this hash)
+
+all these route variables are inflows to the URIBuilder outlet. Its outlet function is called whenever these change and:
+
+  - iterates through routes array calling match(hash)
+  - the first route that returns a string becomes the value of the URIBuilder outlet
+
+### URIListener
+
+outflow of the URIBuilder that checks the navigate/route-inducing flags to call normalized pushState and replaceState
+
+constructor args:
+
+  - URIBuilder outlet
+  - route flags object
+  - browser push/replace state normalizer
+
+### RouteFlags
+
+constructor args:
+
+  - HistoryOutlets
+
+Subscribes to newOutlet event. When outlets are added to `'route'` path, adds a pending event hook that sets route-inducing flag if 
 
 
 ## URIs, client vs server routing, undo/redo

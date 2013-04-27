@@ -246,3 +246,23 @@ describe 'HistoryOutlets', ->
       expect(viewTo.get().outlets.firstName.get()).eq foo
       expect(viewFrom.get().outlets.firstName.get()).eq bar
 
+  describe 'events', ->
+    it 'should emit a newOutlet event after new outlets are created', ->
+      @a = new HistoryOutlets
+      @a.on 'newOutlet', fn = sinon.spy ->
+      @a.to.get(['foo','bar']).set(42)
+      expect(fn).calledOnce
+
+    it 'should send 3 params: path, key and the outlet', ->
+      @a = new HistoryOutlets
+      args = []
+      @a.on 'newOutlet', fn = sinon.spy -> args = [].splice.call(arguments,0)
+      @a.to.get(['foo','bar']).set(42)
+      expect(args.length).eq 3
+      expect(Array.isArray(args[0])).true
+      expect(args[0][0]).eq 'foo'
+      expect(args[0].length).eq 1
+      expect(args[1]).eq 'bar'
+      expect(args[2].get()).eq 42
+
+

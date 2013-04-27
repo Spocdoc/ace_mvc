@@ -27,6 +27,8 @@ describe 'HistoryOutlets_OJSON', ->
     @a.to.noInherit(['foo','bar'])
     @a.to.get(['foo','bar']).set(44)
 
+    ds = @a.dataStore
+
     @a = thruJSON @a
 
     # the outlets are not restored. have to be re-created

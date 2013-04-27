@@ -41,21 +41,23 @@
 registry = {}
 
 # used to restore ojson object references
+# (it has to keep track of whether it's ownProperty or not because it's added
+# to objects that inherit a truthy _ojson)
 class OJSONRef
   count = 0
-  uniqueId = -> "#{++count}js"
+  uniqueId = -> "#{++count}oj"
   cache = {}
-  constructor: (obj, @inherit=false) -> cache[@id = uniqueId()] = obj
-  toJSON: -> @id
-  @fromJSON: (id) -> cache[id] || id
-  @add: (id, obj) -> cache[id] = obj
+  constructor: (@own, @id=uniqueId()) ->
+  toJSON: -> {o: @own, i: @id}
+  @fromJSON: (obj) -> cache[obj.i] || new OJSONRef(obj.o, obj.i)
+  @add: (inst, obj) -> cache[inst.id] = obj
   @clear: ->
     # reset all the ojson objects
-    for id, obj of cache when j = obj?._ojson
-      if j.inherit
-        delete obj._ojson
-      else
+    for id, obj of cache when (j = obj?._ojson) and j instanceof OJSONRef
+      if j.own
         obj._ojson = true
+      else
+        delete obj._ojson
     cache = {}
     count = 0
 
@@ -65,15 +67,15 @@ module.exports = OJSON =
     fn = (k, v) ->
       return v if v == null or typeof v isnt 'object'
       try
-        ojsonID = v._ojson
+        ojsonRef = v._ojson
         break for key of v
         return v if not key or key[0] != '$'
         return v if not (constructor = registry[key.substr(1)])?
-        ojsonID = v[key]?._ojson
+        ojsonRef = v[key]?._ojson
         return v = constructor.fromJSON(v[key]) if constructor.fromJSON
         return v = new constructor(v[key])
       finally
-        OJSONRef.add ojsonID, v if ojsonID
+        OJSONRef.add ojsonRef, v if ojsonRef
       
     (str) ->
       try
@@ -102,8 +104,8 @@ module.exports = OJSON =
       ret = {}
 
       # add ojson ref object
-      if obj._ojson? and (inherit = !hasOwn.call(obj,'_ojson') or !(obj._ojson instanceof OJSONRef))
-        obj._ojson = new OJSONRef(obj, inherit)
+      if obj._ojson? and (!(own = hasOwn.call(obj,'_ojson')) or !(obj._ojson instanceof OJSONRef))
+        OJSONRef.add (obj._ojson = new OJSONRef(own)), obj
 
       for k,v of obj when hasOwn.call(obj, k)
         nv = fn k, v
@@ -153,6 +155,8 @@ module.exports = OJSON =
     for o in constructors
       if typeof o is 'object'
         delete registry[k] for k of o
+      else if typeof o is 'string'
+        delete registry[o]
       else
         delete registry[o.name]
     return

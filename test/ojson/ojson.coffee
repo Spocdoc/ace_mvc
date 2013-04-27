@@ -12,6 +12,9 @@ class Bar extends Foo
 OJSON.register Foo
 OJSON.register Bar
 
+thruJSON = (obj) ->
+  OJSON.parse OJSON.stringify OJSON.parse OJSON.stringify obj
+
 describe 'OJSON', ->
   describe '#stringify', ->
     it 'should form a string', ->
@@ -151,6 +154,37 @@ describe 'OJSON', ->
     expect(a).calledBefore(b)
     expect(b).calledBefore(c)
 
+  it 'should allow registration & unregistration', ->
+    class Fro
+    OJSON.register Fro
+    expect(-> OJSON.register Fro).to.throw(Error)
+    OJSON.unregister Fro
+    OJSON.register Fro
+    expect(-> OJSON.register Fro).to.throw(Error)
+    OJSON.unregister Fro
+
+  it 'should allow registration & unregistration by name', ->
+    class Fro
+    desc = {Uno: Fro}
+    OJSON.register desc
+    expect(-> OJSON.register desc).to.throw(Error)
+    OJSON.unregister desc
+    OJSON.register desc
+    expect(-> OJSON.register desc).to.throw(Error)
+    OJSON.unregister desc
+
+  it 'should allow registration by name=>Constructor and unregistration by name only', ->
+    class Fro
+    name = 'Uno'
+    desc = {Uno: Fro}
+    OJSON.register desc
+    expect(-> OJSON.register desc).to.throw(Error)
+    OJSON.unregister name
+    OJSON.register desc
+    expect(-> OJSON.register desc).to.throw(Error)
+    OJSON.unregister name
+
+
   describe 'references', ->
     before ->
       class @A
@@ -229,4 +263,39 @@ describe 'OJSON', ->
 
       expect(chain[0].foo.foo).eq 'bar'
       expect(chain[3].foo.foo).eq 'baz'
+
+    it 'should restore _ojson when inherited and when not', ->
+      try
+        class @D
+          constructor: ->
+            @foo = 'bar'
+            @_ojson = true
+          _ojson: true
+        OJSON.register {another_d: @D}
+
+        class @E extends @D
+          constructor: ->
+        extend @E, OJSON.copyKeys
+        OJSON.register {another_e: @E}
+
+        hasOwn = {}.hasOwnProperty
+
+        a = new @D
+        b = new @E
+        doc = [a,b]
+
+        expectations = =>
+          expect(hasOwn.call(doc[0], '_ojson')).true
+          expect(hasOwn.call(doc[1], '_ojson')).false
+
+        expectations()
+
+        doc = thruJSON doc
+
+        expectations()
+
+      finally
+        OJSON.unregister 'another_e', 'another_d'
+
+
 

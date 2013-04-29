@@ -40,6 +40,12 @@ describe 'HistoryOutlets', ->
       ret.set(42)
       expect(@a.to.a.b.c.get()).eq 42
 
+    it 'should return the same outlet when fetched multiple times', ->
+      outlet = @a.to.get(['a','b','c'])
+      expect(outlet).to.exist
+      outlet2 = @a.to.get(['a','b','c'])
+      expect(outlet).eq outlet2
+
   describe 'HistoryOutlet', ->
     beforeEach ->
       @a = new HistoryOutlets

@@ -335,3 +335,48 @@ describe 'Outlet habanero', ->
     expect(@dfn).calledTwice
     expect(@efn).calledTwice
 
+describe 'Outlet stopPropagation', ->
+  it 'should still call when one inflow is pending then becomes stopPropagate', ->
+    d = new Outlet(42)
+    a = new Outlet fn_a = sinon.spy -> d.get() * 2
+    b = new Outlet fn_b = sinon.spy -> 2
+    c = new Outlet fn_c = sinon.spy -> a.get() + b.get()
+
+    d.outflows.add a
+    d.outflows.add b
+    a.outflows.add c
+    b.outflows.add c
+
+    expect(fn_a).calledOnce
+    expect(fn_b).calledOnce
+    expect(fn_c).calledOnce
+    expect(c.get()).eq (42*2+2)
+
+    d.set(43)
+    expect(fn_a).calledTwice
+    expect(fn_b).calledTwice
+    expect(fn_c).calledTwice
+    expect(c.get()).eq (43*2+2)
+
+  it 'should not call when pending and all inflows call stopPropagate', ->
+    d = new Outlet(42)
+    a = new Outlet fn_a = sinon.spy -> 2
+    b = new Outlet fn_b = sinon.spy -> 2
+    c = new Outlet fn_c = sinon.spy -> a.get() + b.get()
+
+    d.outflows.add a
+    d.outflows.add b
+    a.outflows.add c
+    b.outflows.add c
+
+    expect(fn_a).calledOnce
+    expect(fn_b).calledOnce
+    expect(fn_c).calledOnce
+    expect(c.get()).eq (4)
+
+    d.set(43)
+    expect(fn_a).calledTwice
+    expect(fn_b).calledTwice
+    expect(fn_c).calledOnce
+    expect(c.get()).eq (4)
+

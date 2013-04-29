@@ -106,11 +106,18 @@ class Cascade
 
   _calculate: (dry) ->
     return if not @pending.get()
-    (return if not @outflows[inflow.cid]?) for cid,inflow of @inflows when inflow.pending.get()
+    for cid,inflow of @inflows when inflow.pending.get()
+      if not @outflows[inflow.cid]?
+        @_noDry = true if not dry # ie, calculate this anyway if another input is dry because at least 1 input is "wet"
+        return
 
-    @func() if not dry
+    if @_noDry
+      @func()
+      delete @_noDry
+    else if not dry
+      @func()
 
-    if @_stopPropagation?
+    if @_stopPropagation
       delete @_stopPropagation
       dry = true
 

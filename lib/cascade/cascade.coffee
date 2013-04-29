@@ -112,10 +112,10 @@ class Cascade
         return
 
     if @_noDry
-      @func()
       delete @_noDry
-    else if not dry
-      @func()
+      dry = false
+
+    @func() if not dry
 
     if @_stopPropagation
       delete @_stopPropagation

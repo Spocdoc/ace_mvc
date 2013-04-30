@@ -396,7 +396,7 @@ describe 'Outlet stopPropagation', ->
     expect(fn_c).calledOnce
     expect(c.get()).eq (4)
 
-describe.only 'Outlet async', ->
+describe 'Outlet async', ->
   it 'calls the outflows only after the callback is invoked', (fin) ->
     afn0 = sinon.spy ->
     afn1 = sinon.spy ->
@@ -504,4 +504,22 @@ describe.only 'Outlet async', ->
     c.set(1)
     c.set(2)
     c.set(3)
+
+  it 'should ignore the async call if it\'s set explicitly before the async returns', (fin) ->
+
+    c = new Outlet 0
+
+    a = new Outlet (done) ->
+      switch c.get()
+        when 0 then done(0)
+        else
+          timeout ->
+            done(999)
+            timeout ->
+              timeout ->
+                expect(a.get()).eq 2
+                fin()
+
+    c.set(1)
+    a.set(2)
 

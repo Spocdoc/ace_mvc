@@ -39,6 +39,7 @@ class Outlet extends Cascade
         @run() if not options.silent?
       else
         @_value = value
+        @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was re-run
         @cascade() if not options.silent?
 
     return @_value

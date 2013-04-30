@@ -312,9 +312,15 @@ questions:
 
         this.outlets.foo = new Outlet(0);
 
+  - how do these "dirty outlets" work?
+
+    beforeNavigate event
+
 UNANSWERED QUESTIONS:
 
-  - how do these "dirty outlets" work?
+  - how do controllers that are no-reuse allow for variable changes to their own variables that are route-inducing?
+
+    there's an abstraction layer before the controller/view itself is updated. this abstraction 
 
   - how does the view add event listeners to the dom?
 
@@ -883,9 +889,19 @@ answered questions:
 
     given a hash of params
 
-### RouteHistory
+## RouteHistory
 
+  - maintains route *flags*
 
+    these are not preserved the same way as route variables and other outlets: they're a single set of outlets unaffected by navigation
+
+    and when they're changed, they calculate their 
+
+  - when the route variables are set 
+
+  - before navigating, unplugs the Cascade root, fires the beforeNavigate event, then plugs it back in
+
+    then emits afterNavigate. used by controllers that are `reuse: false`. they register a unique callback for the event when created that calls noInherit in the to. (1) the callback is unique so when re-created later, it's not re-registered and (2) the callbacks are invoked in order. perhaps the uniqueness can be ensured by using prefix unique -- if something has 
 
 ### URIBuilder
 
@@ -898,36 +914,53 @@ constructor arguments:
     it has to subscribe to outlet creation events (`newOutlet` event) and add them
 
 
-outlet. every time a route outlet is created, it attaches 
-
 uses a variable translator that takes a route variable path (an array like `['route','user','username']`) and returns a string giving the URI variable like `user_username`
 
 it maintains a hash from these URI names to values.
 
 when a new route variable is added, it hooks an outflow to it that assigns to this hash (so it is itself an outflow of the route variables and assigns another outflow functions to the route variable outlets that assigns to this hash)
 
+NOTE: the outflow of the route variable is a function that assigns to this. This way the URIBuilder never has references directly to the route variables (so they can be freed)
+
 all these route variables are inflows to the URIBuilder outlet. Its outlet function is called whenever these change and:
 
   - iterates through routes array calling match(hash)
   - the first route that returns a string becomes the value of the URIBuilder outlet
 
-### URIListener
+### URIPusher
 
 outflow of the URIBuilder that checks the navigate/route-inducing flags to call normalized pushState and replaceState
 
 constructor args:
 
   - URIBuilder outlet
-  - route flags object
+  - route flags outlet
   - browser push/replace state normalizer
 
-### RouteFlags
+    global.
 
-constructor args:
+another Outlet instance. it's set to the URIBuilder output
 
-  - HistoryOutlets
+stores the queue of replace events
 
-Subscribes to newOutlet event. When outlets are added to `'route'` path, adds a pending event hook that sets route-inducing flag if 
+### route flags
+
+This isn't a separate object. It's a single outlet in the 'route' path in HistoryOutlets
+
+TRAP: this means setting noInherit on the entire route path is disallowed
+
+
+
+### Routes
+
+array of route objects, variables, etc.
+
+when route variables are created, the route variable spec/tree is searched for a matching path and the pending function is hooked to it. this should set the appropriate route flag
+
+
+### BrowserHistory
+
+  - browser navigation events don't necessarily correspond to RouteHistory navigation events (there could be unnecessary navigation events because navigate happens whenever route-inducing variables are pending)
 
 
 ## URIs, client vs server routing, undo/redo

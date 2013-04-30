@@ -179,26 +179,27 @@ describe 'Cascade hot', ->
     expect(Object.keys(@e.inflows).length).eq(1)
     expect(Object.keys(@e.outflows).length-numOutflowKeys).eq(0)
 
-  describe '#detach', ->
-    beforeEach ->
-      @c.detach()
+describe '#detach', ->
+  beforeEach ->
+    hot.call this
+    @c.detach()
 
-    it 'should not calculate an outflow if it has been detached', ->
-      @f.run()
-      expect(@afn).calledAfter(@ffn)
-      expect(@bfn).calledAfter(@afn)
-      expect(@dfn).calledAfter(@ffn)
-      expect(@cfn).not.called
-      expect(@efn).not.called
+  it 'should not calculate an outflow if it has been detached', ->
+    @f.run()
+    expect(@afn).calledAfter(@ffn)
+    expect(@bfn).calledAfter(@afn)
+    expect(@dfn).calledAfter(@ffn)
+    expect(@cfn).not.called
+    expect(@efn).not.called
 
-    it 'should preserve outflows for the detached cascade', ->
-      @c.run()
-      expect(@afn).not.called
-      expect(@bfn).not.called
-      expect(@dfn).not.called
-      expect(@cfn).calledOnce
-      expect(@efn).calledOnce
-      expect(@efn).calledAfter(@cfn)
+  it 'should preserve outflows for the detached cascade', ->
+    @c.run()
+    expect(@afn).not.called
+    expect(@bfn).not.called
+    expect(@dfn).not.called
+    expect(@cfn).calledOnce
+    expect(@efn).calledOnce
+    expect(@efn).calledAfter(@cfn)
 
 describe 'Cascade.Block mild', ->
   beforeEach ->
@@ -340,4 +341,86 @@ describe 'Cascade.Outflows', ->
       expect(Object.keys(a.inflows).length).eq 1
       outflows = x.outflows.detach()
       expect(Object.keys(a.inflows).length).eq 0
+
+describe 'Cascade async', ->
+  it 'only calls outflows when the function is called', (fin) ->
+    a = new Cascade
+    b = new Cascade
+
+    a.outflows.add b
+
+    result = 0
+
+    b.func = ->
+      expect(result).eq 42
+      fin()
+
+    a.func = (done) ->
+      setTimeout (->
+        result = 42
+        done()), 0
+
+    a.run()
+
+  it 'keeps outflows pending that are dependent on other synchronous inflows', (fin) ->
+
+    afn = sinon.spy ->
+    bfn = sinon.spy ->
+
+    d = new Cascade
+    a = new Cascade (done) ->
+      setTimeout (->
+        afn()
+        done()
+      ), 0
+    b = new Cascade ->
+      bfn()
+    c = new Cascade ->
+      expect(afn).calledOnce
+      expect(bfn).calledOnce
+      expect(afn).calledAfter(bfn)
+      fin()
+
+    d.outflows.add a
+    d.outflows.add b
+    a.outflows.add c
+    b.outflows.add c
+
+    d.run()
+
+  it 'does not call the outflows if there are more recent calls', (fin) ->
+    timeout = (fn) -> setTimeout(fn, 0)
+
+    a2 = sinon.spy ->
+
+    a1 = sinon.spy ->
+      expect(a2).calledOnce
+      timeout ->
+        timeout ->
+          expect(bfn).calledOnce # i.e., not twice
+          fin()
+
+    a = new Cascade
+    b = new Cascade bfn = sinon.spy ->
+      expect(a1).not.called
+      expect(a2).calledOnce
+
+    a.outflows.add b
+
+    a.func = (done) ->
+      timeout ->
+        timeout ->
+          timeout ->
+            a1()
+            done()
+
+    a.run()
+
+    a.func = (done) ->
+      timeout ->
+        a2()
+        done()
+
+    a.run()
+
 

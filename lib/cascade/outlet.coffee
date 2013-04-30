@@ -4,29 +4,11 @@ Cascade = require './cascade'
 #     silent    don't run the function immediately
 #     value     initialize the value (eg, if the value parameter is a function; used with silent)
 class Outlet extends Cascade
-  @stack = []
-
   constructor: (value, options={}) ->
-    super ->
-      if @_indirect?
-        Outlet.stack.push Outlet.stackLast if Outlet.stackLast
-        Outlet.stackLast = this
-
-        value = @_indirect.get() if @_indirect.get
-        value = @_indirect.function() if @_indirect.function
-
-        Outlet.stackLast = Outlet.stack.pop()
-
-        if value == @_value
-          @stopPropagation()
-        else
-          @_value = value
-
+    super Outlet.func.sync
     @set value, options
 
-  get: ->
-    @outflows.add Outlet.stackLast if Outlet.stackLast
-    @_value
+  get: -> @_value
 
   unset: (value) ->
     @_removeIndirect() if @_indirect?.value == value
@@ -53,6 +35,7 @@ class Outlet extends Cascade
         @_indirect = indirect
         value.outflows?.add?(this)
         @_value = options.value if options.value?
+        @func = if indirect.function?.length then Outlet.func.async else Outlet.func.sync
         @run() if not options.silent?
       else
         @_value = value
@@ -61,6 +44,7 @@ class Outlet extends Cascade
     return @_value
 
   _removeIndirect: ->
+    @func = Outlet.func.sync
     delete @_indirect
     @outflows.remove @_sync if @_sync?
 
@@ -71,3 +55,5 @@ class Outlet extends Cascade
   toJSON: -> @_value
 
 module.exports = Outlet
+require('./outlet_func')(Outlet)
+

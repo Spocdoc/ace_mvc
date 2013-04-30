@@ -104,25 +104,40 @@ class Cascade
   cascade: ->
     @outflows._run()
 
-  _calculate: (dry) ->
-    return if not @pending.get()
-    for cid,inflow of @inflows when inflow.pending.get()
-      if not @outflows[inflow.cid]?
-        @_noDry = true if not dry # ie, calculate this anyway if another input is dry because at least 1 input is "wet"
-        return
-
-    if @_noDry
-      delete @_noDry
-      dry = false
-
-    @func() if not dry
-
+  _calculateDone: (dry) ->
     if @_stopPropagation
       delete @_stopPropagation
       dry = true
 
     @pending.set(false)
     @outflows._calculate(dry)
+
+  _calculate: (dry) ->
+    return if not @pending.get()
+
+    for cid,inflow of @inflows when inflow.pending.get()
+      if not @outflows[inflow.cid]?
+        @_noDry = true if not dry # ie, calculate this anyway if another input is dry because at least 1 input is "wet"
+        return
+
+    @_calculateNum = (@_calculateNum || 0) + 1
+
+    if @_noDry
+      delete @_noDry
+      dry = false
+
+    if not @func.length
+      @func() if not dry
+      @_calculateDone(dry)
+    else if dry
+      @_calculateDone(dry)
+    else
+      num = @_calculateNum
+      @func =>
+        return if num != @_calculateNum
+        @_calculateDone(dry)
+
+    return
 
   # can be called by the func to prevent updating outflows
   stopPropagation: ->

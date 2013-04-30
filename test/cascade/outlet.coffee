@@ -2,6 +2,7 @@ Outlet = lib 'outlet'
 Cascade = lib 'cascade'
 
 numOutflowKeys = 2
+timeout = (fn) -> setTimeout(fn, 0)
 
 addCallCounts = ->
   callCounts = {}
@@ -162,7 +163,14 @@ describe 'Outlet hot', ->
     expect(out).not.called
 
   describe '#detach', ->
+
     beforeEach ->
+      @a = new Outlet(1)
+      @b = new Outlet(2)
+
+      addCallCounts.call this
+
+      @b.set(@a)
       @b.detach()
 
     it 'should preserve its value when detached', ->
@@ -199,6 +207,14 @@ describe 'Outlet hot', ->
       expect(x.get()).eq 2
 
   describe 'automatic outflows', ->
+    beforeEach ->
+      @a = new Outlet(1)
+      @b = new Outlet(2)
+
+      addCallCounts.call this
+
+      @b.set(@a)
+
     it 'should assign inflows when input is a function calling other outlet\'s getters', ->
       x = new Outlet(1)
       y = new Outlet -> 2 * x.get() + 0*x.get()
@@ -379,4 +395,113 @@ describe 'Outlet stopPropagation', ->
     expect(fn_b).calledTwice
     expect(fn_c).calledOnce
     expect(c.get()).eq (4)
+
+describe.only 'Outlet async', ->
+  it 'calls the outflows only after the callback is invoked', (fin) ->
+    afn0 = sinon.spy ->
+    afn1 = sinon.spy ->
+    afn2 = sinon.spy ->
+    afn3 = sinon.spy ->
+    bfn1 = sinon.spy ->
+    cfn1 = sinon.spy ->
+
+    d = new Outlet(42)
+
+    a = new Outlet (done) ->
+      afn0()
+      if (d.get() > 42)
+        afn1()
+        timeout ->
+          afn2()
+          done(2)
+      else
+        afn3()
+        done(1)
+
+    expect(afn0).calledOnce
+    expect(afn1).not.called
+    expect(afn3).calledOnce
+    expect(d.outflows[a.cid]).exist
+    expect(a.get()).eq 1
+
+    b = new Outlet ->
+      bfn1()
+      2 * a.get()
+
+    c = new Outlet ->
+      cfn1()
+      if (b.get() == 4)
+        timeout ->
+          timeout ->
+            expect(bfn1).calledTwice
+            expect(afn0).calledTwice
+            expect(afn1).calledOnce
+            expect(afn2).calledOnce
+            expect(afn3).calledOnce
+            expect(cfn1).calledTwice
+            fin()
+
+    d.set(43)
+
+  it 'tracks dependencies in the synchronous part of the call', (fin) ->
+    bfn1 = sinon.spy ->
+    a = new Outlet 42
+    b = new Outlet (done) ->
+      bfn1()
+      q = a.get()
+      timeout ->
+        if q == 43
+          expect(bfn1).calledTwice
+          done()
+          fin()
+        else
+          done()
+    a.set(43)
+
+  it  'should accept only the value of the most recent call', (fin) ->
+    c = new Outlet 0
+
+    afn2 = sinon.spy ->
+    afn3 = sinon.spy ->
+    bfn1 = sinon.spy ->
+
+    a = new Outlet (done) ->
+      switch c.get()
+        when 0 then done(0)
+        when 1
+          timeout ->
+            timeout ->
+              timeout ->
+                expect(afn2).calledOnce
+                expect(afn3).calledOnce
+                expect(bfn1).calledOnce
+                done(1)
+                timeout ->
+                  timeout ->
+                    timeout ->
+                      timeout ->
+                        fin()
+        when 2
+          timeout ->
+            afn2()
+            done(2)
+        when 3
+          timeout ->
+            timeout ->
+              expect(afn2).calledOnce
+              afn3()
+              done(3)
+
+    b = new Outlet ->
+      switch a.get()
+        when 0 then return
+        else
+          bfn1()
+          expect(a.get()).eq 3
+          expect(afn2).calledOnce
+          expect(afn3).calledOnce
+
+    c.set(1)
+    c.set(2)
+    c.set(3)
 

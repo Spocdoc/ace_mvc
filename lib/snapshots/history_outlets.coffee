@@ -80,6 +80,10 @@ class HistoryOutlets extends Snapshots
     `var len = this.dataStore.length, i;
     for (i=1; i < len; ++i) push();`
 
+    # proxy all the methods of .to to avoid common bugs
+    for name,fn of @to when typeof fn is 'function' && !@[name]?
+      @[name] = do (fn) => => fn.apply(@to, arguments)
+
   snapshotFactory: => new ToHistorySnapshot(this)
 
   historyOutletFactory: @ToHistoryOutlet

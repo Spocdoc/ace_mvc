@@ -1,6 +1,6 @@
 HistoryOutlets = lib 'history_outlets'
 Snapshots = lib 'snapshots'
-OJSON = lib '../ojson/ojson'
+OJSON = lib '../ojson'
 
 thruJSON = (obj) ->
   OJSON.parse OJSON.stringify OJSON.parse OJSON.stringify obj

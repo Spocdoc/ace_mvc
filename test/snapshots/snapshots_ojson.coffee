@@ -1,5 +1,5 @@
 Snapshots = lib 'snapshots'
-OJSON = lib '../ojson/ojson'
+OJSON = lib '../ojson'
 snapshotTests = require './snapshots'
 
 describe 'Snapshots_OJSON', ->

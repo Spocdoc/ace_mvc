@@ -1,5 +1,5 @@
 Snapshots = lib 'snapshots'
-OJSON = lib '../ojson/ojson'
+OJSON = lib '../ojson'
 
 module.exports = snapshotTests = (clazz, options) ->
   thruJSON = options?.thruJSON || (obj) -> obj

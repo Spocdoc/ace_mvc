@@ -1,6 +1,6 @@
 # derived from node.js with substantial modification
 
-_ = require('underscore')._
+_ = require '../utils'
 require '../polyfill'
 querystring = require './querystring'
 

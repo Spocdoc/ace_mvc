@@ -35,7 +35,8 @@ class NavigatorUrl extends Url
 class Navigator
   include Navigator, Emitter
 
-  constructor: (@window, @useHash=false) ->
+  constructor: (win=window, @useHash=false) ->
+    @window = win
     @useHash ||= !@window.history || !@window.history.pushState
     @url = new NavigatorUrl(@window.location.href)
     @index = 0
@@ -111,6 +112,7 @@ class Navigator
   _urlchange: (event) =>
     newUrl = new NavigatorUrl(event.newURL || @window.location.href)
     newIndex = if event.state? then +event.state else newUrl.hashIndex()
+    @_stripHash newUrl
 
     if not isFinite(newIndex) or newUrl.href isnt @_urls[newIndex]?.href
       @_navigate newUrl

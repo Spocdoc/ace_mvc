@@ -96,7 +96,7 @@ describe 'Url', ->
     result = new Url(url)
     expect(result.href).eq 'https://user:pass@foo.com:80/path/to/the%20file%27s%20html?var=val%20one+two#a%20super%20%3Chash%3E%'
 
-  describe.only '#defaults', ->
+  describe '#defaults', ->
     it 'should set host, protocol, etc.', ->
       rhs = new Url 'http://www.example.com/bar?boo=mo#bazoo'
       lhs = new Url '/foo/bar#baz', rhs

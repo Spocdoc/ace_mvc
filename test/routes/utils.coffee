@@ -4,8 +4,8 @@ describe '#parseRoute', ->
   it 'should return the expected keys for a simple path', ->
     [regex] = utils.parseRoute '/:foo/:bar', keys=[]
     expect(keys.length).eq 2
-    expect(keys[0].name).eq 'foo'
-    expect(keys[1].name).eq 'bar'
+    expect(keys[0].key).eq 'foo'
+    expect(keys[1].key).eq 'bar'
     expect(keys[0].optional).false
     expect(keys[1].optional).false
 
@@ -23,8 +23,8 @@ describe '#parseRoute', ->
   it 'should return the expected keys for a path with optional keys', ->
     [regex] = utils.parseRoute '/:foo/:bar?', keys=[]
     expect(keys.length).eq 2
-    expect(keys[0].name).eq 'foo'
-    expect(keys[1].name).eq 'bar'
+    expect(keys[0].key).eq 'foo'
+    expect(keys[1].key).eq 'bar'
     expect(keys[0].optional).false
     expect(keys[1].optional).true
 
@@ -37,7 +37,7 @@ describe '#parseRoute', ->
   it 'should respect fixed text', ->
     [regex] = utils.parseRoute '/foo/:bar?', keys=[]
     expect(keys.length).eq 1
-    expect(keys[0].name).eq 'bar'
+    expect(keys[0].key).eq 'bar'
     expect(keys[0].optional).true
 
     expect(regex.exec '/fro/so').not.exist
@@ -49,8 +49,8 @@ describe '#parseRoute', ->
   it 'should respect captures', ->
     [regex] = utils.parseRoute '/foo/:bar(fixed)?/:baz', keys=[]
     expect(keys.length).eq 2
-    expect(keys[0].name).eq 'bar'
-    expect(keys[1].name).eq 'baz'
+    expect(keys[0].key).eq 'bar'
+    expect(keys[1].key).eq 'baz'
     expect(keys[0].optional).true
     expect(keys[1].optional).false
     m = regex.exec '/foo/fixed/mo'

@@ -1,4 +1,4 @@
-OJSON = require '../ojson/ojson'
+OJSON = require '../ojson'
 {extend, include} = require '../mixin/mixin'
 
 module.exports = (Snapshots) ->

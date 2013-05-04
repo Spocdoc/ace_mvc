@@ -10,3 +10,4 @@ class PathBuilder extends Outlet
       return @_value unless route = @router.matchParams params
       route.format params
 
+module.exports = PathBuilder

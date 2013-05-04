@@ -1,15 +1,15 @@
-Variable = require './variable'
 Router = require '../routes/router'
 PathBuilder = require '../routes/path_builder'
 Navigator = require '../navigator'
 Cascade = require '../cascade/cascade'
+Outlet = require '../cascade/outlet'
 
 class Routing
-  constructor: (@ace, @navigate) ->
+  constructor: (@ace, @navigate, Variable) ->
     @uriOutlets = {}
     @variables = []
     @variableFactory = (path, fn) =>
-      @variables.push variable = new Variable path, fn, @uriOutlets
+      @variables.push variable = new Variable path, fn
       variable
 
   makeURIOutlets: (keys) ->
@@ -22,7 +22,7 @@ class Routing
     routes.routes (uri, qs, outlets) =>
       [outlets,qs] = [qs, undefined] if not outlets and typeof qs isnt 'string'
       route = @router.add uri, qs, outlets
-      keys[key] = 1 for key of route.keys
+      keys[spec.key] = 1 for spec in route.specs
 
     @makeURIOutlets Object.keys(keys)
     routes.vars @uriOutlets, @variableFactory, @ace
@@ -31,11 +31,13 @@ class Routing
     return unless @navigator
     @navigator.push()
 
-  enableNavigator: (win=window)->
+  # args are passed to navigator
+  # @throws unless enable(routes) has been called
+  enableNavigator: (args...) ->
     return if @navigator
-    @enable() unless @router?
+    throw new Error("Must enable routes first") unless @router
 
-    @navigator = new Navigator win
+    @navigator = new Navigator args...
     @navigator.on 'navigate', @_navigate, @
 
     @pathBuilder = new PathBuilder @router

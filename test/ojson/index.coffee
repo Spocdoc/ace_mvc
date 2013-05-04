@@ -1,4 +1,4 @@
-OJSON = lib 'ojson'
+OJSON = lib 'index'
 {extend, include} = lib '../mixin/mixin'
 
 class Foo

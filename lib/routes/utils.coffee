@@ -26,7 +26,7 @@ module.exports.parseRoute = do ->
     path = path
       .replace(rPath, (match, slash='', format='', key, capture, optional, star, index) ->
 
-        optional = !!optional || options.optional
+        optional = !! (optional || options.optional)
 
         if optional
           if fixedLen = index - lastI
@@ -47,7 +47,7 @@ module.exports.parseRoute = do ->
 
         lastI = index + match.length
 
-        keys.push({ name: key, optional: optional })
+        keys.push({ key: key, optional: optional })
 
         ret = ''
         ret += slash if not optional
@@ -65,7 +65,7 @@ module.exports.parseRoute = do ->
         group = "(?:#{group})" if optional and (format != '' or slash != '')
 
         ret += group
-        ret += optional if optional
+        ret += '?' if optional
         ret += '(/*)?' if star
         ret)
       .replace(rEscape, '\\$1')

@@ -1,4 +1,3 @@
-Requires polyfills given here
 
 # Object.create
 

@@ -889,7 +889,42 @@ answered questions:
 
     given a hash of params
 
-## RouteHistory
+## explicit navigate() calls
+
+the views & controllers can call navigate() in a cascade block
+
+the URIListener can subscribe to the beforeNavigate event. When this event is received, it looks at its pending replace state and does it immediately, then calls push state with the currently known URI. When the URIBuilder updates the URI, it's always a replace state call.
+
+### route specification
+single file that exports 2 functions like this:
+
+    module.exports = {}
+
+    module.exports.routes = (match) ->
+      match '/post/abc', var: 'value'
+      match '/:articleUsername/:articleSlug'
+
+    module.exports.vars = (outlets, Variable, ace) ->
+
+      article = new Variable ['ace','articles','article'], (done) ->
+        ace.models.articles.findOne {username: outlets.articleUsername.get(), slug: outlets.articleSlug.get()}, (err, doc) ->
+          done(doc)
+
+      outlets.articleUsername.set -> article.get().username
+      outlets.articleSlug.set -> article.get().slug
+
+match is a function that takes
+
+    uri [, querystring name] [, other variable values]
+
+Variable is a class whose constructor takes
+
+    new Variable(pathArray, function)
+
+this creates an outlet that synchronizes with the history outlets whose function can depend on the (uri) outlets
+
+
+### RouteHistory
 
   - maintains route *flags*
 
@@ -926,6 +961,18 @@ all these route variables are inflows to the URIBuilder outlet. Its outlet funct
 
   - iterates through routes array calling match(hash)
   - the first route that returns a string becomes the value of the URIBuilder outlet
+
+Uses URI variables to construct URIs. These variables can be
+
+  - strings
+
+    presented in the URI as their string value
+
+  - hashes
+
+    presented in the URI the same way query strings appear
+
+  - arrays
 
 ### URIPusher
 

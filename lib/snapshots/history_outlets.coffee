@@ -94,6 +94,7 @@ class HistoryOutlets extends Snapshots
     @dataStore.splice.apply(@dataStore, arguments)
 
   navigate: (index) ->
+    @emit 'willNavigate'
     Cascade.Block =>
       @from.index = @to.index
       @dataStore[@to.index].syncTarget @from
@@ -105,6 +106,7 @@ class HistoryOutlets extends Snapshots
         @to = @[index]
         @dataStore[index].syncTarget @to
       return
+    @emit 'didNavigate'
     return
 
 module.exports = HistoryOutlets

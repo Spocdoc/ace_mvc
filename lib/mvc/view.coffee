@@ -39,17 +39,38 @@ class View
     throw new Error("View: already added #{name}") if @[name]?
     base = ViewBase[name] = new ViewBase name, fnOrHash
     @[name] = (parent, name, settings) ->
-      new @(parent, name, settings, base)
+      obj = new @(parent, name, settings)
+      obj._build(base, settings)
+      obj
     return this
 
-  constructor: (@parent, @name, settings, base) ->
+  @defaultOutlets = ['template','inWindow']
+
+  constructor: (@parent, @name, settings) ->
     @path = @parent.path.concat(@name)
     @outlets = []
     @outletMethods = []
-    @_build(base, settings)
+
+  appendTo: ($container) ->
+    @remove()
+    @$container = $container
+    $container.append(@$root)
+    if other = $container.template?.view.inWindow
+      @inWindow.set(other)
+    else
+      @inWindow.set(true)
+
+  remove: ->
+    return unless @$container
+    @$root.remove()
+    @inWindow.detach()
+    @inWindow.set(false)
 
   _buildOutlets: (outlets) ->
     return unless outlets
+
+    @[k] ||= @outlets[k] = new @_Outlet(k) for k in @constructor.defaultOutlets
+
     for k in outlets
       continue if @[k]
       if typeof k isnt 'string'
@@ -138,7 +159,9 @@ class View
 
   _buildTemplate: (arg) ->
     template = @outlets['template'] = new @_Outlet('template')
+    template.view = this
     template.outflows.add =>
+      @domCache = {}
       delete @[k] for k of @ when k[0] is '$'
       @[k] = v for k,v of template.get() when k[0] is '$'
       return
@@ -171,7 +194,7 @@ class View
 
     Cascade.Block =>
       @outlets[k].set(v) for k,v of settings when !ViewBase.reserved[k]
-      @outlets['template']?.get() || @_buildTemplate settings.template || base.name
+      @outlets['template'].get() || @_buildTemplate settings.template || base.name
 
     return
 

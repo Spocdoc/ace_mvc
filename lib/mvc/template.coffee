@@ -4,7 +4,7 @@ class TemplateBase
   constructor: (@dom) ->
 
   lazy: ->
-    return unless @$root
+    return if @$root
     @$root = $(@dom)
     @$root = $('<div></div>').append(@$root) if @$root.length > 1 or @$root.attr('id')?
     @ids = @constructor._getIds(@$root)
@@ -26,23 +26,25 @@ class Template
     base = new TemplateBase(domString)
     @[name] = (parent, name) ->
       base.lazy()
-      new @(parent, name, base)
+      obj = new @(parent, name)
+      obj._build(base)
+      obj
+    return this
 
-  constructor: (@parent, @name, base) ->
+  constructor: (@parent, @name) ->
     @path = @parent.path
     @path = @path.concat(@name) if @name
     @prefix = @path.join('-')
     @$ = {}
-    @_build(base)
-    @["$#{id}"] = @$[id] for id of @$
 
   _build: (base) ->
     @$root = base.$root.clone()
     @$root.attr('id',@prefix)
 
     for id in base.ids
-      @$[id] = @$root.find("##{id}")
-      @$[id].attr('id', "#{@prefix}-#{id}")
+      (@["$#{id}"] = @$[id] = @$root.find("##{id}"))
+      .attr('id', "#{@prefix}-#{id}")
+      .tempalte = this
     return
 
 module.exports = Template

@@ -17,7 +17,9 @@ class Ace
       _build: (base) ->
         @ace = ace
         return super unless @$root = ace.$container.find("##{@prefix}")
-        @$[id] = @$root.find("##{@prefix}-#{id}") for id in base.ids
+        for id in base.ids
+          (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
+            .template = this
         return
 
     class @View extends View

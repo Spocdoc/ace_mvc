@@ -158,10 +158,25 @@ class Cascade
           root()
     return ret
 
+  unblockRunner = (func) ->
+    roots = Cascade.roots
+    delete Cascade.roots
+    ret = func()
+    Cascade.roots = roots
+    ret
+
   @Block: (func) ->
     if this instanceof Cascade.Block
       return -> blockRunner(func)
     else
       return blockRunner(func)
+
+  # runs the function outside of the current block if there is one, then puts
+  # the original block back
+  @Unblock: (func) ->
+    if this instanceof Cascade.Unblock
+      return -> unblockRunner(func)
+    else
+      return unblockRunner(func)
 
 module.exports = Cascade

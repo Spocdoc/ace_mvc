@@ -16,8 +16,6 @@ class OutletMethod extends Outlet
   # outlets is optional
   # func [, outlets [, options]]
   constructor: (func, outlets, options={}) ->
-    return new OutletMethod(options.context, func, outlets) if not (this instanceof Outlet)
-
     # prevent super constructor from calling `run` immediately
     @run = ->
     super (=>

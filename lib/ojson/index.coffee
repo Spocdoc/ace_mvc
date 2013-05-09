@@ -1,3 +1,4 @@
+require '../polyfill'
 {include, extend} = require '../mixin/mixin'
 
 # "Object"-based JSON 
@@ -40,6 +41,19 @@
 
 registry = {}
 
+numSort = (a,b) ->
+  c = +a
+  d = +b
+  if isFinite c
+    if isFinite d
+      c-d
+    else
+      false
+  else if isFinite d
+    true
+  else
+    a < b
+
 # used to restore ojson object references
 # (it has to keep track of whether it's ownProperty or not because it's added
 # to objects that inherit a truthy _ojson)
@@ -62,10 +76,12 @@ class OJSONRef
     count = 0
 
 module.exports = OJSON =
+  useArrays: true
 
   parse: do ->
     fn = (k, v) ->
       return v if v == null or typeof v isnt 'object'
+      return v if OJSON.useArrays and Array.isArray v
       try
         ojsonRef = v._ojson
         break for key of v
@@ -95,19 +111,23 @@ module.exports = OJSON =
       if not registry[n]?
         return undefined if v.constructor != Object
         return v
+      return toJSON v if OJSON.useArrays and Array.isArray v
       doc = {}
       doc["$#{n}"] = if v.toJSON? then v.toJSON() else toJSON v
       doc
 
     toJSON = (obj) ->
       return obj if obj == null or typeof obj != 'object'
-      ret = {}
+      ret = if OJSON.useArrays and Array.isArray obj then [] else {}
 
       # add ojson ref object
       if obj._ojson? and (!(own = hasOwn.call(obj,'_ojson')) or !(obj._ojson instanceof OJSONRef))
         OJSONRef.add (obj._ojson = new OJSONRef(own)), obj
 
-      for k,v of obj when hasOwn.call(obj, k)
+      keys = Object.keys(obj)
+      keys.sort(numSort)
+      for k in keys
+        v = obj[k]
         nv = fn k, v
         if nv != v
           ret[k] = nv

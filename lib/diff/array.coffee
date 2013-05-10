@@ -1,19 +1,40 @@
-# NOTE: some of this is written in a strange way (use of quotes) to accommodate the (terrible) design decisions of Google's Closure compiler
-
 require '../polyfill'
 
-makeValueMap = (hash, arr) ->
+makeValueMap = (hashes, compare) ->
   ret = []
-  (ret[v] ||= []).push arr[i] for v,i in hash
+  (ret[v[0]] ||= []).push i for v,i in hashes
   ret
 
 makeHashArr = (hash, arr) ->
-  hash(v) for v in arr
+  [hash(v),v] for v in arr
+
+uniqueHashes = (toHash, fromHash, compare) ->
+  cmp = (a,b) -> compare(a[1],b[1])
+
+  map = {}
+  (map[v[0]] || = []).push v for v in toHash
+  (map[v[0]] || = []).push v for v in fromHash
+  for k,arr of map
+    arr[0][0] = "0-" + arr[0][0]
+    arr.sort(cmp)
+    `for (var i = 1, l = arr.length; i < l; ++i) {
+      if (0 == cmp(arr[i-1],arr[i]))
+        arr[i][0] = arr[i-1][0];
+      else
+        arr[i][0] = i + "-" + arr[i][0];
+    }`
+  return
 
 module['exports'] =
   # returns an array of insert and delete operations to transform `from` to `to`
   # optionally performs diff of replaced elements and uses "move" 
   # linear time.
+  # options:
+  #   compare
+  #   hash
+  #   move
+  #   replace
+  #   deep
   'diff': (from, to, options = {}) ->
     result = []
 
@@ -65,10 +86,12 @@ module['exports'] =
         return
 
     toHash = makeHashArr hash, to
-    toMap = makeValueMap toHash, to
-
     fromHash = makeHashArr hash, from
-    fromMap = makeValueMap fromHash, from
+
+    uniqueHashes toHash, fromHash, compare if compare = options['compare']
+
+    toMap = makeValueMap toHash
+    fromMap = makeValueMap fromHash
 
     fromCount = from.length
     toCount = to.length
@@ -76,8 +99,8 @@ module['exports'] =
     laterToIndex = laterFromIndex = fromIndex = toIndex = 0
 
     while fromIndex < fromCount && toIndex < toCount
-      fh = fromHash[fromIndex]
-      th = toHash[toIndex]
+      fh = fromHash[fromIndex][0]
+      th = toHash[toIndex][0]
 
       if fh is th
         ++toIndex
@@ -94,17 +117,17 @@ module['exports'] =
       ++fromIndex
 
     while fromIndex < fromCount
-      addOp(-1,fromHash[fromIndex],from[fromIndex],toIndex)
+      addOp(-1,fromHash[fromIndex][0],from[fromIndex],toIndex)
       ++fromIndex
 
     while toIndex < toCount
-      addOp(1,toHash[toIndex],to[toIndex],toIndex)
+      addOp(1,toHash[toIndex][0],to[toIndex],toIndex)
       ++toIndex
 
     return result
 
   # takes the result of diff and returns a transformed array (also linear time)
-  'apply': (arr, ops, options = {}) ->
+  'patch': (arr, ops, options = {}) ->
     srcIndex = 0
     dstIndex = 0
 

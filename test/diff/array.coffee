@@ -3,7 +3,7 @@ adiff = lib 'array'
 restore = (a,b,options) ->
   diff = adiff.diff(a,b,options)
   try
-    expect(adiff.apply(a,diff)).deep.eq b
+    expect(adiff.patch(a,diff)).deep.eq b
   catch e
     console.error "a:",a,"b:",b
     throw e
@@ -14,7 +14,7 @@ randArray = (n) ->
   a
 
 
-describe.only 'array diff', ->
+describe 'array diff', ->
   it 'should return the same result without move', ->
     restore \
       [1,2,3,4,6,7,8,9,9],
@@ -45,16 +45,15 @@ describe.only 'array diff', ->
     restore b, a,
       move: true
 
-  it 'should return the same results, but shorter with replacement', ->
+  it 'should work with replacement', ->
     a = [1,2,3]
     b = [4,2,3]
 
     base = adiff.diff a,b
     repl = adiff.diff a,b, replace: true
 
-    expect(repl.length).lt base.length
-
-    expect(adiff.apply(a,base)).deep.eq(adiff.apply(a,repl))
+    expect(adiff.patch(a,base)).deep.eq(adiff.patch(a,repl))
+    expect(repl).not.deep.eq base
 
   it 'should allow a hash function', ->
     a = [{a:1},2,3]
@@ -65,12 +64,14 @@ describe.only 'array diff', ->
       return o.a
 
     expect(base[1].v).deep.eq({a:2})
-    expect(adiff.apply a, base).deep.eq b
+    expect(adiff.patch a, base).deep.eq b
 
     base = adiff.diff a,b, move: true, hash: (o) ->
       return o if typeof o is 'number'
       return o.a > 0
 
+    console.log base
+
     expect(base[1].v).not.exist
-    expect(adiff.apply a, base).deep.eq [2,3,{a:1}]
+    expect(adiff.patch a, base).deep.eq [2,3,{a:1}]
 

@@ -1,55 +1,19 @@
-{diff: diffArr, apply: applyArr} = require('./array')
-
-Array.prototype.diff = (to, options) ->
-  res = diffArr(@,to,options)
-  return false unless res.length
-  res
-
-Array.prototype.applyDiff = (diff, options) ->
-  res = applyArr(@, diff, options)
-  @splice(0)
-  @[k] = v for v,k in res
-  this
-
-Date.prototype.diff = (to, options) ->
-  fromTime = @getTime()
-  toTime = to.getTime()
-  return false if fromTime == toTime
-  toTime - fromTime
-
-Date.prototype.applyDiff = (diff, options) ->
-  @setTime(@getTime() + diff)
-  this
+{diff: diffString, patch: patchString} = require('./string')
 
 types = ['string','number','object']
+registry = {}
 
 diffNumber = (from, to, options) ->
   d = to - from
   if d then d else false
 
-applyNumber = (obj, diff, options) ->
+patchNumber = (obj, diff, options) ->
   obj += diff
 
-diffString = (from, to, options) ->
-  # TODO
-  return false if to == from
-  to
-
-applyString = (obj, diff, options) ->
-  # TODO
-  diff
-
-diffObj = (from, to, options) ->
-  res = []
-
-  for k,v of from
-    if (spec = diff(v, to[k], options, k)) != false
-      res.push spec
-  
-  for k,v of to when !from[k]?
-    res.push {o: 1, k: k, v: v}
-
-  return if res.length then res else false
+findInRegistry = (obj) ->
+  return false unless reg = registry[obj.constructor.name]
+  (return r if obj instanceof r.type) for r in reg
+  false
 
 diff = (from, to, options = {}, key) ->
   if typeof from isnt typeof to
@@ -75,47 +39,72 @@ diff = (from, to, options = {}, key) ->
     when 'string'
       d = diffString(from, to, options)
     else
-      if from.diff?
-        d = from.diff to, options
-      else
-        d = diffObj(from, to, options)
+      return false unless r = findInRegistry from
+      d = r.diff from, to, options
 
-  return false if d == false
-  return { o: 0, k: key, d: d } if key?
-  d
+  if d == false
+    false
+  else if key?
+    { o: 0, k: key, d: d }
+  else
+    d
 
-applyObj = (obj, ops, options) ->
-  for op in ops
-    switch op.o
-      when -1
-        delete obj[op.k]
-      when 1
-        obj[op.k] = op.v
-      else
-        obj[op.k] = applyDiff(obj[op.k], op.d, options)
-  obj
-
-
-applyDiff = (obj, ops, options) ->
+patch = (obj, ops, options) ->
   # handle immutable objects separately
   switch typeof obj
     when 'number'
-      applyNumber(obj, ops, options)
+      patchNumber(obj, ops, options)
     when 'string'
-      applyString(obj, ops, options)
+      patchString(obj, ops, options)
     else
-      if obj.applyDiff?
-        obj.applyDiff(ops, options)
-      else
-        applyObj(obj, ops, options)
+      return false unless r = findInRegistry obj
+      r.patch obj, ops, options
 
 module.exports = (from, to, options = {}) ->
   options.deep = diff
   options.move ?= true
-
   diff(from, to, options)
 
-module.exports.applyDiff = (obj, ops, options = {}) ->
-  options.deep = applyDiff
-  applyDiff(obj, ops, options)
+module.exports.patch = (obj, ops, options = {}) ->
+  options.deep = patch
+  patch(obj, ops, options)
 
+module.exports.register = register = (constructor, diff, patch) ->
+  if typeof constructor is 'object'
+    (registry[constructor.type.name] ||= []).push constructor
+  else
+    (registry[constructor.name] ||= []).push
+      type: constructor
+      diff: diff
+      patch: patch
+  return
+
+
+
+{diff: diffArr, patch: patchArr} = require('./array')
+{diff: diffObj, patch: patchObj} = require('./object')
+
+register Object, diffObj, patchObj
+
+register
+  type: Array
+  diff: (from, to, options) ->
+    res = diffArr(from,to,options)
+    return false unless res.length
+    res
+  patch: (obj, diff, options) ->
+    res = patchArr(obj, diff, options)
+    obj.splice(0)
+    obj[k] = v for v,k in res
+    obj
+
+register
+  type: Date
+  diff: (from, to, options) ->
+    fromTime = from.getTime()
+    toTime = to.getTime()
+    return false if fromTime == toTime
+    toTime - fromTime
+  patch: (obj, diff, options) ->
+    obj.setTime(obj.getTime() + diff)
+    obj

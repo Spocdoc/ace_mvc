@@ -14,14 +14,14 @@ uniqueHashes = (toHash, fromHash, compare) ->
   map = {}
   (map[v[0]] || = []).push v for v in toHash
   (map[v[0]] || = []).push v for v in fromHash
-  for k,arr of map
-    arr[0][0] = "0-" + arr[0][0]
+  for key,arr of map
+    arr[0][0] = "0:" + arr[0][0]
     arr.sort(cmp)
     `for (var i = 1, l = arr.length; i < l; ++i) {
       if (0 == cmp(arr[i-1],arr[i]))
         arr[i][0] = arr[i-1][0];
       else
-        arr[i][0] = i + "-" + arr[i][0];
+        arr[i][0] = i + ":" + arr[i][0];
     }`
   return
 
@@ -131,16 +131,30 @@ module['exports'] =
     srcIndex = 0
     dstIndex = 0
 
+    srcLen = arr.length
+
     res = []
     saved = []
 
     deep = options['deep'] ||= (a,diff) -> diff
 
-    for o,k in ops
+    for o,r in ops
       `var i, j, index=o['i'];
+      if (index == null) return void 0;
+      if (index < 0) {
+        index = dstIndex + (srcLen - srcIndex);
+      }
       for (i = 0, j = index - dstIndex; i < j; ++i)
         res.push(arr[srcIndex++]);
       dstIndex = index;`
+
+      # support "unless" operations -- mongodb's "addToSet" for arrays.
+      # note that this breaks later index refs so is never produced by regular
+      # diffs, just when converted from mongodb
+      # only valid with o['i'] = -1
+      if o['u']?
+        continue if o['u'] in res
+        o['v'] = o['u']
 
       if o['o']
         switch o['o']
@@ -152,17 +166,22 @@ module['exports'] =
                 res[o['p']] = deep(arr[srcIndex], o['d'], options)
               else
                 res[o['p']] = arr[srcIndex]
-            ++srcIndex
+            if srcIndex == srcLen
+              res.pop()
+              --dstIndex
+            else
+              ++srcIndex
 
           when 1
             v = o['v']
-            v ?= saved[k]
+            v ?= saved[r]
             if o['d']?
               res.push deep(v, o['d'], options)
             else
               res.push v
             ++dstIndex
 
+      # deep diff
       else if o['d']?
         res.push options['deep']?(arr[srcIndex], o['d'], options)
         ++srcIndex

@@ -2,6 +2,7 @@ adiff = lib 'array'
 
 restore = (a,b,options) ->
   diff = adiff.diff(a,b,options)
+  console.log diff
   try
     expect(adiff.patch(a,diff)).deep.eq b
   catch e
@@ -75,3 +76,38 @@ describe 'array diff', ->
     expect(base[1].v).not.exist
     expect(adiff.patch a, base).deep.eq [2,3,{a:1}]
 
+  it 'should allow a push operation', ->
+    diff = [ {o: 1, i: -1, v:4} ]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq [1,2,3,4]
+
+  it 'should allow multiple push operations', ->
+    diff = [ {o: 1, i: -1, v:4}, {o: 1, i: -1, v:5}]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq [1,2,3,4,5]
+
+  it 'should allow pop', ->
+    diff = [ {o: -1, i: -1} ]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq [1,2]
+
+  it 'should allow multiple pops', ->
+    diff = [ {o: -1, i: -1}, {o: -1, i: -1} ]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq [1]
+
+  it 'should not append if the \'u\' element is present', ->
+    diff = [ {o: 1, i: -1, u: 2} ]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq a
+
+  it 'should append if the \'u\' element isn\'t present', ->
+    diff = [ {o: 1, i: -1, u: 42} ]
+    a = [1,2,3]
+    b = adiff.patch(a,diff)
+    expect(b).deep.eq [1,2,3,42]

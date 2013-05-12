@@ -1,14 +1,18 @@
-{diff: diffString, patch: patchString} = require('./string')
+{'diff': diffString, 'patch': patchString} = require('./string')
 
 types = ['string','number','object']
 registry = {}
 
 diffNumber = (from, to, options) ->
-  d = to - from
-  if d then d else false
+  return false if to == from
+  to
 
 patchNumber = (obj, diff, options) ->
-  obj += diff
+  return diff if typeof diff is 'number'
+  switch diff[0]
+    when 'd' then obj += +diff.substr(1)
+    when 'a' then obj &= +diff.substr(1)
+    when 'o' then obj |= +diff.substr(1)
 
 findInRegistry = (obj) ->
   return false unless reg = registry[obj.constructor.name]
@@ -19,16 +23,16 @@ diff = (from, to, options = {}, key) ->
   if typeof from isnt typeof to
     spec = {}
     if key?
-      spec.k = key
+      spec['k'] = key
       res = spec
     else
       res = [spec]
 
     if typeof to in types
-      spec.o = 1
-      spec.v = to
+      spec['o'] = 1
+      spec['v'] = to
     else
-      spec.o = -1
+      spec['o'] = -1
 
     return res
 
@@ -45,7 +49,7 @@ diff = (from, to, options = {}, key) ->
   if d == false
     false
   else if key?
-    { o: 0, k: key, d: d }
+    { 'o': 0, 'k': key, 'd': d }
   else
     d
 
@@ -60,51 +64,51 @@ patch = (obj, ops, options) ->
       return false unless r = findInRegistry obj
       r.patch obj, ops, options
 
-module.exports = (from, to, options = {}) ->
-  options.deep = diff
-  options.move ?= true
-  diff(from, to, options)
-
-module.exports.patch = (obj, ops, options = {}) ->
-  options.deep = patch
-  patch(obj, ops, options)
-
-module.exports.register = register = (constructor, diff, patch) ->
+register = (constructor, diff, patch) ->
   if typeof constructor is 'object'
     (registry[constructor.type.name] ||= []).push constructor
   else
     (registry[constructor.name] ||= []).push
-      type: constructor
-      diff: diff
-      patch: patch
+      'type': constructor
+      'diff': diff
+      'patch': patch
   return
 
+module['exports'] = exports = (from, to, options = {}) ->
+  options['deep'] = diff
+  options['move'] ?= true
+  diff(from, to, options)
 
+exports['patch'] = (obj, ops, options = {}) ->
+  options['deep'] = patch
+  patch(obj, ops, options)
 
-{diff: diffArr, patch: patchArr} = require('./array')
-{diff: diffObj, patch: patchObj} = require('./object')
+exports['register'] = register
+
+{'diff': diffArr, 'patch': patchArr} = require('./array')
+{'diff': diffObj, 'patch': patchObj} = require('./object')
 
 register Object, diffObj, patchObj
 
 register
-  type: Array
-  diff: (from, to, options) ->
+  'type': Array
+  'diff': (from, to, options) ->
     res = diffArr(from,to,options)
     return false unless res.length
     res
-  patch: (obj, diff, options) ->
+  'patch': (obj, diff, options) ->
     res = patchArr(obj, diff, options)
     obj.splice(0)
     obj[k] = v for v,k in res
     obj
 
 register
-  type: Date
-  diff: (from, to, options) ->
+  'type': Date
+  'diff': (from, to, options) ->
     fromTime = from.getTime()
     toTime = to.getTime()
     return false if fromTime == toTime
     toTime - fromTime
-  patch: (obj, diff, options) ->
+  'patch': (obj, diff, options) ->
     obj.setTime(obj.getTime() + diff)
     obj

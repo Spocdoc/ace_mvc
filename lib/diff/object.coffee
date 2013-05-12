@@ -1,3 +1,21 @@
+# @returns an object representing the changed values in the diff
+changes = (ops, to) ->
+  res = {}
+  for op in ops
+    k = op['k']
+    switch op['o']
+      when 1
+        (res[1] ||= {})[k] = to[k]
+      when -1
+        return {'-1': null} unless k?
+        (res[-1] ||= []).push k
+      else
+        if typeof to[k] isnt 'object' or to[k].constructor != Object
+          (res[1] ||= {})[k] = to[k]
+        else
+          (res[0] ||= {})[k] = changes(op['d'], to[k])
+  return res
+
 module['exports'] =
   'diff': (from, to, options) ->
     res = []
@@ -18,13 +36,23 @@ module['exports'] =
     deep = options['deep'] || (a,diff) -> diff
 
     for op in ops
-      switch op['o']
-        when -1
-          delete obj[op['k']]
-        when 1
-          obj[op['k']] = op['v']
-        else
-          obj[op['k']] = deep(obj[op['k']], op['d'], options)
+      if (k = op['k'])?
+        switch op['o']
+          when -1
+            delete obj[k]
+          when 1
+            obj[k] = op['v']
+          else
+            obj[k] = deep(obj[k], op['d'], options)
+      else
+        switch op['o']
+          when -1
+            return undefined
+          when 1
+            return op['v']
+          else
+            return deep(obj, op['d'], options)
     obj
 
+  'changes': changes
 

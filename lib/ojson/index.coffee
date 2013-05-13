@@ -78,24 +78,36 @@ class OJSONRef
 module.exports = OJSON =
   useArrays: true
 
-  parse: do ->
-    fn = (k, v) ->
-      return v if v == null or typeof v isnt 'object'
-      return v if OJSON.useArrays and Array.isArray v
+  parse: (str) -> OJSON.fromOJSON JSON.parse str
+
+  fromOJSON: do ->
+    fromOJSON = (obj) ->
+      return obj if typeof obj isnt 'object' or obj == null
+
+      res = if Array.isArray obj then [] else {}
+      keys = Object.keys(obj)
+      keys.sort(numSort)
+      for k in keys
+        v = fromOJSON obj[k]
+        if k[0] is '$'
+          if (constructor = registry[k.substr(1)])?
+            if constructor.fromJSON?
+              res = constructor.fromJSON obj=v
+            else
+              res = new constructor obj=v
+            break
+        res[k] = v
+
+      if obj._ojson instanceof OJSONRef
+        OJSONRef.add obj._ojson, res
+      if res?._ojson instanceof OJSONRef
+        OJSONRef.add res._ojson, res
+
+      res
+
+    (obj) ->
       try
-        ojsonRef = v._ojson
-        break for key of v
-        return v if not key or key[0] != '$'
-        return v if not (constructor = registry[key.substr(1)])?
-        ojsonRef = v[key]?._ojson
-        return v = constructor.fromJSON(v[key]) if constructor.fromJSON
-        return v = new constructor(v[key])
-      finally
-        OJSONRef.add ojsonRef, v if ojsonRef
-      
-    (str) ->
-      try
-        JSON.parse str, fn
+        fromOJSON obj
       finally
         OJSONRef.clear()
 

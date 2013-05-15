@@ -13,8 +13,14 @@ class Outlet extends Cascade
   unset: (value) ->
     @_removeIndirect() if @_indirect?.value == value
 
+  add: (delta) -> @set(@_value + delta)
+
+  # when the value is an object, call to indicate the contents of the object
+  # have changed
+  changed: -> @set(@_value)
+
   set: (value, options={}) ->
-    if @_value != value
+    if @_value != value or (value and value.constructor in [Array,Object])
 
       indirect = undefined
       sync = undefined

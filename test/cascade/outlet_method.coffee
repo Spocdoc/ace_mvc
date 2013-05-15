@@ -141,7 +141,7 @@ describe 'OutletMethod medium', ->
     expect(@callCounts[@y.cid]).not.exist
     expect(@m.get()).eq 7
 
-  it 'should no recalculate when released and prior inputs change', ->
+  it 'should not recalculate when released and prior inputs change', ->
     @m.detach()
     @x.set(42)
     @y.set(43)
@@ -198,4 +198,31 @@ describe 'OutletMethod #restoreValue', ->
     m.rebind x: x1, y: y1
     expect(foo).not.called
     expect(bar).calledOnce
+
+describe.only 'OutletMethod with object inputs', ->
+  it 'should recalculate when an input is an object', ->
+    arr = [1,2,3]
+    a = new Outlet arr
+    foo = sinon.spy ->
+    bar = sinon.spy ->
+    method = (a) ->
+      foo()
+      a[0]
+    m = new OutletMethod method, {a: a}
+    b = new Outlet ->
+      bar()
+      m.get()
+
+    expect(foo).calledOnce
+    expect(bar).calledOnce
+    expect(b.get()).eq 1
+    arr.push(4)
+    expect(foo).calledOnce
+    expect(bar).calledOnce
+    expect(b.get()).eq 1
+
+    a.changed()
+    expect(foo).calledTwice
+    expect(bar).calledOnce
+    expect(b.get()).eq 1
 

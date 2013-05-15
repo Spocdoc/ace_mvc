@@ -523,3 +523,17 @@ describe 'Outlet async', ->
     c.set(1)
     a.set(2)
 
+describe 'Outlet with objects', ->
+  it 'should always recalculate when set to an object', ->
+    arr = [1,2,3]
+    arg = undefined
+    a = new Outlet arr
+    b = sinon.spy (argg) -> arg = argg
+    a.outflows.add b
+    expect(b.calledOnce)
+    arr.push(4)
+    expect(b.calledOnce)
+    a.changed()
+    expect(b.calledTwice)
+    expect(arg).eq.arr
+

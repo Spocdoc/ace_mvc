@@ -23,10 +23,10 @@ class OutletMethod extends Outlet
       args = []
       @_values ||= []
 
-      `var i, len, arg;
+      `var i, len, arg, c;
       for (i = 0, len = _this._argOutlets.length; i < len; i = i + 1) {
         arg = _this._argOutlets[i].get();
-        changed || (changed = (arg != _this._values[i]));
+        changed || (changed = (arg != _this._values[i]) || (arg && ((c = arg.constructor) === Array || c === Object)) );
         args.push(arg);
       }`
 
@@ -51,7 +51,7 @@ class OutletMethod extends Outlet
     @_silent = options.silent
     @run()
     delete @_silent
-    return
+    return this
 
   detach: ->
     # retain the func, but remove arg outlets

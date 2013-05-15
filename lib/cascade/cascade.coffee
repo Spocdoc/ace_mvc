@@ -17,6 +17,8 @@ class Cascade
     @cid = uniqueId()
 
   class Outflows
+    include Outflows, Emitter
+
     constructor: (@cascade) ->
       # uses an array for faster iteration
       # uses itself as a dictionary for uniqueness
@@ -29,6 +31,7 @@ class Cascade
       @[outflow.cid ?= uniqueId()] = 1
       @_arr.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
+      @emit 'hasOutflows' if @_arr.length == 1
       return
 
     remove: (outflow) ->
@@ -40,6 +43,7 @@ class Cascade
         }
       }`
       delete outflow.inflows?[@cascade.cid]
+      @emit 'noOutflows' unless @_arr.length
       return
 
     # removes all the outflows (and removes this cascade from the inflows of
@@ -51,6 +55,7 @@ class Cascade
       for outflow in ret
         delete outflow.inflows?[@cascade.cid]
         delete @[outflow.cid]
+      @emit 'noOutflows'
       return ret
 
     # @param arr [Array] array of outflows to (re)attach

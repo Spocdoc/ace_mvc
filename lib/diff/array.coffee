@@ -1,4 +1,10 @@
+`// ==ClosureCompiler==
+// @compilation_level ADVANCED_OPTIMIZATIONS
+// @js_externs module.exports
+// ==/ClosureCompiler==
+`
 require '../polyfill'
+clone = require '../clone'
 
 makeValueMap = (hashes, compare) ->
   ret = []
@@ -25,7 +31,7 @@ uniqueHashes = (toHash, fromHash, compare) ->
     }`
   return
 
-module['exports'] =
+module.exports =
   # returns an array of insert and delete operations to transform `from` to `to`
   # optionally performs diff of replaced elements and uses "move" 
   # linear time.
@@ -37,6 +43,7 @@ module['exports'] =
   #   deep
   'diff': (from, to, options = {}) ->
     result = []
+    return result if from == to
 
     if options['replace']
       options['deep'] = (a, b) -> b
@@ -124,6 +131,10 @@ module['exports'] =
       addOp(1,toHash[toIndex][0],to[toIndex],toIndex)
       ++toIndex
 
+    # clone value assignments
+    for op in result
+      op['v'] = clone op['v'] if op['v']
+
     return result
 
   # takes the result of diff and returns a transformed array (also linear time)
@@ -156,36 +167,36 @@ module['exports'] =
         continue if o['u'] in res
         o['v'] = o['u']
 
-      if o['o']
-        switch o['o']
-          when -1
-            if o['r']?
-              saved[o['r']] = arr[srcIndex]
-            else if o['p']?
-              if o['d']?
-                res[o['p']] = deep(arr[srcIndex], o['d'], options)
-              else
-                res[o['p']] = arr[srcIndex]
-            if srcIndex == srcLen
-              res.pop()
-              --dstIndex
-            else
-              ++srcIndex
-
-          when 1
-            v = o['v']
-            v ?= saved[r]
+      switch o['o']
+        when -1
+          if o['r']?
+            saved[o['r']] = arr[srcIndex]
+          else if o['p']?
             if o['d']?
-              res.push deep(v, o['d'], options)
+              res[o['p']] = deep(arr[srcIndex], o['d'], options)
             else
-              res.push v
-            ++dstIndex
+              res[o['p']] = arr[srcIndex]
+          if srcIndex == srcLen
+            res.pop()
+            --dstIndex
+          else
+            ++srcIndex
 
-      # deep diff
-      else if o['d']?
-        res.push options['deep']?(arr[srcIndex], o['d'], options)
-        ++srcIndex
-        ++dstIndex
+        when 1
+          if (v = o['v'])?
+            v = clone v
+          else
+            v = saved[r]
+          if o['d']?
+            res.push deep(v, o['d'], options)
+          else
+            res.push v
+          ++dstIndex
+
+        else
+          res.push options['deep']?(arr[srcIndex], o['d'], options)
+          ++srcIndex
+          ++dstIndex
 
     `for (var j = arr.length; srcIndex < j; ++srcIndex)
       res.push(arr[srcIndex]);`

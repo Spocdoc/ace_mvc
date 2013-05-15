@@ -4,6 +4,7 @@ diff = lib 'index'
 
 describe 'to_mongo', ->
   before (done) ->
+    @timeout(5000)
     @server = new mongodb.Server '/tmp/mongodb-27017.sock'
     @db = new mongodb.Db 'ace_mocha', @server,
       w: 1
@@ -167,6 +168,21 @@ describe 'to_mongo', ->
       @coll.update {}, m, =>
         @coll.findOne (err, doc) =>
           delete doc._id
+          expect(doc).deep.eq b
+          done()
+
+  it 'should work with partial diffs', (done) ->
+    a = {_id: 'id', _v: 0, foo: { bar: [null, baz: {hello: 'world'}] } }
+    c = {hello: 'mundo'}
+    b = {_id: 'id', _v: 0, foo: { bar: [null, baz: {hello: 'mundo'}] } }
+    path = ['foo','bar',1,'baz']
+    d = diff(a, c, path: path)
+    m = tomongo(d, b)
+
+    @coll.insert a, =>
+      @coll.update {}, m, =>
+        @coll.findOne (err, doc) =>
+          delete doc._id unless b._id?
           expect(doc).deep.eq b
           done()
 

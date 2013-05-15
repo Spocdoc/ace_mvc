@@ -2,7 +2,6 @@ adiff = lib 'array'
 
 restore = (a,b,options) ->
   diff = adiff.diff(a,b,options)
-  console.log diff
   try
     expect(adiff.patch(a,diff)).deep.eq b
   catch e
@@ -70,8 +69,6 @@ describe 'array diff', ->
     base = adiff.diff a,b, move: true, hash: (o) ->
       return o if typeof o is 'number'
       return o.a > 0
-
-    console.log base
 
     expect(base[1].v).not.exist
     expect(adiff.patch a, base).deep.eq [2,3,{a:1}]

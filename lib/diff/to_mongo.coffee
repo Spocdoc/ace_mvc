@@ -106,19 +106,25 @@ tomongo = (res, ops, to, prefix) ->
   for op in ops
     k = op['k']
     sk = (if prefix then prefix+'.' else '') + k
+
+    t = to
+    s = k.split '.'
+    `for (var j=0, je = s.length-1; j < je; ++j) t = t[s[j]];`
+    k = s[s.length-1]
+
     switch op['o']
       when 1
-        set(res, sk, to[k])
+        set(res, sk, t[k])
       when -1
         return undefined unless k?
         unset(res, sk)
       else
-        switch typeof to[k]
+        switch typeof t[k]
           when 'string'
-            set(res, sk, to[k])
+            set(res, sk, t[k])
           when 'number'
             if typeof (d = op['d']) is 'number'
-              set(res, sk, to[k])
+              set(res, sk, t[k])
             else
               v = +d.substr(1)
               switch d[0]
@@ -126,15 +132,15 @@ tomongo = (res, ops, to, prefix) ->
                 when 'o' then bitOr(res, sk, v)
                 when 'a' then bitAnd(res, sk, v)
           else
-            if Array.isArray(to[k])
-              unless fromArray(res, op['d'], to[k], sk)
-                set(res, sk, to[k])
+            if Array.isArray(t[k])
+              unless fromArray(res, op['d'], t[k], sk)
+                set(res, sk, t[k])
             else
-              tomongo(res, op['d'], to[k], sk)
+              tomongo(res, op['d'], t[k], sk)
   return
 
 
-module['exports'] = (ops, to) ->
+module.exports = (ops, to) ->
   res = {}
   tomongo(res, ops, to, '')
   res

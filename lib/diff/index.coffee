@@ -1,7 +1,15 @@
+`// ==ClosureCompiler==
+// @compilation_level ADVANCED_OPTIMIZATIONS
+// @js_externs module.exports, a.find, a.add
+// @formatting pretty_print
+// ==/ClosureCompiler==
+`
+Registry = require '../registry'
 {'diff': diffString, 'patch': patchString} = require('./string')
+clone = require '../clone'
 
 types = ['string','number','object']
-registry = {}
+registry = new Registry
 
 diffNumber = (from, to, options) ->
   return false if to == from
@@ -14,11 +22,6 @@ patchNumber = (obj, diff, options) ->
     when 'a' then obj &= +diff.substr(1)
     when 'o' then obj |= +diff.substr(1)
 
-findInRegistry = (obj) ->
-  return false unless reg = registry[obj.constructor.name]
-  (return r if obj instanceof r.type) for r in reg
-  false
-
 diff = (from, to, options = {}, key) ->
   if typeof from isnt typeof to
     spec = {}
@@ -30,7 +33,7 @@ diff = (from, to, options = {}, key) ->
 
     if typeof to in types
       spec['o'] = 1
-      spec['v'] = to
+      spec['v'] = clone to
     else
       spec['o'] = -1
 
@@ -43,7 +46,7 @@ diff = (from, to, options = {}, key) ->
     when 'string'
       d = diffString(from, to, options)
     else
-      return false unless r = findInRegistry from
+      return false unless r = registry.find from
       d = r.diff from, to, options
 
   if d == false
@@ -61,22 +64,35 @@ patch = (obj, ops, options) ->
     when 'string'
       patchString(obj, ops, options)
     else
-      return false unless r = findInRegistry obj
+      return false unless r = registry.find obj
       r.patch obj, ops, options
 
 register = (constructor, diff, patch) ->
-  if typeof constructor is 'object'
-    (registry[constructor.type.name] ||= []).push constructor
-  else
-    (registry[constructor.name] ||= []).push
-      'type': constructor
-      'diff': diff
-      'patch': patch
+  registry.add constructor,
+    diff: diff
+    patch: patch
   return
 
-module['exports'] = exports = (from, to, options = {}) ->
+stub = (path, to, index=0) ->
+  return clone to unless (p=path[index])?
+  obj = if typeof p is 'number' then [] else {}
+  obj[p] = stub(path, to, ++index)
+  obj
+
+module.exports = exports = (from, to, options = {}) ->
   options['deep'] = diff
   options['move'] ?= true
+
+  if options['path']
+    # to represents only part of the from object.
+    for p,i in options['path']
+      if from[p]
+        from = from[p]
+      else
+        return [{'o': 1, 'k': options['path'][0..i].join('.'), 'v': stub(options['path'][(i+1)..],to)}]
+
+    return [diff from, to, options, options['path'].join('.')]
+
   diff(from, to, options)
 
 exports['patch'] = (obj, ops, options = {}) ->
@@ -85,30 +101,30 @@ exports['patch'] = (obj, ops, options = {}) ->
 
 exports['register'] = register
 
+## Register standard types
+
 {'diff': diffArr, 'patch': patchArr} = require('./array')
 {'diff': diffObj, 'patch': patchObj} = require('./object')
 
 register Object, diffObj, patchObj
 
-register
-  'type': Array
-  'diff': (from, to, options) ->
+register Array,
+  ((from, to, options) ->
     res = diffArr(from,to,options)
     return false unless res.length
-    res
-  'patch': (obj, diff, options) ->
+    res),
+  ((obj, diff, options) ->
     res = patchArr(obj, diff, options)
     obj.splice(0)
     obj[k] = v for v,k in res
-    obj
+    obj)
 
-register
-  'type': Date
-  'diff': (from, to, options) ->
+register Date,
+  ((from, to, options) ->
     fromTime = from.getTime()
     toTime = to.getTime()
     return false if fromTime == toTime
-    toTime - fromTime
-  'patch': (obj, diff, options) ->
+    toTime - fromTime),
+  ((obj, diff, options) ->
     obj.setTime(obj.getTime() + diff)
-    obj
+    obj)

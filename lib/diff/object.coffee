@@ -1,23 +1,14 @@
-# @returns an object representing the changed values in the diff
-changes = (ops, to) ->
-  res = {}
-  for op in ops
-    k = op['k']
-    switch op['o']
-      when 1
-        (res[1] ||= {})[k] = to[k]
-      when -1
-        return {'-1': null} unless k?
-        (res[-1] ||= []).push k
-      else
-        if typeof to[k] isnt 'object' or to[k].constructor != Object
-          (res[1] ||= {})[k] = to[k]
-        else
-          (res[0] ||= {})[k] = changes(op['d'], to[k])
-  return res
+`// ==ClosureCompiler==
+// @compilation_level ADVANCED_OPTIMIZATIONS
+// @js_externs module.exports
+// ==/ClosureCompiler==
+`
+clone = require '../clone'
 
-module['exports'] =
+module.exports =
   'diff': (from, to, options) ->
+    return false if from == to
+
     res = []
 
     deep = options['deep'] || (a,b) ->
@@ -28,7 +19,7 @@ module['exports'] =
         res.push spec
     
     for k,v of to when !from[k]?
-      res.push {'o': 1, 'k': k, 'v': v}
+      res.push {'o': 1, 'k': k, 'v': clone v}
 
     return if res.length then res else false
 
@@ -37,22 +28,25 @@ module['exports'] =
 
     for op in ops
       if (k = op['k'])?
+        # k might be a compound key like foo.bar.1.baz
+        o = obj
+        s = k.split '.'
+        `for (var j=0, je = s.length-1; j < je; ++j) o = o[s[j]];`
+        k = s[s.length-1]
         switch op['o']
           when -1
-            delete obj[k]
+            delete o[k]
           when 1
-            obj[k] = op['v']
+            o[k] = clone op['v']
           else
-            obj[k] = deep(obj[k], op['d'], options)
+            o[k] = deep(o[k], op['d'], options)
       else
         switch op['o']
           when -1
             return undefined
           when 1
-            return op['v']
+            return clone op['v']
           else
             return deep(obj, op['d'], options)
     obj
-
-  'changes': changes
 

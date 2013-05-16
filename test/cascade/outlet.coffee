@@ -593,3 +593,33 @@ describe 'Outlet with objects', ->
 
     expect(changer.get()).deep.eq ['a','b','c']
     expect(foo).calledThrice
+
+  describe '#get(args...)', ->
+    it 'should invoke underlying object\'s get(args) when called with arguments', ->
+      foo = sinon.spy ->
+      bar = sinon.spy ->
+
+      obj =
+        get: (arg) ->
+          bar()
+          return @ unless arg?
+          foo()
+          "yay"
+
+      outlet = new Outlet obj
+
+      expect(foo).not.called
+      expect(bar).calledOnce
+      expect(outlet.get()).eq obj
+      expect(foo).not.called
+      expect(bar).calledOnce
+
+      expect(outlet.get(123)).eq 'yay'
+      expect(foo).calledOnce
+      expect(bar).calledTwice
+
+      expect(outlet.get()).eq obj
+      expect(foo).calledOnce
+      expect(bar).calledTwice
+
+

@@ -64,6 +64,8 @@ class Model
     outlet
 
   get: (path, key) ->
+    return this unless path
+
     path = path.concat(key) if key?
     o = @_outlets
     o = o[p] ||= {} for p in path

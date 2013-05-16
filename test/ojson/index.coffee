@@ -1,5 +1,5 @@
 OJSON = lib 'index'
-{extend, include} = lib '../mixin/mixin'
+{extend, include} = lib '../mixin'
 
 class Foo
   constructor: (@_value) ->

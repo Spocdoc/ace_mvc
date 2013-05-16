@@ -1,5 +1,5 @@
 Emitter = lib 'emitter'
-{extend, include} = lib '../mixin/mixin'
+{extend, include} = lib '../mixin'
 
 class A
 include A, Emitter

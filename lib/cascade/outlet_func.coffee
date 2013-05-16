@@ -4,7 +4,11 @@ module.exports = (Outlet) ->
 
   Outlet.prototype.get = ->
     @outflows.add Outlet.stackLast if Outlet.stackLast
-    @_value
+    if arguments.length and @_indirect?.get
+      obj = @_indirect.value
+      obj.get.apply(obj,arguments)
+    else
+      @_value
 
   Outlet.prototype._funcDone = (value) ->
     if value == @_value

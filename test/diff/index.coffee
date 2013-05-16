@@ -23,7 +23,7 @@ describe 'diff', ->
     from = diff.patch(from, d)
     expect(JSON.stringify from).eq JSON.stringify result
 
-  it.only 'should clone objects in the diff', ->
+  it 'should clone objects in the diff', ->
     a = {foo: 'foo'}
     b = {foo: {bar: 'baz'}}
     d = diff(a,b)

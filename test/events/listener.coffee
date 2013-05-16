@@ -1,6 +1,6 @@
 Emitter = lib 'emitter'
 Listener = lib 'listener'
-{extend, include} = lib '../mixin/mixin'
+{extend, include} = lib '../mixin'
 
 class E
 include E, Emitter

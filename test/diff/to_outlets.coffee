@@ -3,7 +3,7 @@ Outlet = lib '../cascade/outlet'
 diff = lib 'index'
 clone = lib '../clone'
 
-describe.only 'patch_outlets', ->
+describe 'patch_outlets', ->
   it 'should set outlets when originally empty', ->
     a = {}
     b = {a: [1,2,3]}

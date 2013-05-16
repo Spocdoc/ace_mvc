@@ -8,7 +8,7 @@ class Outlet extends Cascade
     super Outlet.func.sync
     @set value, options
 
-  get: -> @_value
+  get: -> # redefined in outlet_func
 
   unset: (value) ->
     @_removeIndirect() if @_indirect?.value == value

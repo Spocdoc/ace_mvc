@@ -55,11 +55,12 @@ class Outlet extends Cascade
 
   _removeIndirect: ->
     @func = Outlet.func.sync
+    @_indirect.value.outflows?.remove this
     delete @_indirect
     @outflows.remove @_sync if @_sync?
 
   detach: ->
-    @_removeIndirect()
+    @_removeIndirect() if @_indirect
     super
 
   toJSON: -> @_value

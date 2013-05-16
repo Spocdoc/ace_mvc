@@ -19,21 +19,9 @@ class OutletMethod extends Outlet
     # prevent super constructor from calling `run` immediately
     @run = ->
     super (=>
-      changed = false
       args = []
-      @_values ||= []
-
-      `var i, len, arg, c;
-      for (i = 0, len = _this._argOutlets.length; i < len; i = i + 1) {
-        arg = _this._argOutlets[i].get();
-        changed || (changed = (arg != _this._values[i]) || (arg && ((c = arg.constructor) === Array || c === Object)) );
-        args.push(arg);
-      }`
-
-      if changed
-        @_values = args
-        return func.apply(options.context, @_values) if not @_silent
-      return @_value
+      args.push a.get() for a in @_argOutlets
+      func.apply(options.context, args)
       ), options
 
     delete @run
@@ -47,10 +35,10 @@ class OutletMethod extends Outlet
   # eg, {a: outletX, b: outletY}
   rebind: (outlets, options={}) ->
     @detach()
-    @_argOutlets.push outlets[name] for name in @_names
-    @_silent = options.silent
-    @run()
-    delete @_silent
+    for name in @_names
+      outlets[name].outflows.add this
+      @_argOutlets.push outlets[name]
+    @run() unless options.silent
     return this
 
   detach: ->

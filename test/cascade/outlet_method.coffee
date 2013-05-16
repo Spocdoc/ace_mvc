@@ -149,15 +149,16 @@ describe 'OutletMethod medium', ->
     expect(@m.get()).eq 8
     expect(@callCounts[@m.cid]).eq 1
 
-  it 'should not recalculate when rebound to outlets with the same value', ->
-    @m.detach()
-    expect(@m.get()).eq 8
-    expect(@callCounts[@foo.cid]).eq 1
-    x1 = new Outlet(1)
-    y1 = new Outlet(2)
-    @m.rebind x: x1, y: y1
-    expect(@m.get()).eq 8
-    expect(@callCounts[@foo.cid]).eq 1
+  # decided against this
+  # it 'should not recalculate when rebound to outlets with the same value', ->
+  #   @m.detach()
+  #   expect(@m.get()).eq 8
+  #   expect(@callCounts[@foo.cid]).eq 1
+  #   x1 = new Outlet(1)
+  #   y1 = new Outlet(2)
+  #   @m.rebind x: x1, y: y1
+  #   expect(@m.get()).eq 8
+  #   expect(@callCounts[@foo.cid]).eq 1
 
   it 'should recalculate when rebound to outlets that have changed', ->
     @m.detach()
@@ -190,14 +191,15 @@ describe 'OutletMethod #restoreValue', ->
     expect(bar).calledOnce
     expect(mOutflow.get()).eq 6
 
-    # also, shouldn't call when rebound
+    # # decided against
+    # # also, shouldn't call when rebound
 
-    x1 = new Outlet 2
-    y1 = new Outlet 3
+    # x1 = new Outlet 2
+    # y1 = new Outlet 3
 
-    m.rebind x: x1, y: y1
-    expect(foo).not.called
-    expect(bar).calledOnce
+    # m.rebind x: x1, y: y1
+    # expect(foo).not.called
+    # expect(bar).calledOnce
 
 describe 'OutletMethod with object inputs', ->
   it 'should recalculate when an input is an object', ->

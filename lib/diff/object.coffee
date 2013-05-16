@@ -32,7 +32,7 @@ module.exports =
         o = obj
         s = k.split '.'
         `for (var j=0, je = s.length-1; j < je; ++j) o = o[s[j]];`
-        k = s[s.length-1]
+        k = s[je]
         switch op['o']
           when -1
             delete o[k]

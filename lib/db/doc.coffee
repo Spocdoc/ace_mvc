@@ -92,7 +92,7 @@ class Doc
     @pending |= DEL_NOW
     @db['delete'] this, (err) =>
       if err
-        @emit 'undelete', this, err[1]
+        @emit 'undelete', err[1]
       else
         @serverDelete()
     return
@@ -135,7 +135,7 @@ class Doc
     @_doServerUpdate()
 
   serverDelete: ->
-    @emit 'deleted', this
+    @emit 'delete'
     @_delete()
     return
 
@@ -183,12 +183,12 @@ class Doc
     else unless @conflicted or @rejected
       if @pending & UP_LATER
         @update()
+      else if @pending & SUB_LATER
+        @_subscribe()
+      else if @pending & USUB_LATER
+        @_unsubscribe()
       else
-        @_patchIncoming()
-        if @pending & SUB_LATER
-          @_subscribe()
-        else if @pending & USUB_LATER
-          @_unsubscribe()
+        @_doServerUpdate()
     return
 
   emit: Emitter.emit
@@ -234,7 +234,7 @@ class Doc
 
   _reject: (data) ->
     @rejected ||= data || true
-    @emit 'rejected', this, data
+    @emit 'reject', data
     return
 
   _conflict: (data) ->
@@ -243,7 +243,7 @@ class Doc
     return if !@incoming[@doc._v] and @live
     @_patchIncoming()
     [outgoing, @outgoing] = [@outgoing, []]
-    @emit 'conflicted', this, @doc._v, outgoing
+    @emit 'conflict', @doc._v, outgoing
     return
 
   _doServerUpdate: ->
@@ -252,15 +252,17 @@ class Doc
     if @conflicted
       @_conflict()
     else
-      @_patchIncoming()
-      @emit 'update', this
+      if (a = @_patchIncoming()).length
+        @emit 'update', a
 
   _patchIncoming: ->
+    a = []
     while ops = @incoming[@doc._v]
+      a.push ops...
       delete @incoming[@doc._v]
       @doc = diff.patch @doc, ops
       ++@doc._v
-    return
+    return a
 
   _delete: ->
     unless @_deleted

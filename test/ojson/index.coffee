@@ -267,7 +267,6 @@ ojsonTest = (OJSON) ->
         chain[3].foo = {foo: 'baz'}
 
         str = OJSON.stringify chain
-        console.log str
         chain = OJSON.parse str
 
         for i in [0..10]

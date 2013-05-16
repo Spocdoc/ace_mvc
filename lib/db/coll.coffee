@@ -10,7 +10,8 @@ class Coll
     doc.create()
     doc
 
-  read: (id = new ObjectId, spec) ->
+  read: (id = new ObjectID, spec) ->
+    id = new ObjectID(id) if typeof id is 'string'
     return d if d = @docs[id]
     d = new Doc this, id, spec
     @docs[id] = d

@@ -1,5 +1,5 @@
 require '../polyfill'
-{include, extend} = require '../mixin/mixin'
+{include, extend} = require '../mixin'
 
 # "Object"-based JSON 
 # converts registered types to a notation like `{$Date: "..."}`

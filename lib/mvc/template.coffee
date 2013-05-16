@@ -1,4 +1,4 @@
-$ = require '$'
+$ = global.$
 
 class TemplateBase
   constructor: (@dom) ->
@@ -44,7 +44,7 @@ class Template
     for id in base.ids
       (@["$#{id}"] = @$[id] = @$root.find("##{id}"))
       .attr('id', "#{@prefix}-#{id}")
-      .tempalte = this
+      .template = this
     return
 
 module.exports = Template

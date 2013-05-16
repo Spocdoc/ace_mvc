@@ -1,5 +1,7 @@
 OJSON = require '../../ojson'
 sockio = require("socket.io")
+{extend} = require '../../mixin'
+Listener = require '../../events/listener'
 
 # called with this = sock
 onevent = (event, origin, ojSpec) ->
@@ -11,9 +13,10 @@ module.exports = (db, server) ->
   io = sockio.listen(server)
 
   io.on 'connection', (sock) ->
+    extend sock, Listener # no name clashes
 
     sock.on 'disconnect', ->
-      db.off(0,0,sock)
+      sock.listenOff db
       return
 
     sock.on 'create', (data, cb) ->
@@ -32,13 +35,13 @@ module.exports = (db, server) ->
       c = data['c']
       i = data['i']
 
-      db.on db.channel(c,i), onevent, sock
+      sock.listenOn db, db.channel(c,i), onevent
       db.subscribe sock.id, c, i, data['e'], cb
 
     sock.on 'unsubscribe', (data, cb) ->
       c = data['c']
       i = data['i']
 
-      db.off db.channel(c,i), onevent, sock
+      sock.listenOff db, db.channel(c,i)
       db.unsubscribe sock.id, c, i, cb
 

@@ -5,7 +5,7 @@ _ = require '../utils'
 # for matching: the querystring and hash are always optional (there can be no
 # required variables)
 class Route
-  constructor: (@path, @qsKey, @outlets, options={}) ->
+  constructor: (@path, @qsKey, @outletHash, options={}) ->
     if ~(i = (path=@path).indexOf('#'))
       [hash,path] = [path.substr(i), path.substr(0,i)]
 
@@ -34,7 +34,7 @@ class Route
   matchParams: (params) ->
     for spec in @specs when !spec.optional
       return false unless params[spec.key]?
-    for k of @outlets
+    for k of @outletHash
       return false unless params[k]?
     return true
 

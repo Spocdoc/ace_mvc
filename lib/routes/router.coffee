@@ -2,15 +2,9 @@ Url = require '../url'
 Cascade = require '../cascade/cascade'
 Route = require './route'
 
-class Router
-
-  constructor: (@outlets, @options={}) ->
-    @routes = []
-
-  # qsKey and outlets are optional
-  add: (path, qsKey, outlets) ->
-    @routes.push route = new Route(path, qsKey, outlets, @options)
-    route
+class Router extends Array
+  constructor: (@outlets) ->
+    super
 
   # invokes parameter callbacks and callbacks for the route if matched
   # @param url [String]
@@ -23,17 +17,17 @@ class Router
     Cascade.Block =>
       @outlets[spec.key].set(params[spec.key]) for spec in route.specs
       @outlets[route.qsKey].set(url.query) if route.qsKey?
-      @outlets[k].set(v) for k,v of route.outlets
+      @outlets[k].set(v) for k,v of route.outletHash
       return
 
     return route
 
   matchPath: (pathname, hash) ->
-    for route in @routes
+    for route in this
       return [route, params] if params = route.match pathname, hash
 
   matchParams: (params) ->
-    for route in @routes
+    for route in this
       return route if route.matchParams params
 
 module.exports = Router

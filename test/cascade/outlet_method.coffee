@@ -199,7 +199,7 @@ describe 'OutletMethod #restoreValue', ->
     expect(foo).not.called
     expect(bar).calledOnce
 
-describe.only 'OutletMethod with object inputs', ->
+describe 'OutletMethod with object inputs', ->
   it 'should recalculate when an input is an object', ->
     arr = [1,2,3]
     a = new Outlet arr

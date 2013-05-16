@@ -1,4 +1,5 @@
 Router = require '../routes/router'
+Route = require '../routes/route'
 PathBuilder = require '../routes/path_builder'
 Navigator = require '../navigator'
 Cascade = require '../cascade/cascade'
@@ -12,20 +13,22 @@ class Routing
       @variables.push variable = new Variable path, fn
       variable
 
-  makeURIOutlets: (keys) ->
-    for key in keys
-      @uriOutlets[key] ?= new Outlet
+  @buildRoutes: (config, routes = []) ->
+    config.routes (uri, qs, outletHash) =>
+      [outletHash,qs] = [qs, undefined] if not outletHash and typeof qs isnt 'string'
+      routes.push new Route(path, qs, outletHash)
+    routes
 
-  enable: (routes) ->
+  enable: (config,routes) ->
     @router ||= new Router @uriOutlets
-    keys = {}
-    routes.routes (uri, qs, outlets) =>
-      [outlets,qs] = [qs, undefined] if not outlets and typeof qs isnt 'string'
-      route = @router.add uri, qs, outlets
-      keys[spec.key] = 1 for spec in route.specs
+    routes = @constructor.buildRoutes(config) unless routes
 
-    @makeURIOutlets Object.keys(keys)
-    routes.vars @uriOutlets, @variableFactory, @ace
+    for route in routes
+      @router.push route
+      for spec in route.specs
+        @uriOutlets[spec.key] ?= new Outlet
+
+    config.vars @uriOutlets, @variableFactory, @ace
 
   push: ->
     return unless @navigator

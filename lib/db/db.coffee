@@ -11,7 +11,7 @@ class Db
     @sock.on 'create', (data) =>
       coll = data['c']
       doc = OJSON.fromOJSON data['v']
-      @get(coll).read(doc._id).serverCreate(doc)
+      @coll(coll).read(doc._id).serverCreate(doc)
       return
 
     @sock.on 'update', (data) =>
@@ -19,15 +19,15 @@ class Db
       id = data['i']
       version = data['e']
       ops = data['d']
-      @get(coll).read(id).serverUpdate(version, ops)
+      @coll(coll).read(id).serverUpdate(version, ops)
       return
 
     @sock.on 'delete', (data) =>
       coll = data['c']
       id = data['i']
-      @get(coll).read(id).serverDelete()
+      @coll(coll).read(id).serverDelete()
 
-  get: (coll) ->
+  coll: (coll) ->
     @colls[coll] ||= new Coll this, coll
 
   subscribe: (doc) ->

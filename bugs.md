@@ -30,5 +30,19 @@
   - should "debounce" the calls to replace and ensure that if a push call happens, any pending replace is invoked immediately, the timer reset and then the push called
 
 # Template
+
   - it'd be nice to have a more elegant implementation of the constructor. the TemplateBase could be a Factory 
+
+# Socket.io
+
+  - unreliable XHR with cluster
+
+    will sometimes drop large numbers of initial messages when the connection is established
+
+
+
+# Model
+
+  - currently doesn't detach outflows on navigate so, (1) it leaks and (2) invisible views are being updated when off screen (preventing transitions, etc. when there are updates to previous pages)
+
 

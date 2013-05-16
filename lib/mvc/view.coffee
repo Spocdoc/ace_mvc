@@ -66,17 +66,22 @@ class View
     @inWindow.detach()
     @inWindow.set(false)
 
+  _buildOutlet: (outlet) ->
+    if typeof outlet isnt 'string'
+      @[n] = @outlets[n] = new @_Outlet(n,d) for n,d of outlet
+    else
+      @[outlet] = @outlets[outlet] = new @_Outlet(outlet) unless @[outlet]
+    return
+
   _buildOutlets: (outlets) ->
     return unless outlets
 
     @[k] ||= @outlets[k] = new @_Outlet(k) for k in @constructor.defaultOutlets
 
-    for k in outlets
-      continue if @[k]
-      if typeof k isnt 'string'
-        @[n] = @outlets[n] = new @_Outlet(n,d) for n,d of k
-      else
-        @[k] = @outlets[k] = new @_Outlet(k)
+    if Array.isArray outlets
+      @_buildOutlet k for k in outlets
+    else
+      @_buildOutlet outlets
     return
 
   _buildStatelets: (statelets) ->
@@ -194,7 +199,7 @@ class View
 
     Cascade.Block =>
       @outlets[k].set(v) for k,v of settings when !ViewBase.reserved[k]
-      @outlets['template'].get() || @_buildTemplate settings.template || base.name
+      @outlets['template'].get() || @_buildTemplate settings.template || config.template || base.name
 
     return
 

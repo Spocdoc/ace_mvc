@@ -537,3 +537,59 @@ describe 'Outlet with objects', ->
     expect(b.calledTwice)
     expect(arg).eq.arr
 
+  it 'should handle interdependent object-valued outlets', ->
+    a = new Outlet
+    b = new Outlet
+    a.set(b)
+    v = [1,2,3,4]
+    a.set(v)
+    expect(b.get()).eq v
+    expect(a.get()).eq v
+    v = [1,2,3,4,5]
+    b.set(v)
+    expect(b.get()).eq v
+    expect(a.get()).eq v
+
+  it 'should calculate a changed object outflow once when multiple outlets cause it to change in a block', ->
+    foo = sinon.spy ->
+    changer = new Outlet []
+    counter = new Outlet foo, silent: true
+    changer.outflows.add counter
+    expect(foo).not.called
+
+    a = new Outlet
+    b = new Outlet
+    c = new Outlet
+
+    ac = new Outlet (-> changer.push('a')), silent: true
+    bc = new Outlet (-> changer.push('b')), silent: true
+    cc = new Outlet (-> changer.push('c')), silent: true
+
+    a.outflows.add ac
+    b.outflows.add bc
+    c.outflows.add cc
+
+    ac.outflows.add changer
+    bc.outflows.add changer
+    cc.outflows.add changer
+
+    expect(changer.get()).deep.eq []
+
+    Cascade.Block =>
+      a.set(1)
+      b.set(1)
+      c.set(1)
+
+    expect(changer.get()).deep.eq ['a','b','c']
+    expect(foo).calledOnce
+
+    changer.set([])
+    expect(foo).calledTwice
+
+    Cascade.Block =>
+      a.set(2)
+      b.set(2)
+      c.set(2)
+
+    expect(changer.get()).deep.eq ['a','b','c']
+    expect(foo).calledThrice

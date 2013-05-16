@@ -1,6 +1,6 @@
 Url = require '../url'
 Emitter = require '../events/emitter'
-{include, extend} = require '../mixin/mixin'
+{include, extend} = require '../mixin'
 
 class NavigatorUrl extends Url
   hasHashPath: do ->

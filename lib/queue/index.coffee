@@ -1,7 +1,9 @@
 # inspired by <http://tomswitzer.net/2011/02/super-simple-javascript-queue/>
 
+max = 9007199254740992
+
 module.exports = ->
-  s = e = 0
+  s = e = max-10 # for testing wrap-around
   a = []
 
   fn = (v) ->
@@ -9,12 +11,12 @@ module.exports = ->
       if s isnt e
         r = a[s]
         delete a[s]
-        s = if s+1 is s then 0 else s+1
+        s = if s+1 is max then 0 else s+1
       return r
     else
       a[e] = v
-      e = if e+1 is e then 0 else e+1
-      return
+      e = if e+1 is max then 0 else e+1
+      return this
 
   fn.empty = ->
     s == e
@@ -22,5 +24,11 @@ module.exports = ->
   fn.length = ->
     `var len = s - e; return len < 0 ? -len : len;`
     return
+
+  fn.unshift = (v) ->
+    if --s < 0
+      s = s + max
+    a[s] = v
+    return this
 
   fn

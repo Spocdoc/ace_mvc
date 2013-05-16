@@ -1,5 +1,5 @@
 OJSON = require '../ojson'
-{extend, include} = require '../mixin/mixin'
+{extend, include} = require '../mixin'
 
 # Note that this does not serialize anything in the HistoryObjects other than
 # the dataStore so if outlets are marked `noInherit` at certain points, this

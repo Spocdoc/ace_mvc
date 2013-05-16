@@ -8,7 +8,7 @@ dtom = require '../../diff/to_mongo'
 diff = require '../../diff'
 OJSON = require '../../ojson'
 Emitter = require '../events/emitter'
-{include} = require '../mixin/mixin'
+{include} = require '../mixin'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID

@@ -147,7 +147,7 @@ describe 'HistoryOutlets', ->
 
     # this should have been a cucumber feature, not an rspec/mocha test...
     it 'should allow outlet initialization without re-drawing the dom and have expected values when navigating', ->
-      foo = {}
+      foo = "foo"
       bar = {}
       baz = {}
 

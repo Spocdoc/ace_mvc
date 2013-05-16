@@ -2,7 +2,7 @@ Snapshots = require './snapshots'
 Outlet = require '../cascade/outlet'
 Cascade = require '../cascade/cascade'
 Emitter = require '../events/emitter'
-{include, extend} = require '../mixin/mixin'
+{include, extend} = require '../mixin'
 
 class HistoryOutlets extends Snapshots
   include HistoryOutlets, Emitter

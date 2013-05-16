@@ -17,7 +17,7 @@ clone['register'] = register = (constructor, fn) ->
     clone: fn
   return
 
-module['exports'] = clone
+module.exports = clone
 
 ## Register standard types
 

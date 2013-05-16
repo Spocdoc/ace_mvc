@@ -1,5 +1,5 @@
 Emitter = require '../events/emitter'
-{include, extend} = require '../mixin/mixin'
+{include, extend} = require '../mixin'
 
 class Cascade
   count = 0

@@ -13,7 +13,10 @@ class Outlet extends Cascade
   unset: (value) ->
     @_removeIndirect() if @_indirect?.value == value
 
-  add: (delta) -> @set(@_value + delta)
+  inc: (delta) -> @set(@_value + delta)
+  push: (item) ->
+    @_value.push(item)
+    @set(@_value)
 
   # when the value is an object, call to indicate the contents of the object
   # have changed

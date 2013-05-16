@@ -1,5 +1,5 @@
 OJSON = require '../ojson'
-{extend, include} = require '../mixin/mixin'
+{extend, include} = require '../mixin'
 
 module.exports = (Snapshots) ->
   OJSON.register Snapshots,

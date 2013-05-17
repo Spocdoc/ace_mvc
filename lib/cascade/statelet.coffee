@@ -13,15 +13,19 @@ class Statelet extends Cascade
     @enableSet(options.enableSet ? true)
 
     @_value = options.value if options.value?
-    @getter() unless options.silent
+    @getter() if @getset and !options.silent
 
     @_postblock = new Cascade.Postblock => @_doSet()
 
   get: -> @_value
-  set: (@_value, options) ->
-    @setter(options)
-    @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was re-run
-    @cascade() unless options?.silent
+  set: (value, options) ->
+    if typeof value is 'function'
+      @getset = value
+    else
+      @_value = value
+      @setter(options)
+      @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was re-run
+      @cascade() unless options?.silent
 
   setter: (options) ->
     if @enableSet() and !@_willSet

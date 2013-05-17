@@ -40,6 +40,7 @@ class Template
   _build: (base) ->
     @$root = base.$root.clone()
     @$root.attr('id',@prefix)
+    @$['root'] = @$root
 
     for id in base.ids
       (@["$#{id}"] = @$[id] = @$root.find("##{id}"))

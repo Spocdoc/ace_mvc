@@ -1,96 +1,44 @@
+ControllerBase = require './controller_base'
+ConfigBase = require './config_base'
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
 Template = require './template'
+{defaults} = require '../mixin'
 require '../polyfill'
 
-class ViewBase
-  constructor: (@name, set) ->
-    @config = {}
-    @config.set = (obj) => @set(obj)
-    if typeof set is 'function'
-      @func = set
-    else
-      @set set if set
+count = 0
+uniqueId = ->
+  "#{++count}-View"
 
-  set: (obj) ->
-    @config[k] = v for k,v of obj when k isnt 'set'
+class View extends ControllerBase
+  @_super = @__super__.constructor
 
-  get: (view, args=[]) ->
-    return this unless @func
-    vb = new @constructor @name
-    @func.apply(view, [vb.config].concat(args))
-    vb
+  class @Config extends @_super.ConfigBase
+    @_super = @__super__.constructor
 
-  @reserved: {
-    mixins: 1
-    outlets: 1
-    statlets: 1
-    outletMethods: 1
-    template: 1
-  }
+    @defaultConfig = defaults {}, @_super.defaultConfig,
+      statelets: []
+      template: ''
 
-class View
-  count = 0
-  uniqueId = ->
-    "#{++count}-View"
-
-  @add: (name, fnOrHash) ->
-    throw new Error("View: already added #{name}") if @[name]?
-    base = ViewBase[name] = new ViewBase name, fnOrHash
-    @[name] = (parent, name, settings) ->
-      obj = new @(parent, name, settings)
-      obj._build(base, settings)
-      obj
-    return this
-
-  @defaultOutlets = ['template','inWindow']
-
-  constructor: (@parent, @name, settings) ->
-    @path = @parent.path.concat(@name)
-    @outlets = []
-    @outletMethods = []
+  @defaultOutlets = @_super.defaultOutlets.concat ['template','inWindow']
 
   appendTo: ($container) ->
     @remove()
     @$container = $container
     $container.append(@$root)
-    if other = $container.template?.view.inWindow
-      @inWindow.set(other)
-    else
-      @inWindow.set(true)
+    loop
+      if other = $container.template?.view.inWindow
+        @inWindow.set(other)
+        return
+      break unless ($container = $container.parent()).length
+    @inWindow.set(true)
 
   remove: ->
     return unless @$container
-    @$root.remove()
     @inWindow.detach()
     @inWindow.set(false)
-
-  _buildOutlet: (outlet) ->
-    if typeof outlet isnt 'string'
-      @[n] = @outlets[n] = new @_Outlet(n,d) for n,d of outlet
-    else
-      @[outlet] = @outlets[outlet] = new @_Outlet(outlet) unless @[outlet]
-    return
-
-  _buildOutlets: (outlets) ->
-    return unless outlets
-
-    @[k] ||= @outlets[k] = new @_Outlet(k) for k in @constructor.defaultOutlets
-
-    if Array.isArray outlets
-      @_buildOutlet k for k in outlets
-    else
-      @_buildOutlet outlets
-    return
-
-  _buildStatelets: (statelets) ->
-    return unless statelets
-    if @_Statelet
-      @[k] = @outlets[k] = new @_Statelet(k) for k in statelets
-    else
-      @_buildOutlets statelets
-    return
+    @$root.remove()
 
   _buildMethod: do ->
     iom = []
@@ -137,11 +85,8 @@ class View
         switch typeof m
           when 'string' then addStringOutflow this, k, m, outlet
           when 'function'
-            if m.length > 0
-              @outletMethods.push om = new @_OutletMethod m
-              om.outflows.add -> outlet.set(om.get())
-            else
-              addOutflows(this, outlet, [m])
+            @outletMethods.push om = new @_OutletMethod m
+            om.outflows.add -> outlet.set(om.get())
           else
             addOutflows(this, outlet, m)
       else
@@ -149,63 +94,64 @@ class View
 
       return
 
-  _buildMethods: (config) ->
-    for k,m of config when !ViewBase.reserved[k]
-      if Array.isArray m
-        @_buildMethod k, n for n in m
-      else
-        @_buildMethod k, m
-    return
-
-  _buildOutletMethods: (arr) ->
-    for m in arr
-      @outletMethods.push new @_OutletMethod m
-    return
-
   _buildTemplate: (arg) ->
-    template = @outlets['template'] = new @_Outlet('template')
-    template.view = this
-    template.outflows.add =>
-      @domCache = {}
-      delete @[k] for k of @ when k[0] is '$'
-      @[k] = v for k,v of template.get() when k[0] is '$'
-      return
+    outlet = @template = @outlets['template'] ||= new @_Outlet('template')
 
     if arg instanceof Template
-      template.set arg
+      outlet.set template = arg
     else
-      template.set new @_Template arg
+      outlet.set template = new @_Template arg
+
+    template.view = this
+    @domCache = {}
+    @$ = template.$
+    @[k] = v for k,v of template when k[0] is '$'
+
+    # disallow changing the template
+    outlet.set = ->
+
     return
 
-  _buildMixins: (mixins) ->
-    if typeof mixins is 'string'
-      @_build ViewBase[mixins]
-    else if Array.isArray(mixins)
-      @_buildMixins elem for elem in mixins
-    else
-      for name,args of mixins
-        @_build ViewBase[name].get(this, args)
+  _buildStatelets: (statelets) ->
+    return unless statelets
+    @_stateletDefaults ||= {}
+    for k,v of statelets
+      @_stateletDefaults[k] = v
+      @[k] = @outlets[k] = new @_Statelet(k)
+    return
+
+  _setStatelet: (k, v) ->
+    if typeof v is 'function'
+      v = v() unless v.length
+    @outlets[k]?.set(v)
+    return
+
+  _setStatelets: (settings) ->
+    for k,v of settings when !Config.defaultConfig[k]
+      @_setStatelet k, v
+    for k,v of @_stateletDefaults
+      @_setStatelet k, v
     return
 
   _build: (base, settings) ->
     base = base.get(this)
     config = base.config
 
+    unless @_mixing
+      @_buildTemplate settings.template || config.template || base.name
+
     @_buildMixins config.mixins
     @_buildOutlets config.outlets
-    @_buildOutletMethods config.outletMethods
     @_buildStatelets config.statelets
+    @_buildOutletMethods config.outletMethods
     @_buildMethods config
 
-    Cascade.Block =>
-      @outlets[k].set(v) for k,v of settings when !ViewBase.reserved[k]
-      @outlets['template'].get() || @_buildTemplate settings.template || config.template || base.name
+    unless @_mixing
+      @_setOutlets settings
+      @_setStatelets settings
 
-    return
+    base
 
   _Template: (name) -> new Template[name](this)
-  _Outlet: (name, init) -> new Outlet(init)
-  _OutletMethod: (func) ->
-    new OutletMethod func, @outlets, silent: true, context: this
 
 module.exports = View

@@ -14,9 +14,7 @@ class Mongo
 
   _connect: ->
     @connected = false # whenever this is false, you're connecting
-    console.log "calling open"
     @db.open (err) =>
-      console.log "open got",err
       if err?
         setTimeout (=> @_connect()), 500
       else

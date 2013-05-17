@@ -6,6 +6,7 @@ View = require '../mvc/view'
 Template = require '../mvc/template'
 Db = require '../db/db'
 Model = require './model'
+Statelet = require '../cascade/statelet'
 
 class Ace
   constructor: (@historyOutlets = new HistoryOutlets) ->
@@ -21,6 +22,7 @@ class Ace
       _build: (base) ->
         @ace = ace
         return super unless @$root = ace.$container.find("##{@prefix}")
+        @$['root'] = @$root
         for id in base.ids
           (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
             .template = this
@@ -31,16 +33,27 @@ class Ace
         @ace = ace
         super
 
-      _Outlet: (name, init) ->
-        hdOutlet = ace.historyOutlets.to.get(@path, name)
-        outlet = new Outlet(hd.get() || init)
+      _Outlet: (name) ->
+        hdOutlet = ace.historyOutlets.to.get(@path.concat('view'), name)
+        outlet = new Outlet(hdOutlet.get())
+        hdOutlet.set(outlet)
+        outlet
+
+      FromOutlet: (name) ->
+        hdOutlet = ace.historyOutlets.from.get(@path.concat('view'), name)
+        outlet = new Outlet(hdOutlet.get())
         hdOutlet.set(outlet)
         outlet
 
       _Statelet: (name) ->
-        outlet = new @_Outlet(name)
-        ace.routing.navigator?.on 'willNavigate', -> outlet.run()
-        outlet
+        hdOutlet = ace.historyOutlets.to.get(@path.concat('view'), name)
+        statelet = new Statelet undefined,
+          value: hdOutlet.get()
+          enableSet: @inWindow
+        hdOutlet.set(statelet)
+
+        ace.routing.navigator?.on 'willNavigate', -> statelet.run()
+        statelet
 
       _Template: (name) ->
         new ace.Template[name](this)
@@ -49,21 +62,7 @@ class Ace
       constructor: (coll, idOrSpec) ->
         super ace.constructor.db, coll, idOrSpec
 
-
-  # _setupDb: ->
-  #   @db = new Db
-
-  #   # save & restore outflows on navigation
-
-  #   dbOutflows = []
-  #   @historyOutlets.on 'willNavigate', =>
-  #     for name, coll of @db.collections
-  #       for id, model of coll.models
-  #         for outlet in model.outlets
-  #           @historyOutlets.get(['db','outflows']).set(
-
-
-
+    class @Controller extends Controller
 
 
   push: ->

@@ -31,7 +31,6 @@ class Cascade
       @[outflow.cid ?= uniqueId()] = 1
       @_arr.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
-      @emit 'hasOutflows' if @_arr.length == 1
       return
 
     remove: (outflow) ->
@@ -43,7 +42,6 @@ class Cascade
         }
       }`
       delete outflow.inflows?[@cascade.cid]
-      @emit 'noOutflows' unless @_arr.length
       return
 
     # removes all the outflows (and removes this cascade from the inflows of
@@ -55,7 +53,6 @@ class Cascade
       for outflow in ret
         delete outflow.inflows?[@cascade.cid]
         delete @[outflow.cid]
-      @emit 'noOutflows'
       return ret
 
     # @param arr [Array] array of outflows to (re)attach
@@ -77,6 +74,7 @@ class Cascade
         Cascade.roots.push outflow for outflow in arr
       else
         @_calculate(false, arr)
+      return
 
     _setPending: (arr=@_arr) ->
       outflow.pending?.set?(true) for outflow in arr
@@ -90,13 +88,14 @@ class Cascade
       return if !!pending == @_pending
       @_pending = !!pending
       if @_pending
-        @cascade.emit 'pendingTrue', @cascade
         @cascade.outflows._setPending()
+      return
 
   # remove all the inflows
   detach: ->
     inflows = @inflows
     inflow.outflows.remove this for cid,inflow of inflows
+    return
     
   run: ->
     @pending.set(true)
@@ -118,7 +117,7 @@ class Cascade
     @outflows._calculate(dry)
 
   _calculate: (dry) ->
-    return if not @pending.get()
+    return unless @pending.get()
 
     for cid,inflow of @inflows when inflow.pending.get()
       if not @outflows[inflow.cid]?
@@ -153,15 +152,26 @@ class Cascade
       ret = func()
     else
       Cascade.roots = []
+
       ret = func()
+
       roots = Cascade.roots
       delete Cascade.roots
+
       for root in roots
         if root instanceof Cascade
           root._calculate(false)
         else if typeof root is 'function'
           root()
-    return ret
+
+      if roots.post
+        for root in roots.post
+          if root instanceof Cascade
+            root._calculate(false)
+          else if typeof root is 'function'
+            root()
+
+    ret
 
   unblockRunner = (func) ->
     roots = Cascade.roots
@@ -170,18 +180,33 @@ class Cascade
     Cascade.roots = roots
     ret
 
+  postblockRunner = (func) ->
+    if roots = Cascade.roots
+      (roots.post ||= []).push func
+    else
+      func()
+    return
+
   @Block: (func) ->
     if this instanceof Cascade.Block
-      return -> blockRunner(func)
+      -> blockRunner(func)
     else
-      return blockRunner(func)
+      blockRunner(func)
 
   # runs the function outside of the current block if there is one, then puts
   # the original block back
   @Unblock: (func) ->
     if this instanceof Cascade.Unblock
-      return -> unblockRunner(func)
+      -> unblockRunner(func)
     else
-      return unblockRunner(func)
+      unblockRunner(func)
+
+  # runs the function after the current block if there is one
+  @Postblock: (func) ->
+    if this instanceof Cascade.Postblock
+      -> postblockRunner(func)
+    else
+      postblockRunner(func)
+
 
 module.exports = Cascade

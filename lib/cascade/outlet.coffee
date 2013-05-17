@@ -45,11 +45,11 @@ class Outlet extends Cascade
         value.outflows?.add?(this)
         @_value = options.value if options.value?
         @func = if indirect.function?.length then Outlet.func.async else Outlet.func.sync
-        @run() if not options.silent?
+        @run() unless options.silent
       else
         @_value = value
         @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was re-run
-        @cascade() if not options.silent?
+        @cascade() unless options.silent
 
     return @_value
 

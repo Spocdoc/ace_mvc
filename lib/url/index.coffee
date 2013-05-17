@@ -1,6 +1,6 @@
 # derived from node.js with substantial modification
 
-_ = require '../utils'
+{defaults: udefaults} = require '../mixin'
 require '../polyfill'
 querystring = require './querystring'
 
@@ -206,7 +206,7 @@ class Url
 
   # adds any missing parameters using the values of the arg
   defaults: (rhs) ->
-    _.defaults(this, rhs)
+    udefaults(this, rhs)
     @slashes ||= rhs.slashes
     @href = @format()
     this

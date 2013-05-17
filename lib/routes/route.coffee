@@ -1,5 +1,5 @@
 parseRoute = require("./utils").parseRoute
-_ = require '../utils'
+{defaults} = require '../mixin'
 
 # inspired by express
 # for matching: the querystring and hash are always optional (there can be no
@@ -13,7 +13,7 @@ class Route
 
     # regex & formatters
     [@_rp, @_fp] = parseRoute(path, @specs, options)
-    [@_rh, @_fh] = parseRoute(hash, @specs, _.defaults({},options,{optional:true})) if hash
+    [@_rh, @_fh] = parseRoute(hash, @specs, defaults({},options,{optional:true})) if hash
 
   match: (pathname, hash) ->
     params = []

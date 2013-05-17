@@ -1,7 +1,18 @@
-module.exports.extend = (obj..., mixin) ->
+extend = (obj..., mixin) ->
   for o in obj
     o[name] = method for name, method of mixin
   return
-module.exports.include = (klass..., mixin) ->
-  module.exports.extend inst.prototype, mixin for inst in klass
+
+include = (klass..., mixin) ->
+  extend inst.prototype, mixin for inst in klass
   return
+
+defaults = (obj, others...) ->
+  for other in others
+    obj[k] = v for k,v of other when obj[k] is undefined
+  obj
+
+module.exports =
+  extend: extend
+  include: include
+  defaults: defaults

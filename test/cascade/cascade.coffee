@@ -274,20 +274,20 @@ describe 'Cascade.Block medium', ->
     expect(foo).calledTwice
 
 describe 'Cascade events', ->
-  it 'should emit a \'pendingTrue\' event when pending is changed', ->
-    @a = new Cascade foo = sinon.spy ->
-    @args = []
-    @event = sinon.spy => @args = arguments
-    Cascade.Block =>
-      args = undefined
-      @a.on 'pendingTrue', @event
-      @a.run()
-      expect(@event).calledOnce
-      expect(@args.length).eq 1
-      expect(@args[0]).eq @a
-      expect(foo).not.called
-    expect(foo).calledOnce
-    expect(@event).calledOnce
+  # it 'should emit a \'pendingTrue\' event when pending is changed', ->
+  #   @a = new Cascade foo = sinon.spy ->
+  #   @args = []
+  #   @event = sinon.spy => @args = arguments
+  #   Cascade.Block =>
+  #     args = undefined
+  #     @a.on 'pendingTrue', @event
+  #     @a.run()
+  #     expect(@event).calledOnce
+  #     expect(@args.length).eq 1
+  #     expect(@args[0]).eq @a
+  #     expect(foo).not.called
+  #   expect(foo).calledOnce
+  #   expect(@event).calledOnce
 
 
 describe 'Cascade.Outflows', ->
@@ -301,33 +301,29 @@ describe 'Cascade.Outflows', ->
       x.set(2)
       expect(foo).calledOnce
 
-    it 'when its outflows are re-attached, it immediately updates only the new outflows them', ->
+    it 'when its outflows are reattached, it immediately updates only the new outflows', ->
       x = new Outlet 1
-      a = new Autorun foo = sinon.spy ->
-        y = x.get() * 2
+      a = new Autorun foo = sinon.spy -> x.get() * 2
       expect(foo).calledOnce
       outflows = x.outflows.detach()
-      b = new Autorun bar = sinon.spy ->
-        y = x.get() * 3
+      b = new Autorun bar = sinon.spy -> x.get() * 3
       x.set(2)
       expect(foo).calledOnce
       expect(bar).calledTwice
-      a.outflows.attach outflows
+      x.outflows.attach outflows
       expect(foo).calledTwice
       expect(bar).calledTwice
 
-    it 'when its outflows are re-attached and it is changed, it updates them', ->
+    it 'when its outflows are re-attached and it has changed, it updates them', ->
       x = new Outlet 1
-      a = new Autorun foo = sinon.spy ->
-        y = x.get() * 2
+      a = new Autorun foo = sinon.spy -> x.get() * 2
       expect(foo).calledOnce
       outflows = x.outflows.detach()
-      b = new Autorun bar = sinon.spy ->
-        y = x.get() * 3
+      b = new Autorun bar = sinon.spy -> x.get() * 3
       x.set(2)
       expect(foo).calledOnce
       expect(bar).calledTwice
-      a.outflows.attach outflows
+      x.outflows.attach outflows
       expect(foo).calledTwice
       expect(bar).calledTwice
       x.set(3)

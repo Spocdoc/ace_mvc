@@ -85,6 +85,7 @@ class Cascade
       @_pending = false
     get: -> @_pending
     set: (pending) ->
+      return if pending and @cascade.calculating
       return if !!pending == @_pending
       @_pending = !!pending
       if @_pending
@@ -106,24 +107,31 @@ class Cascade
     return
 
   cascade: ->
+    @calculating = true
     @outflows._run()
+    @calculating = false
 
   _calculateDone: (dry) ->
+    @calculating = true
     if @_stopPropagation
       delete @_stopPropagation
       dry = true
 
     @pending.set(false)
     @outflows._calculate(dry)
+    @pending.set(false)
+    @calculating = false
 
   _calculate: (dry) ->
     return unless @pending.get()
+    return if @calculating
 
     for cid,inflow of @inflows when inflow.pending.get()
       if not @outflows[inflow.cid]?
         @_noDry = true if not dry # ie, calculate this anyway if another input is dry because at least 1 input is "wet"
         return
 
+    @calculating = true
     @_calculateNum = (@_calculateNum || 0) + 1
 
     if @_noDry
@@ -141,6 +149,7 @@ class Cascade
         return if num != @_calculateNum
         @_calculateDone(dry)
 
+    @calculating = false
     return
 
   # can be called by the func to prevent updating outflows

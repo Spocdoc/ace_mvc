@@ -57,7 +57,7 @@ class Doc
       return
     @pending |= CREATE_NOW
     @doc._v ||= 1
-    @db['create'] this, (err) =>
+    @db.create this, (err) =>
       @pending &= ~CREATE_NOW
       if err
         @_reject err[1]
@@ -71,7 +71,7 @@ class Doc
       return
     @pending |= READ_NOW
 
-    @db['read'] this, (err) =>
+    @db.read this, (err) =>
       @pending &= ~READ_NOW
       @_handleRead(err)
       @_doPending()
@@ -90,7 +90,7 @@ class Doc
       @pending |= DEL_LATER
       return
     @pending |= DEL_NOW
-    @db['delete'] this, (err) =>
+    @db.delete this, (err) =>
       if err
         @emit 'undelete', err[1]
       else
@@ -155,7 +155,7 @@ class Doc
     @pending |= SUB_NOW
       
     @ref()
-    @db['subscribe'] this, (err) =>
+    @db.subscribe this, (err) =>
       @pending &= ~SUB_NOW
       @live = true
       @_handleRead(err)
@@ -171,7 +171,7 @@ class Doc
     @pending |= USUB_NOW
 
     @unref()
-    @db['unsubscribe'] this, =>
+    @db.unsubscribe this, =>
       @pending &= ~USUB_NOW
       @_doPending()
 
@@ -216,7 +216,7 @@ class Doc
 
     version = @doc._v
 
-    @db['update'] this, flat, (err) =>
+    @db.update this, flat, (err) =>
       if err
         outgoing.push.apply(outgoing, @outgoing)
         @outgoing = outgoing

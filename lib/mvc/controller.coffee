@@ -15,18 +15,55 @@ class Controller extends ControllerBase
 
   @defaultOutlets = @_super.defaultOutlets.concat ['view','model']
 
-  _buildView: (view, settings) ->
+  appendTo: ($container) -> @view.appendTo($container)
+  remove: -> @view.remove()
 
+  _buildView: (arg, settings) ->
+    outlet = @outlets['view'] ||= new @Outlet('view')
+
+    if arg instanceof View
+      outlet.set @view = arg
+    else if typeof arg is 'string'
+      outlet.set @view = new @View arg
+    else
+      break for k,v of arg
+      outlet.set @view = new @View k, undefined, v
+
+    @$ = {}
+    for k, v of @view.outlets
+      @$[k] = v
+      @["$#{k}"] = v
+
+    # view outlet is immutable
+    outlet.set = ->
+
+  _buildMethod: (k, m) ->
+    if k[0] is '$'
+      @outletMethods.push om = new @OutletMethod m
+      vo = @view.get()[k[1..]]
+      om.outflows.add => vo.set(om.get())
+    else
+      @[k] = m
 
   _build: (base, settings) ->
-    base = super
+    base = base.get(this)
     config = base.config
 
-    @_buildView settings.view || config.view || base.name, settings
+    @_buildMixins config.mixins, settings?.mixins
+    @_buildOutlets config.outlets
+    @_buildOutletMethods config.outletMethods
 
-    return
+    unless @_mixing
+      @_buildView settings.view || config.view || base.name, settings
 
-  _View: (type, name, config) -> new View[type](this, name, config)
-  _Model: (type, idOrSpec) -> new Model[type](idOrSpec)
+    @_buildMethods config
+
+    unless @_mixing
+      @_setOutlets settings
+
+    base
+
+  View: (type, name, settings) -> new View[type](this, name, settings)
+  Model: (type, idOrSpec) -> new Model[type](idOrSpec)
 
 module.exports = Controller

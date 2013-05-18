@@ -3,8 +3,8 @@ extend = (obj..., mixin) ->
     o[name] = method for name, method of mixin
   return
 
-include = (klass..., mixin) ->
-  extend inst.prototype, mixin for inst in klass
+include = (class_..., mixin) ->
+  extend inst.prototype, mixin for inst in class_
   return
 
 defaults = (obj, others...) ->

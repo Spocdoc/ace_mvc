@@ -7,10 +7,6 @@ Template = require './template'
 {defaults} = require '../mixin'
 require '../polyfill'
 
-count = 0
-uniqueId = ->
-  "#{++count}-View"
-
 class View extends ControllerBase
   @_super = @__super__.constructor
 
@@ -28,26 +24,21 @@ class View extends ControllerBase
     @$container = $container
     $container.append(@$root)
     loop
-      if other = $container.template?.view.inWindow
+      if other = $container.template?.view?.inWindow
         @inWindow.set(other)
         return
       break unless ($container = $container.parent()).length
     @inWindow.set(true)
+    return
 
   remove: ->
     return unless @$container
     @inWindow.detach()
     @inWindow.set(false)
     @$root.remove()
+    return
 
   _buildMethod: do ->
-    iom = []
-
-    addOutflows = (view, outlet, arr) ->
-      for m in arr
-        outlet.outflows.add (iom[m.cid ?= uniqueId()] ||= => m.call(view))
-      return
-
     addStringOutflow = (view, name, str, outlet) ->
       e = view.$[name]
       outflows = outlet.outflows
@@ -76,36 +67,34 @@ class View extends ControllerBase
       return
 
     (k,m) ->
-      k = k[1..] if k[0] is '$'
+      s = if k[0] is '$' then k[1..] else k
 
-      if typeof m is 'object' and !Array.isArray(m)
-        setDom(this, k, m)
+      if k[0] is '$' and typeof m is 'object'
+        setDom(this, s, m)
 
-      else if (outlet = @outlets[k])?
+      else if (outlet = @outlets[s])?
         switch typeof m
-          when 'string' then addStringOutflow this, k, m, outlet
+          when 'string' then addStringOutflow this, s, m, outlet
           when 'function'
-            @outletMethods.push om = new @_OutletMethod m
+            @outletMethods.push om = new @OutletMethod m
             om.outflows.add -> outlet.set(om.get())
-          else
-            addOutflows(this, outlet, m)
       else
-        @[k] = m
+        @[s] = m
 
       return
 
   _buildTemplate: (arg) ->
-    outlet = @template = @outlets['template'] ||= new @_Outlet('template')
+    outlet = @outlets['template'] ||= new @Outlet('template')
 
     if arg instanceof Template
-      outlet.set template = arg
+      outlet.set @template = arg
     else
-      outlet.set template = new @_Template arg
+      outlet.set @template = new @Template arg
 
-    template.view = this
+    @template.view = this
     @domCache = {}
-    @$ = template.$
-    @[k] = v for k,v of template when k[0] is '$'
+    @$ = @template.$
+    @[k] = v for k,v of @template when k[0] is '$'
 
     # disallow changing the template
     outlet.set = ->
@@ -117,7 +106,7 @@ class View extends ControllerBase
     @_stateletDefaults ||= {}
     for k,v of statelets
       @_stateletDefaults[k] = v
-      @[k] = @outlets[k] = new @_Statelet(k)
+      @[k] = @outlets[k] = new @Statelet(k)
     return
 
   _setStatelet: (k, v) ->
@@ -137,13 +126,14 @@ class View extends ControllerBase
     base = base.get(this)
     config = base.config
 
-    unless @_mixing
-      @_buildTemplate settings.template || config.template || base.name
-
-    @_buildMixins config.mixins
+    @_buildMixins config.mixins, settings?.mixins
     @_buildOutlets config.outlets
     @_buildStatelets config.statelets
     @_buildOutletMethods config.outletMethods
+
+    unless @_mixing
+      @_buildTemplate settings.template || config.template || base.name
+
     @_buildMethods config
 
     unless @_mixing
@@ -152,6 +142,6 @@ class View extends ControllerBase
 
     base
 
-  _Template: (name) -> new Template[name](this)
+  Template: (name) -> new Template[name](this)
 
 module.exports = View

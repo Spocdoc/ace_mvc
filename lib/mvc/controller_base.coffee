@@ -29,6 +29,7 @@ class ControllerBase
     base = @Config[name] = new @Config name, fnOrHash
     @[name] = (parent, name, settings) ->
       obj = new @(parent, name, settings)
+      obj.type = base.name
       Cascade.Block ->
         obj._build(base, settings)
       obj
@@ -49,17 +50,17 @@ class ControllerBase
           o = v
         else
           @_outletDefaults[k] = v
-          o = new @_Outlet k
+          o = new @Outlet k
         @[k] = @outlets[k] = o
     else
-      @[outlet] = @outlets[outlet] = new @_Outlet(outlet) unless @[outlet]
+      @[outlet] = @outlets[outlet] = new @Outlet(outlet) unless @[outlet]
     return
 
   _buildOutlets: (outlets) ->
     return unless outlets
     @_outletDefaults = {}
 
-    @[k] ||= @outlets[k] = new @_Outlet(k) for k in @constructor.defaultOutlets
+    @[k] ||= @outlets[k] = new @Outlet(k) for k in @constructor.defaultOutlets
 
     if Array.isArray outlets
       @_buildOutlet k for k in outlets
@@ -85,10 +86,10 @@ class ControllerBase
 
   _buildOutletMethods: (arr) ->
     for m in arr
-      @outletMethods.push new @_OutletMethod m
+      @outletMethods.push new @OutletMethod m
     return
 
-  _buildMixins: (mixins) ->
+  _buildMixins: (mixins, mixins2) ->
     @_mixing ||= 0
     ++@_mixing
 
@@ -100,25 +101,13 @@ class ControllerBase
       for name,args of mixins
         @_build Config[name].get(this, args)
 
+    @_buildMixins mixins2 if mixins2
+
     --@_mixing
     return
 
-  _build: (base, settings) ->
-    base = base.get(this)
-    config = base.config
-
-    @_buildMixins config.mixins
-    @_buildOutlets config.outlets
-    @_buildOutletMethods config.outletMethods
-    @_buildMethods config
-
-    unless @_mixing
-      @_setOutlets settings
-
-    base
-
-  _Outlet: (name) -> new Outlet
-  _OutletMethod: (func) ->
+  Outlet: (name) -> new Outlet
+  OutletMethod: (func) ->
     new OutletMethod func, @outlets, silent: true, context: this
 
 module.exports = ControllerBase

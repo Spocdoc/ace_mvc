@@ -55,4 +55,20 @@
   - It's currently grossly inefficient for outlets that refer to documents or arrays: the referenced part of the document is (deep) cloned any time a piece of it changes.
 
     this can be optimized by adding a `changed` method to outlets
+# Server-side rendering
+
+  - currently doesn't wait for async outlets to finish
+
+  - requires all the templates, views and controllers to be loaded in memory up front. would prefer this to be done on demand (which also means asynchronously...)
+
+    this could be done with a proxy function for every possible page added to Template, Controller and View.
+
+    this can also address the missing controller problem -- where the view or template is specified but the controller isn't.
+
+# View
+
+  - doesn't allow swapping out the template
+
+    this is very bad for serving static files. since the controller's view is immutable, if the template of the view is also immutable it means creating a new view and controller for every static file...
+
 

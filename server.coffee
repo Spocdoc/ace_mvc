@@ -12,6 +12,9 @@ app.use connect.logger 'dev'
 ace = new Ace
   routes: path.resolve('./routes')
   server: server
+  mvc:
+    files: path.resolve('./app')
+    templates: ['htm','html','jade']
 
 ace.configure 'development', ->
   ace.set 'db',

@@ -6,7 +6,7 @@ Model = require './model'
 class Controller extends ControllerBase
   @_super = @__super__.constructor
 
-  class @Config extends @_super.ConfigBase
+  class @Config extends @_super.Config
     @_super = @__super__.constructor
 
     @defaultConfig = defaults {}, @_super.defaultConfig,
@@ -54,7 +54,7 @@ class Controller extends ControllerBase
     @_buildOutletMethods config.outletMethods
 
     unless @_mixing
-      @_buildView settings.view || config.view || base.name, settings
+      @_buildView settings?.view || config.view || base.name, settings
 
     @_buildMethods config
 
@@ -63,7 +63,7 @@ class Controller extends ControllerBase
 
     base
 
-  View: (type, name, settings) -> new View[type](this, name, settings)
+  View: (type, name, settings) => new View[type](this, name, settings)
   Model: (type, idOrSpec) -> new Model[type](idOrSpec)
 
 module.exports = Controller

@@ -1,6 +1,6 @@
 mongodb = require 'mongodb'
 
-class SockioServer
+class SockioEmulator
   constructor: (@db) ->
 
   emit: (verb, data, cb) ->
@@ -21,4 +21,4 @@ class SockioServer
 
   on: (event, fn) -> # noop
 
-module.exports = Sock
+module.exports = SockioEmulator

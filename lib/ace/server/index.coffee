@@ -1,42 +1,46 @@
-Ace = require '../index'
-Router = require '../../routes/router'
-Routing = require '../routing'
-ExpressApp = require('express').application
-Template = require '../../mvc/template'
-loadMVC = require './load_mvc'
-{extend} = require '../mixin'
-
 fs = require 'fs'
+path = require 'path'
+express = require('express')
+{extend} = require '../../mixin'
 
 directories = (path) ->
-  dir for dir in fs.readdirSync path when fs.statSync(dir).isDirectory()
+  dir for dir in fs.readdirSync path when fs.statSync("#{path}/#{dir}").isDirectory()
 
 # express sets route, parent
-class App extends ExpressApp
+class App
   constructor: (settings) ->
+    # TODO: is this really the only way to extend express. wtf
+    extend @, express()
+    delete @handle
+
     extend @settings, settings
     @on 'mount', (app) => @_configure()
 
   _configure: ->
+    # load everything in server directories
+    basePath = path.resolve(__dirname, '../../')
+    for name in directories(basePath) when fs.existsSync(path="#{basePath}/#{name}/server") and name isnt 'ace'
+      fn(this, @settings[name]) if typeof (fn = require(path)) is 'function'
+
+    # add controllers, views, templates
+    require('./load_mvc')(@settings.mvc)
+
+    Routing = require '../routing'
     @_routeConfig = require(@settings['routes'])
     @_routes = Routing.buildRoutes @_routeConfig
 
-    # load everything in server directories
-    for name in directories('../../') when fs.existsSync path="./#{name}/server"
-      fn(this, @_routeConfig[name]) if typeof (fn = require(path)) is 'function'
-
-    # add controllers, views, templates
-    loadMVC(@settings.mvc)
-
   handle: (req, res, next) ->
+    Ace = require '../index'
+    Template = require '../../mvc/template'
+
     ace = new Ace
     ace.routing.enable @_routeConfig, @_routes
 
-    layout = new Template['layout']
-    ace.appendTo(layout.$container)
+    layout = new Template['layout'](ace)
+    ace.appendTo(layout.$content)
 
-    res.end layout.$root.toString()
+    res.end "<!DOCTYPE html>#{layout.$root.toString()}"
 
 
-module.exports = Ace
+module.exports = App
 

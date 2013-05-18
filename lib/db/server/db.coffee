@@ -7,8 +7,8 @@ queue = require '../../queue'
 dtom = require '../../diff/to_mongo'
 diff = require '../../diff'
 OJSON = require '../../ojson'
-Emitter = require '../events/emitter'
-{include} = require '../mixin'
+Emitter = require '../../events/emitter'
+{include} = require '../../mixin'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID

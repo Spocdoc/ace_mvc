@@ -16,7 +16,7 @@ class Routing
   @buildRoutes: (config, routes = []) ->
     config.routes (uri, qs, outletHash) =>
       [outletHash,qs] = [qs, undefined] if not outletHash and typeof qs isnt 'string'
-      routes.push new Route(path, qs, outletHash)
+      routes.push new Route(uri, qs, outletHash)
     routes
 
   enable: (config,routes) ->

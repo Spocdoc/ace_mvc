@@ -1,9 +1,11 @@
-#!/usr/bin/env coffee
+#!/usr/bin/env coffee#--nodejs --debug
 
 connect = require 'connect'
 express = require 'express'
 path = require 'path'
 Ace = require './lib/ace/server'
+
+debugger
 
 app = express()
 server = require('http').createServer(app)
@@ -18,7 +20,7 @@ ace = new Ace
 
 ace.configure 'development', ->
   ace.set 'db',
-    server: '/tmp/mongodb-27017.sock'
+    host: '/tmp/mongodb-27017.sock'
     db: 'test'
     redis:
       host: '/tmp/redis.sock'
@@ -28,5 +30,5 @@ ace.configure 'development', ->
 
 app.use ace
 
-app.listen port = port, ->
+app.listen port = 1337, ->
   console.log "listening on #{port}..."

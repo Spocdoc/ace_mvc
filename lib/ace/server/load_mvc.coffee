@@ -6,7 +6,7 @@ fs = require 'fs'
 path = require 'path'
 
 templateLoaders =
-  'jade': (str) -> require('jade').compile str
+  'jade': (str) -> require('jade').compile(str)()
   'html': (str) -> str
   'htm': (str) -> str
 
@@ -49,7 +49,7 @@ loadFiles = (arr, templates, root, type) ->
           unless base is 'template'
             name += '/' if name
             name += "#{base}"
-          Template.add name, templateLoaders[ext](fs.readFileSync(fullPath))
+          Template.add name, templateLoaders[ext](fs.readFileSync(fullPath,'utf-8'))
 
         else if base is 'view'
           View.add name, require fullPath

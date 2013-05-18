@@ -1,5 +1,4 @@
 ControllerBase = require './controller_base'
-ConfigBase = require './config_base'
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
@@ -10,7 +9,7 @@ require '../polyfill'
 class View extends ControllerBase
   @_super = @__super__.constructor
 
-  class @Config extends @_super.ConfigBase
+  class @Config extends @_super.Config
     @_super = @__super__.constructor
 
     @defaultConfig = defaults {}, @_super.defaultConfig,
@@ -23,11 +22,16 @@ class View extends ControllerBase
     @remove()
     @$container = $container
     $container.append(@$root)
-    loop
-      if other = $container.template?.view?.inWindow
+
+    if other = $container.template?.view?.inWindow
+      @inWindow.set(other)
+      return
+
+    for parent in $container.parents()
+      if other = parent.template?.view?.inWindow
         @inWindow.set(other)
         return
-      break unless ($container = $container.parent()).length
+
     @inWindow.set(true)
     return
 
@@ -116,7 +120,7 @@ class View extends ControllerBase
     return
 
   _setStatelets: (settings) ->
-    for k,v of settings when !Config.defaultConfig[k]
+    for k,v of settings when !@constructor.Config.defaultConfig[k]?
       @_setStatelet k, v
     for k,v of @_stateletDefaults
       @_setStatelet k, v
@@ -132,7 +136,7 @@ class View extends ControllerBase
     @_buildOutletMethods config.outletMethods
 
     unless @_mixing
-      @_buildTemplate settings.template || config.template || base.name
+      @_buildTemplate settings?.template || config.template || base.name
 
     @_buildMethods config
 
@@ -142,6 +146,6 @@ class View extends ControllerBase
 
     base
 
-  Template: (name) -> new Template[name](this)
+  Template: (name) => new Template[name](this)
 
 module.exports = View

@@ -71,4 +71,8 @@
 
     this is very bad for serving static files. since the controller's view is immutable, if the template of the view is also immutable it means creating a new view and controller for every static file...
 
+# Ace
+
+  - the layout can't have a doctype or the template renderer puts it in a div container
+
 

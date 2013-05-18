@@ -3,6 +3,12 @@ extend = (obj..., mixin) ->
     o[name] = method for name, method of mixin
   return
 
+extendBound = (obj..., mixin) ->
+  for o in obj
+    for name, method of mixin
+      o[name] = do(method) -> => method.apply(o, arguments)
+  return
+
 include = (class_..., mixin) ->
   extend inst.prototype, mixin for inst in class_
   return
@@ -16,3 +22,4 @@ module.exports =
   extend: extend
   include: include
   defaults: defaults
+  extendBound: extendBound

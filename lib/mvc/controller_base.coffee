@@ -1,6 +1,7 @@
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
+{extend} = require '../mixin'
 
 class ControllerBase
 
@@ -27,7 +28,7 @@ class ControllerBase
   @add: (name, fnOrHash) ->
     throw new Error("#{@name}: already added #{name}") if @[name]?
     base = @Config[name] = new @Config name, fnOrHash
-    @[name] = (parent, name, settings) ->
+    @[name] = (parent, name, settings) =>
       obj = new @(parent, name, settings)
       obj.type = base.name
       Cascade.Block ->
@@ -60,7 +61,7 @@ class ControllerBase
     return unless outlets
     @_outletDefaults = {}
 
-    @[k] ||= @outlets[k] = new @Outlet(k) for k in @constructor.defaultOutlets
+    @[k] ?= @outlets[k] = new @Outlet(k) for k in @constructor.defaultOutlets
 
     if Array.isArray outlets
       @_buildOutlet k for k in outlets
@@ -69,7 +70,7 @@ class ControllerBase
     return
 
   _setOutlets: (settings) ->
-    for k,v of settings when !Config.defaultConfig[k]
+    for k,v of settings when !@constructor.Config.defaultConfig[k]?
       delete @_outletDefaults[k]
       @outlets[k]?.set(v)
 
@@ -77,7 +78,7 @@ class ControllerBase
       @outlets[k].set(v) if @outlets[k].get() is undefined
 
   _buildMethods: (config) ->
-    for k,m of config when !Config.defaultConfig[k]
+    for k,m of config when !@constructor.Config.defaultConfig[k]?
       if Array.isArray m
         @_buildMethod k, n for n in m
       else
@@ -94,12 +95,12 @@ class ControllerBase
     ++@_mixing
 
     if typeof mixins is 'string'
-      @_build Config[mixins]
+      @_build @constructor.Config[mixins]
     else if Array.isArray(mixins)
       @_buildMixins elem for elem in mixins
     else
       for name,args of mixins
-        @_build Config[name].get(this, args)
+        @_build @constructor.Config[name].get(this, args)
 
     @_buildMixins mixins2 if mixins2
 
@@ -107,7 +108,7 @@ class ControllerBase
     return
 
   Outlet: (name) -> new Outlet
-  OutletMethod: (func) ->
+  OutletMethod: (func) =>
     new OutletMethod func, @outlets, silent: true, context: this
 
 module.exports = ControllerBase

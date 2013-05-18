@@ -24,7 +24,7 @@ class Template
   @add: (name, domString) ->
     throw new Error("Template: already added #{name}") if @[name]?
     base = new TemplateBase(domString)
-    @[name] = (parent, name) ->
+    @[name] = (parent, name) =>
       base.lazy()
       obj = new @(parent, name)
       obj._build(base)

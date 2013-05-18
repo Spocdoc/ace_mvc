@@ -119,7 +119,6 @@ class Cascade
 
     @pending.set(false)
     @outflows._calculate(dry)
-    @pending.set(false)
     @calculating = false
 
   _calculate: (dry) ->

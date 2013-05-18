@@ -23,7 +23,7 @@ class Outlet extends Cascade
   changed: -> @set(@_value)
 
   set: (value, options={}) ->
-    if @_value != value or (value and value.constructor in [Array,Object])
+    if @_value != value
 
       indirect = undefined
       sync = undefined

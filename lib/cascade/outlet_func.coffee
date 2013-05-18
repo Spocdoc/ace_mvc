@@ -11,7 +11,7 @@ module.exports = (Outlet) ->
       @_value
 
   Outlet.prototype._funcDone = (value) ->
-    if value == @_value and !(value and value.constructor in [Array, Object])
+    if value == @_value
       @stopPropagation()
     else
       @_value = value

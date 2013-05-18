@@ -19,6 +19,7 @@ class Ace
 
     Base =
       Outlet: (name) ->
+        console.log "created outlet at ",@path.concat(@constructor.name)," with ",name
         hdOutlet = ace.historyOutlets.to.get(@path.concat(@constructor.name), name)
         outlet = new Outlet(hdOutlet.get())
         hdOutlet.set(outlet)
@@ -42,7 +43,7 @@ class Ace
       @historyOutlets.noInherit(@path.concat('Controller'))
       root?.remove()
       @root.set(new @Controller[type](this))
-      @appendTo(@$container)
+      @appendTo(@$container) if @$container
       return
 
     @routing = new Routing this,
@@ -86,6 +87,7 @@ class Ace
 
     class @Controller extends Controller
       constructor: ->
+        console.log "YAY ace controller"
         extendBound @, Base
         super
 

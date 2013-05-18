@@ -11,7 +11,10 @@ class OutletMethod extends Outlet
     return (fn) ->
       fnText = Function.toString.apply(fn).replace(regexComments, '')
       argsBody = fnText.match(regexFunction)
-      argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',').split(',')
+      if str = argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',')
+        str.split ','
+      else
+        []
 
   # outlets is optional
   # func [, outlets [, options]]

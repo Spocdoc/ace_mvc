@@ -40,7 +40,7 @@ class Controller extends ControllerBase
   _buildMethod: (k, m) ->
     if k[0] is '$'
       @outletMethods.push om = new @OutletMethod m
-      vo = @view.get()[k[1..]]
+      vo = @view[k[1..]]
       om.outflows.add => vo.set(om.get())
     else
       @[k] = m

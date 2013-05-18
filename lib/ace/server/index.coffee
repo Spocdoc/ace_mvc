@@ -36,10 +36,20 @@ class App
     ace = new Ace
     ace.routing.enable @_routeConfig, @_routes
 
-    layout = new Template['layout'](ace)
-    ace.appendTo(layout.$content)
+    html = """
+<html>
+    <head>
+        <title></title>
+    </head>
+</html>
+    """
 
-    res.end "<!DOCTYPE html>#{layout.$root.toString()}"
+    $html = $(html)
+    ace.historyOutlets.get(['ace','Ace','rootType']).set('body')
+
+    ace.appendTo($html)
+
+    res.end "<!DOCTYPE html>#{$html.toString()}"
 
 
 module.exports = App

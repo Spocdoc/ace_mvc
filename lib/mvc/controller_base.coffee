@@ -2,6 +2,7 @@ Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
 {extend} = require '../mixin'
+clone = require '../clone'
 
 class ControllerBase
 
@@ -12,7 +13,7 @@ class ControllerBase
       outletMethods: []
 
     constructor: (@name, config) ->
-      @config = @constructor.defaultConfig
+      @config = clone @constructor.defaultConfig
 
       if typeof config is 'function'
         @func = config
@@ -28,7 +29,7 @@ class ControllerBase
   @add: (name, fnOrHash) ->
     throw new Error("#{@name}: already added #{name}") if @[name]?
     base = @Config[name] = new @Config name, fnOrHash
-    @[name] = (parent, name, settings) =>
+    @[name] = (parent, name, settings) ->
       obj = new @(parent, name, settings)
       obj.type = base.name
       Cascade.Block ->
@@ -41,7 +42,7 @@ class ControllerBase
   constructor: (@parent, @name, settings) ->
     @path = @parent.path
     @path = @path.concat(@name) if @name
-    @outlets = []
+    @outlets = {}
     @outletMethods = []
 
   _buildOutlet: (outlet) ->
@@ -109,6 +110,6 @@ class ControllerBase
 
   Outlet: (name) -> new Outlet
   OutletMethod: (func) =>
-    new OutletMethod func, @outlets, silent: true, context: this
+    new OutletMethod func, @outlets, silent: !!func.length, context: this
 
 module.exports = ControllerBase

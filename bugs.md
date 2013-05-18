@@ -8,6 +8,10 @@
 
     another alternative is to just make such functions autoruns
 
+  - this has a very inelegant hack (the @calculating + @pending business)
+
+    instead, it should calculate if an inflow is also an outflow and it has priority by looking at an index number that's set sequentially for each cascade when the outflows are set to pending. this would require doing a breadth-first traversal...
+
 # HistoryOutlet
 
   - if you call `noInherit` after `ensurePath`, which creates an inherited object, then call `noInherit` on that object, it does nothing because the object is own property (despite inheriting)
@@ -16,6 +20,9 @@
         noInherit ['foo','bar'] // undefines foo.bar locally
         noInherit ['foo'] // will do nothing
 
+  - the implementation doesn't allow keys and paths to be the same -- you can't have ['foo','bar'] as a key and ['foo','bar','baz'] as a key because the latter requires ['foo','bar'] to be a Compound
+
+    this is not just inconvenient, it's inconsistent with what's done with outlets in the model
 
 # Navigator
 
@@ -45,4 +52,7 @@
 
   - currently doesn't detach outflows on navigate so, (1) it leaks and (2) invisible views are being updated when off screen (preventing transitions, etc. when there are updates to previous pages)
 
+  - It's currently grossly inefficient for outlets that refer to documents or arrays: the referenced part of the document is (deep) cloned any time a piece of it changes.
+
+    this can be optimized by adding a `changed` method to outlets
 

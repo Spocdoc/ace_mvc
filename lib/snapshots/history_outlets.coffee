@@ -10,7 +10,7 @@ class HistoryOutlets extends Snapshots
   class @ToHistoryOutlet extends Outlet
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
-      @outflows.add =>
+      @outflows.add @_out = =>
         if @_value != @_syncValue
           @_syncValue = @_value
           dataStore = snapshots.dataStore[snapshots.to.index]
@@ -19,6 +19,12 @@ class HistoryOutlets extends Snapshots
     sync: (value) ->
       @_syncValue = value
       @set value
+
+    localizeChanges: ->
+      prevValue = @_syncValue
+      @_out()
+      @_syncValue = @_value = prevValue
+      return
 
   class FromHistoryOutlet extends Outlet
     constructor: ->
@@ -65,8 +71,10 @@ class HistoryOutlets extends Snapshots
 
     # sets the path to null (NOT undefined) if it isn't own property
     noInherit: (path, key) ->
+      [path..., key] = path if not key?
       @_snapshots.dataStore[@index].noInherit path, key
-      super
+      @each path.concat(key), (outlet) -> outlet.localizeChanges()
+      super(path,key)
 
   constructor: (@dataStore = new Snapshots) ->
     # when constructing, don't want to push to dataStore again

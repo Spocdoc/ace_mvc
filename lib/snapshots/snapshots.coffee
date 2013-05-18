@@ -4,11 +4,13 @@ class Snapshots extends Array
   class @Snapshot
 
     syncTarget = (src, dst) ->
-      for key, value of src when key[0] != '_' and !src.constructor.prototype[key]? and dst[key]?
-        if not (value instanceof Snapshots.Compound)
-          dst[key].sync(value)
-        else
-          syncTarget src[key], dst[key]
+      # sync your keys first then nested
+      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
+        continue if v instanceof Snapshots.Compound
+        dst[k].sync(v)
+      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
+        continue unless v instanceof Snapshots.Compound
+        syncTarget src[k], dst[k]
       return
 
     localPath: (arr) ->
@@ -36,6 +38,19 @@ class Snapshots extends Array
         o = o[p]
       return o
 
+    doEach = (o,fn) ->
+      for k, v of o when k[0] != '_' and !o.constructor.prototype[k]?
+        if v instanceof Snapshots.Compound
+          doEach v, fn
+        else
+          fn(v)
+      return
+
+    each: (arr, fn) ->
+      return unless (o = @get(arr))? and o instanceof Snapshots.Compound
+      doEach(o, fn)
+      return
+
     syncTarget: (dst) ->
       syncTarget this, dst
 
@@ -45,6 +60,7 @@ class Snapshots extends Array
       [path..., key] = path if not key?
       o = @localPath(path)
       o[key] = null if !{}.hasOwnProperty.call(o, key)
+      return
 
     _inherit: ->
       Object.create(this)

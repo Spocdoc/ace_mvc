@@ -271,4 +271,39 @@ describe 'HistoryOutlets', ->
       expect(args[1]).eq 'bar'
       expect(args[2].get()).eq 42
 
+  describe 'swapping outlets with pending calculations', ->
+    describe 'when there are pending outflows after a navigation', ->
+      it 'should not calculate the outflows for outlets that are replaced because of a previous outflow', ->
+        ho = new HistoryOutlets
+        o1 = ho.get(['ace','tlcType'])
+        o1.set("list type")
+
+        o1_5 = ho.get(['ace','tlc'])
+        o1_5.set("list")
+
+        o2 = ho.get(['ace','Controller','foo'])
+        o2.set("some controller property")
+
+        o3 = new Outlet o2
+
+        o1.outflows.add =>
+          unless 0 == o1.get().indexOf(o1_5.get())
+            ho.noInherit(['ace','Controller'])
+            o1_5.set(o1.get()[0...-5])
+
+        Cascade.Block =>
+          # called by a controller somewhere
+          ho.navigate()
+          ho.get(['ace','tlcType']).set('reader type')
+          ho.get(['ace','Controller','foo']).set('new property')
+
+        expect(o3.get()).eq "some controller property"
+        expect(ho.get(['ace','Controller','foo']).get()).eq 'new property'
+        expect(ho.get(['ace','tlcType']) == o1).true
+
+        ho.navigate(0)
+
+        expect(o3.get()).eq "some controller property"
+        expect(ho.get(['ace','Controller','foo']).get()).eq 'some controller property'
+
 

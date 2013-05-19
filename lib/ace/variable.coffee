@@ -1,19 +1,21 @@
 Outlet = require '../cascade/outlet'
+Snapshots = require '../snapshots/snapshots'
 
 class Variable extends Outlet
-  constructor: (historyOutlets, @path, fn) ->
+  constructor: (historyOutlets, path, fn) ->
+    @path = Snapshots.getPath(path)
 
     super fn
 
     historyOutlets.on 'didNavigate', =>
-      @set(historyOutlets.to.get(@path).get())
+      @set(historyOutlets.get(@path).get())
 
     historyOutlets.on 'newOutlet', (path, key, outlet) =>
       return unless @_samePath path, key
       outlet.outflows.add => @set(outlet.get())
 
     @outflows.add =>
-      historyOutlets.to.get(@path).set(@_value)
+      historyOutlets.set(@path, @_value)
 
   _samePath: (path, key) ->
     thisLen = @path.length

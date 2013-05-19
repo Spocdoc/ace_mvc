@@ -78,7 +78,8 @@ class View extends ControllerBase
 
       else if (outlet = @outlets[s])?
         switch typeof m
-          when 'string' then addStringOutflow this, s, m, outlet
+          when 'string'
+            addStringOutflow this, s, m, outlet
           when 'function'
             @outletMethods.push om = @newOutletMethod m
             om.outflows.add -> outlet.set(om.get())

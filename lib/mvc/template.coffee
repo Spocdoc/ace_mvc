@@ -29,7 +29,7 @@ class Template
   constructor: (@type, @parent, @name) ->
     @path = @parent.path
     @path = @path.concat(@name) if @name
-    @prefix = @path.join('-')
+    @prefix = @path.join('-') || "ace"
     @$ = {}
     base = TemplateBase[@type]
     base.lazy()

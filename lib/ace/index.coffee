@@ -12,21 +12,34 @@ Statelet = require '../cascade/statelet'
 
 class Ace
 
-  constructor: (@name='ace', @historyOutlets = new HistoryOutlets) ->
-    @path = [@name]
+  @makeOutletPath = (inst, name) ->
+    path = inst.path.concat()
+    switch inst.constructor.name
+      when 'View' then name = "$#{name}"
+      when 'Ace'
+        path.push 'Ace'
+    path.push name
+    path
+
+  constructor: (@name='', @historyOutlets = new HistoryOutlets) ->
+    @path = []
+    @path.push @name if @name
 
     ace = this
 
     Base =
       newOutlet: (name) ->
-        console.log "created outlet at ",@path.concat(@constructor.name)," with ",name
-        hdOutlet = ace.historyOutlets.to.get(@path.concat(@constructor.name), name)
+        path = Ace.makeOutletPath this, name
+        hdOutlet = ace.historyOutlets.to.get(path)
         outlet = new Outlet(hdOutlet.get())
+        console.log "created outlet #{outlet.cid} at",path.join('/'), "with hd",hdOutlet.cid
         hdOutlet.set(outlet)
         outlet
 
       newFromOutlet: (name) ->
-        hdOutlet = ace.historyOutlets.from.get(@path.concat(@constructor.name), name)
+        path = Ace.makeOutletPath this, name
+        console.log "created FROM outlet at ",path.join('/')
+        hdOutlet = ace.historyOutlets.from.get(path)
         outlet = new Outlet(hdOutlet.get())
         hdOutlet.sets(outlet)
         outlet
@@ -73,7 +86,8 @@ class Ace
         super
 
       newStatelet: (name) ->
-        hdOutlet = ace.historyOutlets.to.get(@path.concat('view'), name)
+        Ace.makeOutletPath this, name
+        hdOutlet = ace.historyOutlets.to.get(path)
         statelet = new Statelet undefined,
           value: hdOutlet.get()
           enableSet: @inWindow

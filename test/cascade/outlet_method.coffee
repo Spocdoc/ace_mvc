@@ -229,3 +229,17 @@ describe 'OutletMethod with object inputs', ->
     # expect(bar).calledOnce
     # expect(b.get()).eq 1
 
+describe.only 'OutletMethod setting other outlets', ->
+  it 'should not add those outlets as inflows', ->
+    foo = sinon.spy ->
+    i = 0
+    a = new Outlet
+    om = new OutletMethod (->
+      foo()
+      a.set(++i)), {}
+
+    expect(foo).calledOnce
+    a.set(-1)
+    expect(foo).calledOnce
+
+

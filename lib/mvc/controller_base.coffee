@@ -34,12 +34,16 @@ class ControllerBase
   @defaultOutlets = []
 
   constructor: (@type, @parent, @name, settings) ->
-    @path = @parent.path
-    @path = @path.concat(@name) if @name
-    @outlets = {}
-    @outletMethods = []
-    Cascade.Block =>
-      @_build(@constructor.Config[@type], settings)
+    Outlet.enterContext()
+    try
+      @path = @parent.path
+      @path = @path.concat(@name) if @name
+      @outlets = {}
+      @outletMethods = []
+      Cascade.Block =>
+        @_build(@constructor.Config[@type], settings)
+    finally
+      Outlet.exitContext()
 
   _buildOutlet: (outlet) ->
     if typeof outlet isnt 'string'

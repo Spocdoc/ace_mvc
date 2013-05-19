@@ -59,7 +59,9 @@ numSort = (a,b) ->
 # to objects that inherit a truthy _ojson)
 class OJSONRef
   count = 0
-  uniqueId = -> "#{++count}oj"
+  uniqueId = ->
+    count = 0 if ++count == count
+    "#{count}oj"
   cache = {}
   constructor: (@own, @id=uniqueId()) ->
   toJSON: -> {o: @own, i: @id}

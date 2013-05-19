@@ -45,8 +45,9 @@ class App
     """
 
     $html = $(html)
-    ace.historyOutlets.get(['ace','Ace','rootType']).set('body')
+    ace.rootType.set('body')
 
+    ace.routing.router.route req.url
     ace.appendTo($html)
 
     res.end "<!DOCTYPE html>#{$html.toString()}"

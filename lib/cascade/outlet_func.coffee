@@ -2,6 +2,26 @@ module.exports = (Outlet) ->
   Outlet.stack = []
   Outlet.func = {}
 
+
+  # ordinarily, outlets automatically add outflows to any outlet that's
+  # retrieved in the current outlet's function. when this is unwanted,
+  # execute the function in a new Outlet.context
+  Outlet.context = (fn) ->
+    @stack.push @stackLast
+    @stackLast = null
+    ret = fn()
+    @stackLast = @stack.pop()
+    ret
+
+  Outlet.enterContext = ->
+    @stack.push @stackLast
+    @stackLast = null
+    return
+
+  Outlet.exitContext = ->
+    @stackLast = @stack.pop()
+    return
+
   Outlet.prototype.get = ->
     @outflows.add Outlet.stackLast if Outlet.stackLast
     if arguments.length and @_indirect?.get

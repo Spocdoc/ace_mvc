@@ -65,6 +65,7 @@ class Outlet extends Cascade
 
   toJSON: -> @_value
 
+
 module.exports = Outlet
 require('./outlet_func')(Outlet)
 

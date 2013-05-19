@@ -1,6 +1,17 @@
 class Snapshots extends Array
   @Compound = ->
 
+  @getPath = (path) ->
+    if typeof path is 'string'
+      path.split '/'
+    else
+      path
+
+  @getPathKey = (path, key) ->
+    path = @getPath(path)
+    [path..., key] = path if not key?
+    [path, key]
+
   class @Snapshot
 
     syncTarget = (src, dst) ->
@@ -57,7 +68,7 @@ class Snapshots extends Array
     # sets the path to null (NOT undefined) if it isn't own property
     # null is used because it's too difficult to serialize undefined values over JSON
     noInherit: (path, key) ->
-      [path..., key] = path if not key?
+      [path, key] = Snapshots.getPathKey path, key
       o = @localPath(path)
       o[key] = null if !{}.hasOwnProperty.call(o, key)
       return

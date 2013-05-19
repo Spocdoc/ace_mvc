@@ -48,7 +48,7 @@ class HistoryOutlets extends Snapshots
     _inherit: -> throw new Error("FromHistorySnapshot should never be inherited from")
 
     get: (path, key) ->
-      [path..., key] = path if not key?
+      [path, key] = Snapshots.getPathKey path, key
       @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@index then @_snapshots.dataStore[@index].get(path)?[key] else undefined)
 
 
@@ -62,16 +62,20 @@ class HistoryOutlets extends Snapshots
       ret
 
     get: (path, key) ->
-      [path..., key] = path if not key?
+      [path, key] = Snapshots.getPathKey path, key
       current = (base = @ensurePath(path))[key]
       return current if current?
       base[key] = outlet = new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
       @_snapshots.emit 'newOutlet', path, key, outlet
       outlet
 
+    set: (path, value) ->
+      @get(path).set(value)
+      return this
+
     # sets the path to null (NOT undefined) if it isn't own property
     noInherit: (path, key) ->
-      [path..., key] = path if not key?
+      [path, key] = Snapshots.getPathKey path, key
       @_snapshots.dataStore[@index].noInherit path, key
       @each path.concat(key), (outlet) -> outlet.localizeChanges()
       super(path,key)

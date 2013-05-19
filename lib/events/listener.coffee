@@ -1,6 +1,7 @@
 count = 0
 uniqueId = ->
-  "#{++count}-Listener"
+  count = if count+1 == count then 0 else count+1
+  "#{count}-Listener"
 
 module.exports = Listener =
   listenOn: (emitter, event, fn) ->

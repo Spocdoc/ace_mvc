@@ -16,25 +16,29 @@ class Model
   @add: (coll) -> return this
 
   constructor: (@coll, @db, idOrSpec) ->
-    if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-      return exists if exists = @constructor[@coll][idOrSpec]
-      @doc = @db.coll(@coll).read(idOrSpec)
-    else
-      @doc = @db.coll(@coll).create(idOrSpec)
+    Outlet.enterContext()
+    try
+      if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
+        return exists if exists = @constructor[@coll][idOrSpec]
+        @doc = @db.coll(@coll).read(idOrSpec)
+      else
+        @doc = @db.coll(@coll).create(idOrSpec)
 
-    @id = @doc._id
-    @copy = clone(@doc.doc)
-    @constructor[@coll][@id] = this
+      @id = @doc._id
+      @copy = clone(@doc.doc)
+      @constructor[@coll][@id] = this
 
-    @_attach()
-    @_outlets = {}
-    @_ocalc = []
-    @_ops = new Outlet []
-    @_ops.outflows.add =>
-      return unless (ops = @_ops.get()).length
-      @_ops.set([])
-      @doc.update ops
-      return
+      @_attach()
+      @_outlets = {}
+      @_ocalc = []
+      @_ops = new Outlet []
+      @_ops.outflows.add =>
+        return unless (ops = @_ops.get()).length
+        @_ops.set([])
+        @doc.update ops
+        return
+    finally
+      Outlet.exitContext()
 
   _attach: ->
     @doc ||= @db.coll(@coll).read(@id)

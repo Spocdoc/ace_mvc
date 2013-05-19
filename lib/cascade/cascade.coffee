@@ -5,7 +5,8 @@ class Cascade
   count = 0
 
   uniqueId = ->
-    "#{++count}-Cascade"
+    count = if count+1 == count then 0 else count+1
+    "#{count}-Cascade"
 
   include Cascade, Emitter
 

@@ -75,4 +75,9 @@
 
   - the layout can't have a doctype or the template renderer puts it in a div container
 
+# Bundle
+
+  - it sends the compiled script with `res.end(script)`
+
+    there may be a more efficient way? of course in prod the whole thing should be on a CDN...
 

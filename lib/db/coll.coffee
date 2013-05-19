@@ -20,8 +20,9 @@ class Coll
     read(id).update(ops)
 
   delete: (id) ->
-    delete d = @docs[id]
+    d = @docs[id]
     d._delete()
+    delete @docs[id]
     return
 
   # TODO these are for memory management

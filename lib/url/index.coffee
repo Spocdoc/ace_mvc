@@ -19,14 +19,14 @@ nonHostRegex = new RegExp("[#{RegExp.escape(nonHostChars.join())}]")
 
 autoEscape = ["'"].concat(delims)
 autoEscapeRepl = {}
-autoEscapeRepl[char] = escape(char) for char in autoEscape
+autoEscapeRepl[c] = escape(c) for c in autoEscape
 autoEscapeRegex = new RegExp("[#{RegExp.escape(autoEscape.join())}]",'g')
 
 class Url
   _pullAuth: (rest) ->
     return rest unless ~(atSign = rest.indexOf("@"))
     auth = rest.slice(0, atSign)
-    (return rest if ~auth.indexOf(char)) for char in nonAuthChars
+    (return rest if ~auth.indexOf(c)) for c in nonAuthChars
     @_setAuth auth
     rest.substr(atSign + 1)
 
@@ -118,7 +118,7 @@ class Url
 
   # Escapes RFC delims & chars that shouldn't appear in the URL (but does *not*
   # do an HTML escape -- assumes that's already been done)
-  @escape: (str) -> str.replace(autoEscapeRegex, (char) -> autoEscapeRepl[char])
+  @escape: (str) -> str.replace(autoEscapeRegex, (c) -> autoEscapeRepl[c])
 
   format: ->
     href = ''

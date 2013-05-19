@@ -50,8 +50,11 @@ class App
     ace.routing.router.route req.url
     ace.appendTo($html)
 
-    res.end "<!DOCTYPE html>#{$html.toString()}"
-
+    # add client-side script
+    req.scripts.getHash (hash) ->
+      script = $("<script type=\"text/javascript\" src=\"/#{hash}.js\"></script>")
+      $html.append script
+      res.end "<!DOCTYPE html>#{$html.toString()}"
 
 module.exports = App
 

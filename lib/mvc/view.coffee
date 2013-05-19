@@ -66,7 +66,7 @@ class View extends ControllerBase
 
     setDom = (view, name, obj) ->
       for k, v of obj
-        view.outletMethods.push om = new view._OutletMethod v
+        view.outletMethods.push om = view.newOutletMethod v
         addStringOutflow(view, name, k, om)
       return
 
@@ -80,7 +80,7 @@ class View extends ControllerBase
         switch typeof m
           when 'string' then addStringOutflow this, s, m, outlet
           when 'function'
-            @outletMethods.push om = new @OutletMethod m
+            @outletMethods.push om = @newOutletMethod m
             om.outflows.add -> outlet.set(om.get())
       else
         @[s] = m
@@ -88,12 +88,12 @@ class View extends ControllerBase
       return
 
   _buildTemplate: (arg) ->
-    outlet = @outlets['template'] ||= new @Outlet('template')
+    outlet = @outlets['template'] ||= @newOutlet('template')
 
     if arg instanceof Template
       outlet.set @template = arg
     else
-      outlet.set @template = new @Template arg
+      outlet.set @template = @newTemplate arg
 
     @template.view = this
     @domCache = {}
@@ -110,7 +110,7 @@ class View extends ControllerBase
     @_stateletDefaults ||= {}
     for k,v of statelets
       @_stateletDefaults[k] = v
-      @[k] = @outlets[k] = new @Statelet(k)
+      @[k] = @outlets[k] = @newStatelet(k)
     return
 
   _setStatelet: (k, v) ->
@@ -146,6 +146,6 @@ class View extends ControllerBase
 
     base
 
-  Template: (name) => new Template[name](this)
+  newTemplate: (type) -> new Template(type, this)
 
 module.exports = View

@@ -28,22 +28,18 @@ class ControllerBase
 
   @add: (name, fnOrHash) ->
     throw new Error("#{@name}: already added #{name}") if @[name]?
-    base = @Config[name] = new @Config name, fnOrHash
-    @[name] = (parent, name, settings) ->
-      obj = new @(parent, name, settings)
-      obj.type = base.name
-      Cascade.Block ->
-        obj._build(base, settings)
-      obj
+    @Config[name] = new @Config name, fnOrHash
     return this
 
   @defaultOutlets = []
 
-  constructor: (@parent, @name, settings) ->
+  constructor: (@type, @parent, @name, settings) ->
     @path = @parent.path
     @path = @path.concat(@name) if @name
     @outlets = {}
     @outletMethods = []
+    Cascade.Block =>
+      @_build(@constructor.Config[@type], settings)
 
   _buildOutlet: (outlet) ->
     if typeof outlet isnt 'string'
@@ -52,17 +48,17 @@ class ControllerBase
           o = v
         else
           @_outletDefaults[k] = v
-          o = new @Outlet k
+          o = @newOutlet k
         @[k] = @outlets[k] = o
     else
-      @[outlet] = @outlets[outlet] = new @Outlet(outlet) unless @[outlet]
+      @[outlet] = @outlets[outlet] = @newOutlet(outlet) unless @[outlet]
     return
 
   _buildOutlets: (outlets) ->
     return unless outlets
     @_outletDefaults = {}
 
-    @[k] ?= @outlets[k] = new @Outlet(k) for k in @constructor.defaultOutlets
+    @[k] ?= @outlets[k] = @newOutlet(k) for k in @constructor.defaultOutlets
 
     if Array.isArray outlets
       @_buildOutlet k for k in outlets
@@ -88,7 +84,7 @@ class ControllerBase
 
   _buildOutletMethods: (arr) ->
     for m in arr
-      @outletMethods.push new @OutletMethod m
+      @outletMethods.push @newOutletMethod m
     return
 
   _buildMixins: (mixins, mixins2) ->
@@ -108,8 +104,9 @@ class ControllerBase
     --@_mixing
     return
 
-  Outlet: (name) -> new Outlet
-  OutletMethod: (func) =>
+  newOutlet: (name) -> new Outlet
+  newOutletMethod: (func) ->
     new OutletMethod func, @outlets, silent: !!func.length, context: this
+  newController: (type, name, settings) -> new Controller(type, this, name, settings)
 
 module.exports = ControllerBase

@@ -23,19 +23,17 @@ class TemplateBase
 class Template
   @add: (name, domString) ->
     throw new Error("Template: already added #{name}") if @[name]?
-    base = new TemplateBase(domString)
-    @[name] = (parent, name) ->
-      base.lazy()
-      obj = new @(parent, name)
-      obj._build(base)
-      obj
+    TemplateBase[name] = new TemplateBase(domString)
     return this
 
-  constructor: (@parent, @name) ->
+  constructor: (@type, @parent, @name) ->
     @path = @parent.path
     @path = @path.concat(@name) if @name
     @prefix = @path.join('-')
     @$ = {}
+    base = TemplateBase[@type]
+    base.lazy()
+    @_build(base)
 
   _build: (base) ->
     @$root = base.$root.clone()

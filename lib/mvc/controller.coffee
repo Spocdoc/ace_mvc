@@ -19,15 +19,15 @@ class Controller extends ControllerBase
   remove: -> @view.remove()
 
   _buildView: (arg, settings) ->
-    outlet = @outlets['view'] ||= new @Outlet('view')
+    outlet = @outlets['view'] ||= @newOutlet('view')
 
     if arg instanceof View
       outlet.set @view = arg
     else if typeof arg is 'string'
-      outlet.set @view = new @View arg
+      outlet.set @view = @newView arg
     else
       break for k,v of arg
-      outlet.set @view = new @View k, undefined, v
+      outlet.set @view = @newView k, undefined, v
 
     @$ = {}
     for k, v of @view.outlets
@@ -39,7 +39,7 @@ class Controller extends ControllerBase
 
   _buildMethod: (k, m) ->
     if k[0] is '$'
-      @outletMethods.push om = new @OutletMethod m
+      @outletMethods.push om = @newOutletMethod m
       vo = @view[k[1..]]
       om.outflows.add => vo.set(om.get())
     else
@@ -63,7 +63,7 @@ class Controller extends ControllerBase
 
     base
 
-  View: (type, name, settings) => new View[type](this, name, settings)
-  Model: (type, idOrSpec) -> new Model[type](idOrSpec)
+  newView: (type, name, settings) -> new View(type, this, name, settings)
+  newModel: (type, idOrSpec) -> new Model(type, idOrSpec)
 
 module.exports = Controller

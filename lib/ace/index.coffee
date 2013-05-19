@@ -8,7 +8,7 @@ Template = require '../mvc/template'
 Db = require '../db/db'
 Model = require '../mvc/model'
 Statelet = require '../cascade/statelet'
-{include,extend,extendBound} = require '../mixin'
+{include,extend} = require '../mixin'
 
 class Ace
 
@@ -18,23 +18,26 @@ class Ace
     ace = this
 
     Base =
-      Outlet: (name) ->
+      newOutlet: (name) ->
         console.log "created outlet at ",@path.concat(@constructor.name)," with ",name
         hdOutlet = ace.historyOutlets.to.get(@path.concat(@constructor.name), name)
         outlet = new Outlet(hdOutlet.get())
         hdOutlet.set(outlet)
         outlet
 
-      FromOutlet: (name) ->
+      newFromOutlet: (name) ->
         hdOutlet = ace.historyOutlets.from.get(@path.concat(@constructor.name), name)
         outlet = new Outlet(hdOutlet.get())
         hdOutlet.sets(outlet)
         outlet
 
-    extendBound @, Base
+      newController: (type, name, settings) ->
+        new ace.Controller(type, this, name, settings)
 
-    @root = new @Outlet('root')
-    @rootType = new @Outlet('rootType')
+    extend @, Base
+
+    @root = @newOutlet('root')
+    @rootType = @newOutlet('rootType')
     @rootType.set('root') unless @rootType.get()
 
     @rootType.outflows.add =>
@@ -42,7 +45,7 @@ class Ace
       return if (root = @root.get())?.type == type
       @historyOutlets.noInherit(@path.concat('Controller'))
       root?.remove()
-      @root.set(new @Controller[type](this))
+      @root.set(@newController(type))
       @appendTo(@$container) if @$container
       return
 
@@ -55,7 +58,7 @@ class Ace
     class @Template extends Template
       _build: (base) ->
         @ace = ace
-        return super unless @$root = ace.$container.find("##{@prefix}")
+        return super unless @$root = ace.$container?.find("##{@prefix}")
         @$['root'] = @$root
         for id in base.ids
           (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
@@ -63,12 +66,13 @@ class Ace
         return
 
     class @View extends View
+      include @, Base
+
       constructor: ->
         @ace = ace
-        extendBound @, Base
         super
 
-      Statelet: (name) =>
+      newStatelet: (name) ->
         hdOutlet = ace.historyOutlets.to.get(@path.concat('view'), name)
         statelet = new Statelet undefined,
           value: hdOutlet.get()
@@ -78,23 +82,24 @@ class Ace
         ace.routing.navigator?.on 'willNavigate', -> statelet.run()
         statelet
 
-      Template: (name) =>
-        new ace.Template[name](this)
+      newTemplate: (type) ->
+        new ace.Template(type, this)
 
     class @Model extends Model
       constructor: (coll, idOrSpec) ->
-        super ace.constructor.db, coll, idOrSpec
+        super coll, ace.constructor.db, idOrSpec
 
     class @Controller extends Controller
+      include @, Base
+
       constructor: ->
         console.log "YAY ace controller"
-        extendBound @, Base
         super
 
-      View: (type, name, settings) =>
-        new ace.View[type](this, name, settings)
+      newView: (type, name, settings) ->
+        new ace.View(type, this, name, settings)
 
-      Model: (type, idOrSpec) => new ace.Model[type](idOrSpec)
+      newModel: (type, idOrSpec) -> new ace.Model(type, idOrSpec)
 
   push: ->
     @historyOutlets.navigate()

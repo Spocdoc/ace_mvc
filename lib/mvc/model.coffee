@@ -13,12 +13,9 @@ class Model
   include Model, Emitter
   include Model, Listener
 
-  @add: (coll) ->
-    @[coll] = (idOrSpec) ->
-      new @(coll, idOrSpec)
-    return this
+  @add: (coll) -> return this
 
-  constructor: (@db, @coll, idOrSpec) ->
+  constructor: (@coll, @db, idOrSpec) ->
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
       return exists if exists = @constructor[@coll][idOrSpec]
       @doc = @db.coll(@coll).read(idOrSpec)

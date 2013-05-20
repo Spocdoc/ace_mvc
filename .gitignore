@@ -2,3 +2,4 @@ coverage.html
 tmp
 app
 lib/bundler/server/load-*
+routes.coffee

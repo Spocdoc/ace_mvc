@@ -9,7 +9,6 @@ async = require 'async'
 listMvc = require '../../mvc/server/list_mvc'
 {defaults} = require '../../mixin'
 temp = require '../../temp'
-Url = require '../../url'
 
 hash = (str) ->
    require('crypto').createHash('sha1').update(str).digest("hex")
@@ -68,58 +67,32 @@ readClientFiles = (basePath, filter, cb) ->
     else
       cb(content)
 
-LOCAL=1
-EXTERN=2
-PROD=3
-
 class Bundler
-  constructor: (settings, mvc) ->
-    @settings = defaults {}, settings
-    @settings['mvc'] = mvc
-
+  constructor: (@settings) ->
     @bundle()
     @sq = queue() # script queue
     @hq = queue() # hash queue
 
-  getUris: (cb) ->
+  getHash: (cb) ->
     if @hash?
-      cb("/local-#{@hash.local}.js", "/extern-#{@hash.extern}.js", "/#{@hash.prod}.js")
+      cb @hash
     else
-      @hq(cb)
+      @hq cb
     return
 
-  serveScript: do ->
-    jsRegex = /^\/+[^/]*\.js/
-    localRegex = /^\/+local-/
-    externRegex = /^\/+extern-/
-
-    (req, res) ->
-      url = (new Url(req.url)).pathname
-      return false unless url.match jsRegex
-
-      res.setHeader 'Content-Type', 'text/javascript'
-
-      if url.match localRegex
-        res.scriptType = LOCAL
-      else if url.match externRegex
-        res.scriptType = EXTERN
-
-      @writeScript res
-      true
-
-  writeScript: (res) ->
+  writeScript: (stream) ->
     if @script?
-      switch res.scriptType
-        when LOCAL then res.end @script.local
-        when EXTERN then res.end @script.extern
-        else res.end @script.prod
+      if (type = stream.scriptType)?
+        stream.end @script[type]
+      else
+        stream.end @script.prod
     else
-      @sq(res)
+      @sq(stream)
     return
 
   didBundle: ->
     @writeScript res while res = @sq()
-    @getUris cb while cb = @hq()
+    @getHash cb while cb = @hq()
     return
 
   bundle: do ->
@@ -157,6 +130,7 @@ class Bundler
             script.push "#{clazz} = require #{quote(p)}"
 
           script.push """
+          global.Ace = require #{quote(path.resolve(basePath, "./ace"))}
           global.Template = Template
           global.View = View
           global.Controller = Controller
@@ -186,7 +160,7 @@ class Bundler
     bundle = (debug, file, cb) ->
       script = browserify(file)
         .transform(coffeeify)
-        .bundle({'debug': debug})
+        .bundle({'debug': false})
 
       script = script.pipe uglifier unless debug
 

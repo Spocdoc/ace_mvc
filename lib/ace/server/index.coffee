@@ -2,77 +2,37 @@ fs = require 'fs'
 path = require 'path'
 express = require('express')
 {extend} = require '../../mixin'
-Url = require '../../url'
-Bundler = require './bundler'
+App = require './app'
+Bundler = require '../../bundler/server'
 
 directories = (path) ->
   dir for dir in fs.readdirSync path when fs.statSync("#{path}/#{dir}").isDirectory()
 
 # express sets route, parent
-class App
+class Main
   constructor: (settings) ->
     # TODO: is this really the only way to extend express. wtf
     extend @, express()
-    delete @handle
 
     extend @settings, settings
-    @on 'mount', (app) => @_configure()
+    @on 'mount', (app) => @_configure(app)
 
-  _configure: ->
+  _configure: (app) ->
+    process.on 'SIGINT', -> process.exit(1)
+
     # load everything in server directories
     basePath = path.resolve(__dirname, '../../')
-    for name in directories(basePath) when fs.existsSync(p="#{basePath}/#{name}/server") and name isnt 'ace'
+    for name in directories(basePath) when fs.existsSync(p="#{basePath}/#{name}/server") and !(name in ['ace','bundler'])
       fn(this, @settings[name]) if typeof (fn = require(p)) is 'function'
 
-    Template = require '../../mvc/template'
-    View = require '../../mvc/view'
-    Controller = require '../../mvc/controller'
+    bundler = new Bundler
+    bundler.set 'mvc', @settings['mvc']
+    app.use bundler
 
-    # add controllers, views, templates
-    listMvc = require('../../mvc/server/list_mvc')
-    mvc = listMvc(@settings.mvc.templates, @settings.mvc.files)
-    Template.add name, dom for name, dom of mvc['template']
-    View.add name, require p for name, p of mvc['view']
-    Controller.add name, require p for name, p of mvc['controller']
+    @settings.bundler = bundler
 
-    Routing = require '../routing'
-    @_routeConfig = require(@settings['routes'])
-    @_routes = Routing.buildRoutes @_routeConfig
+    aceApp = new App @settings
+    app.use aceApp
 
-    @bundler = new Bundler @settings['bundler'], @settings['mvc']
-
-  handle: (req, res, next) ->
-    return if @bundler.serveScript req, res
-
-    Ace = require '../index'
-    Template = require '../../mvc/template'
-
-    ace = new Ace
-    ace.routing.enable @_routeConfig, @_routes
-
-    html = """
-<html>
-    <head>
-        <title></title>
-    </head>
-</html>
-    """
-
-    $html = $(html)
-    ace.rootType.set('body')
-
-    ace.routing.router.route req.url
-    ace.appendTo($html)
-
-    # add client-side script
-    @bundler.getUris (pathLocal, pathExtern, pathProd) =>
-      if @settings['debug']
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathExtern}\"></script>")
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathLocal}\"></script>")
-      else
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathProd}\"></script>")
-
-      res.end "<!DOCTYPE html>#{$html.toString()}"
-
-module.exports = App
+module.exports = Main
 

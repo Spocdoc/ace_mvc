@@ -8,7 +8,9 @@ class NavigatorUrl extends Url
 
     (url=@) ->
       if url.hash?
-        ~url.hash.search(regex)
+        !!~url.hash.search(regex)
+      else
+        false
 
   hasPath: (url=@) ->
     url.path.length > 1
@@ -38,6 +40,7 @@ class Navigator
   constructor: (win=window, @useHash=false) ->
     @window = win
     @useHash ||= !@window.history || !@window.history.pushState
+    @useHash = true #TODO DEBUG
     @url = new NavigatorUrl(@window.location.href)
     @index = 0
     @_urls = [@url]
@@ -45,9 +48,12 @@ class Navigator
     @_replace @_stripHash()
 
     if @useHash
-      @_listen 'hashchange', @_urlchange
+      @_listen 'hashchange', (event) => @_urlchange event
     else
-      setTimeout (=> @_listen('popstate', @_urlchange)), 0
+      @_popCount = 0
+      @_listen 'popstate', (event) =>
+        return unless @_popCount++
+        @_urlChange event
 
   _listen: (event, fn) ->
     if @window.addEventListener
@@ -109,7 +115,7 @@ class Navigator
       path: '/'
       hash: "##{@index}#{@url.path}#{@url.hash || ''}"
 
-  _urlchange: (event) =>
+  _urlchange: (event) ->
     newUrl = new NavigatorUrl(event.newURL || @window.location.href)
     newIndex = if event.state? then +event.state else newUrl.hashIndex()
     @_stripHash newUrl

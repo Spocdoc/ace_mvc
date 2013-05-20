@@ -12,9 +12,8 @@ class Server
     delete @handle
 
     extend @settings, settings
-    @on 'mount', (app) => @_configure()
 
-  _configure: ->
+  start: ->
     @bundler = new Bundler @settings
 
   handle: do ->

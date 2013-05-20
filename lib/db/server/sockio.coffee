@@ -45,3 +45,4 @@ module.exports = (db, server) ->
       sock.listenOff db, db.channel(c,i)
       db.unsubscribe sock.id, c, i, cb
 
+  io

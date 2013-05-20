@@ -17,6 +17,8 @@ module.exports = Listener =
       delete @_listener[emitter] unless event? or fn?
       return
 
+    return if not emitter.cid?
+
     if not event?
       [emitter,events] = @_listener[emitter.cid]
       for event of events

@@ -17,13 +17,13 @@ class Ace
     switch inst.constructor.name
       when 'View' then name = "$#{name}"
       when 'Ace'
-        path.push 'Ace'
+        name = "#{path[0]}-#{name}"
+        path = []
     path.push name
     path
 
-  constructor: (@name='', @historyOutlets = new HistoryOutlets) ->
-    @path = []
-    @path.push @name if @name
+  constructor: (@historyOutlets = new HistoryOutlets, @name='') ->
+    @path = [@name]
 
     ace = this
 
@@ -56,7 +56,7 @@ class Ace
     @rootType.outflows.add =>
       type = @rootType.get()
       return if (root = @root.get())?.type == type
-      @historyOutlets.noInherit(@path.concat('Controller'))
+      @historyOutlets.noInherit(@path)
       root?.remove()
       @root.set(@newController(type))
       @appendTo(@$container) if @$container
@@ -105,10 +105,6 @@ class Ace
 
     class @Controller extends Controller
       include @, Base
-
-      constructor: ->
-        console.log "YAY ace controller"
-        super
 
       newView: (type, name, settings) ->
         new ace.View(type, this, name, settings)

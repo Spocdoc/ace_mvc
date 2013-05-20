@@ -47,7 +47,7 @@ class Routing
     @pathBuilder.outflows.add =>
       @navigator.replace @pathBuilder.get()
 
-    return
+    return @navigator
 
   _navigate: (arg) ->
     if typeof arg is 'number'

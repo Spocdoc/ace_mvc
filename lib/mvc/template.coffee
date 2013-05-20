@@ -30,6 +30,7 @@ class Template
     @path = @parent.path
     @path = @path.concat(@name) if @name
     @prefix = @path.join('-') || "ace"
+    @prefix = "ace#{@prefix}" if @prefix[0] is '-'
     @$ = {}
     base = TemplateBase[@type]
     base.lazy()

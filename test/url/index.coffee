@@ -52,6 +52,16 @@ describe 'Url', ->
     expect(result.path).eq newUrl
     expect(result.pathname).eq result.path
 
+  it 'should still parse full URLs properly even if slashes is false', ->
+    url = 'http://foo.com/path/to/file.html'
+    result = new Url(url, slashes: false)
+    expect(result.href).eq url
+    expect(result.host).eq 'foo.com'
+    expect(result.hostname).eq 'foo.com'
+    expect(result.path).eq '/path/to/file.html'
+    expect(result.pathname).eq result.path
+    expect(result.slashes).eq true
+
   it 'should parse auth', ->
     url = '//user:pass@foo.com/path/to/file.html'
     result = new Url(url)

@@ -3,6 +3,7 @@ path = require 'path'
 express = require('express')
 {extend} = require '../../mixin'
 Url = require '../../url'
+OJSON = require '../../ojson'
 
 directories = (path) ->
   dir for dir in fs.readdirSync path when fs.statSync("#{path}/#{dir}").isDirectory()
@@ -34,6 +35,11 @@ class App
     @_routes = Routing.buildRoutes @_routeConfig
 
     @bundler = @settings.bundler
+    @bundler.set 'globals',
+      'Ace': path.resolve(__dirname, '../../ace')
+      'routes': @settings['routes']
+    @bundler.start()
+    return
 
   handle: (req, res, next) ->
     Ace = require '../index'
@@ -63,6 +69,21 @@ class App
         $html.append $("<script type=\"text/javascript\" src=\"#{pathLocal}\"></script>")
       else
         $html.append $("<script type=\"text/javascript\" src=\"#{pathProd}\"></script>")
+
+      $script = $("""
+      <script type=\"text/javascript\">
+      (function () {
+        var historyOutlets = #{OJSON.stringify ace.historyOutlets};
+        var ace = new window.Ace(OJSON.fromOJSON(historyOutlets));
+        ace.routing.enable(window.routes);
+        var navigator = ace.routing.enableNavigator();
+        ace.routing.router.route(navigator.url);
+        ace.appendTo($('html'));
+      }());
+      </script>
+      """)
+
+      $html.append $script
 
       res.end "<!DOCTYPE html>#{$html.toString()}"
 

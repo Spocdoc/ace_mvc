@@ -50,16 +50,19 @@ class View extends ControllerBase
       switch str
         when 'toggleClass'
           outflows.add ->
+            console.log "calling #{str} in dom on #{name}"
             e[str].call(e, name, outlet.get())
 
         when 'text','html'
           outflows.add ->
             if view.domCache[name] isnt (v = outlet.get())
               view.domCache[name] = v
+              console.log "calling #{str} in dom on #{name}"
               e[str].call(e, v)
 
         else
           outflows.add ->
+            console.log "calling #{str} in dom on #{name}"
             e[str].call(e, outlet.get())
 
       return

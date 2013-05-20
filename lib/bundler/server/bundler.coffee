@@ -69,9 +69,9 @@ readClientFiles = (basePath, filter, cb) ->
 
 class Bundler
   constructor: (@settings) ->
-    @bundle()
     @sq = queue() # script queue
     @hq = queue() # hash queue
+    @bundle()
 
   getHash: (cb) ->
     if @hash?
@@ -112,7 +112,8 @@ class Bundler
       return
 
     makeLoadFile = (settings, cb) ->
-      mvc = listMvc(settings['templates'], settings['files'])
+      mvc = listMvc(settings['mvc']['templates'], settings['mvc']['files'])
+      entry = settings['globals']
 
       async.waterfall [
         (next) -> listScripts (files) -> next(null, files)
@@ -129,12 +130,12 @@ class Bundler
             p = path.relative(__dirname, path.resolve(basePath, "./mvc/#{type}"))
             script.push "#{clazz} = require #{quote(p)}"
 
-          script.push """
-          global.Ace = require #{quote(path.resolve(basePath, "./ace"))}
-          global.Template = Template
-          global.View = View
-          global.Controller = Controller
-          """
+          # global entry points
+          for n,p of entry
+            p = path.relative(__dirname, p)
+            script.push "global[#{quote(n)}] = require #{quote(p)}"
+
+          # also require routes
 
           for name, dom of mvc['template']
             script.push """
@@ -147,8 +148,6 @@ class Bundler
               clazz = type[0].toUpperCase() + type[1..]
               script.push "#{clazz}.add #{quote(name)}, require #{quote(p)}"
 
-          console.log "Writing script: #{script.join('\n')}"
-
           fs.write file.fd, script.join('\n')
           fs.close file.fd, (err) -> next(err, file.path)
       ], (err, file) ->
@@ -160,13 +159,13 @@ class Bundler
     bundle = (debug, file, cb) ->
       script = browserify(file)
         .transform(coffeeify)
-        .bundle({'debug': false})
+        .bundle({'debug': debug})
 
       script = script.pipe uglifier unless debug
 
       result = []
       script.on 'data', (data) -> result.push data.toString('utf-8')
-      script.on 'end', -> cb result.join('\n')
+      script.on 'end', -> cb result.join('')
       return
 
     bundleScripts = (file, cb) ->
@@ -186,7 +185,7 @@ class Bundler
     ->
       return if @bundling
       @bundling = true
-      makeLoadFile @settings['mvc'], (file) =>
+      makeLoadFile @settings, (file) =>
         bundleScripts file, (@script) =>
           # TODO: unless @script, set a timeout and try to bundle again later
           @hash = {}

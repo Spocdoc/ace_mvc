@@ -31,5 +31,5 @@ ace.configure 'development', ->
 
 app.use ace
 
-app.listen port = 1337, ->
+server.listen port = 1337, ->
   console.log "listening on #{port}..."

@@ -10,7 +10,7 @@ class Router extends Array
   # @param url [String]
   # @returns first matching Route
   route: (url) ->
-    url = new Url(url, slashes: false)
+    url = new Url(url, slashes: false) unless url instanceof Url
     return null unless ret = @matchPath url.pathname, url.hash
     [route,params] = ret
 

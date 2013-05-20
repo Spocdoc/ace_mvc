@@ -46,6 +46,15 @@ class Url
     return rest
 
   _setHost: (host) ->
+    if !host
+      delete @port
+      delete @host
+      delete @hostname
+      delete @protocol
+      @slashes = false
+      return
+
+    @slashes = true
     @hostname = host
 
     if port = portPattern.exec(host)
@@ -58,11 +67,19 @@ class Url
     @_setHostname @hostname
     return
 
-  _setPort: (@port) ->
-    @host = "#{@hostname}:#{@port}"
+  _setPort: (port) ->
+    if port?
+      @port = port
+      @host = "#{@hostname}:#{@port}"
+    else
+      delete @port
+      @host = @hostname if @hostname?
     return
 
-  _setHostname: (@hostname) ->
+  _setHostname: (hostname) ->
+    if !hostname
+      @_setHost hostname
+      return
     @hostname = "" if @hostname.length > hostnameMaxLen
     @hostname = @hostname.toLowerCase()
     @host = @hostname
@@ -92,7 +109,7 @@ class Url
     return ''
 
   _setPath: (path) ->
-    if q = path.indexOf('?')
+    if ~(q = path.indexOf('?'))
       @search = path.substr(q)
       @query = querystring.parse(@search[1..])
       @_setPathname path.substr(0, q)
@@ -117,6 +134,14 @@ class Url
     @path = @pathname + @search
     return
 
+  _setProtocol: (protocol) ->
+    if !protocol
+      return unless @protocol
+      delete @protocol
+    else
+      @protocol = protocol
+      @slashes = true
+    return
 
   # Escapes RFC delims & chars that shouldn't appear in the URL (but does *not*
   # do an HTML escape -- assumes that's already been done)
@@ -144,7 +169,7 @@ class Url
       rest = rest.substr(proto.length)
     
     if slashes = rest.substr(0, 2) is "//"
-      if @slashes is false
+      if @slashes is false and rest == url
         rest = rest.substr(1)
       else
         @slashes = true
@@ -173,12 +198,12 @@ class Url
   #       pathname
   #     hash
   #     protocol
-  #       slashes
   #     host
   #       hostname
   #       port
   # NOTE: the parameters must all be URL-encoded before being passed here
   # (except query; that's an object) including auth.
+  #TODO Closure. have to map 'hash', etc. to variables to use hasownproperty
   reform: (obj) ->
     return @_build(url) if (url = obj.href)?
 
@@ -195,16 +220,19 @@ class Url
       if (pathname = obj.pathname)?
         @_setPathname Url.escape pathname
 
-    if (hash = obj.hash)?
-      @_setHash Url.escape hash
+    if {}.hasOwnProperty.call(obj, 'hash')
+      @_setHash(obj.hash && Url.escape obj.hash)
 
-    if (host = obj.host)?
-      @_setHost Url.escape host
+    if {}.hasOwnProperty.call(obj, 'protocol')
+      @_setProtocol(obj.protocol)
+
+    if {}.hasOwnProperty.call(obj, 'host')
+      @_setHost(obj.host && Url.escape obj.host)
     else
-      if (hostname = obj.hostname)?
-        @_setHostname Url.escape hostname
-      if (port = obj.port)?
-        @_setPort port
+      if {}.hasOwnProperty.call(obj, 'hostname')
+        @_setHostname(obj.hostname && Url.escape obj.hostname)
+      if {}.hasOwnProperty.call(obj, 'port')
+        @_setPort obj.port
 
     @href = @format()
     return this

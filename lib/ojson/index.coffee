@@ -60,7 +60,7 @@ numSort = (a,b) ->
 class OJSONRef
   count = 0
   uniqueId = ->
-    count = 0 if ++count == count
+    count = if count+1 == count then 0 else count+1
     "#{count}oj"
   cache = {}
   constructor: (@own, @id=uniqueId()) ->

@@ -22,6 +22,8 @@ autoEscapeRepl = {}
 autoEscapeRepl[c] = escape(c) for c in autoEscape
 autoEscapeRegex = new RegExp("[#{RegExp.escape(autoEscape.join())}]",'g')
 
+dupSlashesRegex = /\/+/g
+
 class Url
   _pullAuth: (rest) ->
     return rest unless ~(atSign = rest.indexOf("@"))
@@ -85,23 +87,23 @@ class Url
     rest.slice(0, qm)
 
   _pullPathname: (rest) ->
-    @pathname = rest
+    @pathname = rest.replace dupSlashesRegex, '/'
     @path = @pathname + @search
     return ''
 
-  _setPath: (@path) ->
-    if q = @path.indexOf('?')
-      @pathname = @path.substr(0, q)
-      @search = @path.substr(q)
+  _setPath: (path) ->
+    if q = path.indexOf('?')
+      @search = path.substr(q)
       @query = querystring.parse(@search[1..])
+      @_setPathname path.substr(0, q)
     else
-      @pathname = @path
       @search = ''
       @query = {}
-
+      @_setPathname path
     return
 
-  _setPathname: (@pathname) ->
+  _setPathname: (pathname) ->
+    @pathname = pathname.replace dupSlashesRegex, '/'
     @path = @pathname + @search
     return
 
@@ -131,8 +133,8 @@ class Url
     @href = href
 
   constructor: (url='', defaults) ->
-    @_build(url)
     @defaults defaults if defaults
+    @_build(url)
 
   _build: (url) ->
     rest = Url.escape url.replace(nonAsciiRegex, '').trim()
@@ -141,11 +143,14 @@ class Url
       @protocol = (proto = proto[0]).toLowerCase()
       rest = rest.substr(proto.length)
     
-    if @slashes = rest.substr(0, 2) is "//"
-      rest = rest.substr(2)
-
-      rest = @_pullAuth rest
-      rest = @_pullHost rest
+    if slashes = rest.substr(0, 2) is "//"
+      if @slashes is false
+        rest = rest.substr(1)
+      else
+        @slashes = true
+        rest = rest.substr(2)
+        rest = @_pullAuth rest
+        rest = @_pullHost rest
 
     rest = @_pullHash rest
     rest = @_pullQuery rest
@@ -207,7 +212,7 @@ class Url
   # adds any missing parameters using the values of the arg
   defaults: (rhs) ->
     udefaults(this, rhs)
-    @slashes ||= rhs.slashes
+    @slashes ||= rhs.slashes if rhs.slashes?
     @href = @format()
     this
 

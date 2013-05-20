@@ -1,16 +1,11 @@
-Template = require '../../mvc/template'
-View = require '../../mvc/view'
-Controller = require '../../mvc/controller'
-
 fs = require 'fs'
 path = require 'path'
 
 templateLoaders =
-  'jade': (str) -> require('jade').compile(str)()
   'html': (str) -> str
   'htm': (str) -> str
 
-loadFiles = (arr, templates, root, type) ->
+listMvc = (result, arr, templates, root, type) ->
   for file in fs.readdirSync root
     fullPath = "#{root}/#{file}"
     stat = fs.statSync(fullPath)
@@ -18,14 +13,14 @@ loadFiles = (arr, templates, root, type) ->
     if stat.isDirectory()
       switch file
         when 'views'
-          loadFiles arr, templates, fullPath, View
+          listMvc result, arr, templates, fullPath, 'view'
         when 'controllers'
-          loadFiles arr, templates, fullPath, Controller
+          listMvc result, arr, templates, fullPath, 'controller'
         when 'templates', '+'
-          loadFiles arr, templates, fullPath
+          listMvc result, arr, templates, fullPath
         else
           arr.push file
-          loadFiles arr, templates, fullPath, type
+          listMvc result, arr, templates, fullPath, type
           arr.pop()
 
       continue
@@ -34,31 +29,38 @@ loadFiles = (arr, templates, root, type) ->
     base = path.basename(file, extname)
     ext = extname[1..]
     name = arr.join('/')
+    reqPath = "#{root}/#{base}"
 
     continue unless base[0] isnt '.'
 
     switch type
-      when View, Controller
+      when 'view','controller'
         unless base is 'index'
           name += '/' if name
           name += "#{base}"
-        type.add name, require fullPath
+        result[type][name] = reqPath
 
       else
         if ext in templates
           unless base is 'template'
             name += '/' if name
             name += "#{base}"
-          Template.add name, templateLoaders[ext](fs.readFileSync(fullPath,'utf-8'))
+          result['template'][name] = templateLoaders[ext](fs.readFileSync(fullPath,'utf-8'))
 
         else if base is 'view'
-          View.add name, require fullPath
+          result['view'][name] = reqPath
         else if base is 'controller'
-          Controller.add name, require fullPath
-        else
-          throw new Error("Unrecognized file type while loading mvc: #{fullPath}")
+          result['controller'][name] = reqPath
 
-module.exports = (settings) ->
-  loadFiles [], settings.templates, settings.files
-  return
+module.exports = (templates, root) ->
+  for type in templates when !templateLoaders[type]
+    templateLoaders[type] = (str) -> require(type).compile(str)()
+
+  mvc =
+    template: {}
+    view: {}
+    controller: {}
+
+  listMvc mvc, [], templates, root
+  mvc
 

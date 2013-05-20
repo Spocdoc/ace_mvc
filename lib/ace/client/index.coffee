@@ -1,1 +1,1 @@
-window.Ace = require '..'
+global['Ace'] = require '..'

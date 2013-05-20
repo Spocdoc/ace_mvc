@@ -42,6 +42,16 @@ describe 'Url', ->
     expect(result.path).eq result.pathname
     expect(result.path).eq '/path/to/file.html'
 
+  it 'should parse //... as a path if slashes is set to false', ->
+    url = '//foo.com/path/to/file.html'
+    newUrl = '/foo.com/path/to/file.html'
+    result = new Url(url, slashes: false)
+    expect(result.href).eq newUrl
+    expect(result.host).not.exist
+    expect(result.hostname).not.exist
+    expect(result.path).eq newUrl
+    expect(result.pathname).eq result.path
+
   it 'should parse auth', ->
     url = '//user:pass@foo.com/path/to/file.html'
     result = new Url(url)
@@ -95,6 +105,17 @@ describe 'Url', ->
     url = 'https://user:pass@foo.com:80/path/to/the file\'s html?var=val one+two#a super%20<hash>%'
     result = new Url(url)
     expect(result.href).eq 'https://user:pass@foo.com:80/path/to/the%20file%27s%20html?var=val%20one+two#a%20super%20%3Chash%3E%'
+
+  it 'should consolidate duplicate slashes in path', ->
+    url = '/foo//bar'
+    result = new Url(url)
+    expect(result.href).eq '/foo/bar'
+    expect(result.host).not.exist
+    expect(result.hostname).not.exist
+    expect(result.pathname).eq '/foo/bar'
+    expect(result.path).eq result.pathname
+    expect(result.search).eq ''
+    expect(result.query).deep.eq {}
 
   describe '#defaults', ->
     it 'should set host, protocol, etc.', ->

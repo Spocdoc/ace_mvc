@@ -6,7 +6,7 @@ Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 
 class Routing
-  constructor: (@ace, @navigate, Variable) ->
+  constructor: (@ace, @_doNavigate, Variable) ->
     @uriOutlets = {}
     @variables = []
     @variableFactory = (path, fn) =>
@@ -30,9 +30,10 @@ class Routing
 
     config.vars @uriOutlets, @variableFactory, @ace
 
-  push: ->
-    return unless @navigator
-    @navigator.push()
+  navigate: ->
+    @_doNavigate()
+    @navigator?.push()
+    return
 
   # args are passed to navigator
   # @throws unless enable(routes) has been called
@@ -51,10 +52,10 @@ class Routing
 
   _navigate: (arg) ->
     if typeof arg is 'number'
-      @navigate arg
+      @_doNavigate arg
     else
       Cascade.Block =>
-        @navigate()
+        @_doNavigate()
         @router.route arg
     return
 

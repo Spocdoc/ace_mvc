@@ -46,14 +46,13 @@ class Navigator
     @_urls = [@url]
 
     @_replace @_stripHash()
+    @_ignoreCount = 0
 
     if @useHash
-      @_listen 'hashchange', (event) => @_urlchange event
+      @_listen 'hashchange', @_urlchange
     else
-      @_popCount = 0
-      @_listen 'popstate', (event) =>
-        return unless @_popCount++
-        @_urlChange event
+      @_ignoreCount = 1
+      @_listen 'popstate', @_urlchange
 
   _listen: (event, fn) ->
     if @window.addEventListener
@@ -63,6 +62,7 @@ class Navigator
     return
 
   push: (url=@url) ->
+    console.log "PUSH"
     url = new NavigatorUrl url, @url unless url instanceof NavigatorUrl
     @url = url
 
@@ -71,6 +71,7 @@ class Navigator
     @_urls[@index] = @url
 
     if @useHash
+      ++@_ignoreCount
       @window.location.href = @_formHashUrl().href
     else
       @window.history.pushState @index, '', @url.href
@@ -94,6 +95,7 @@ class Navigator
     @_urls[@index] = @url
 
     if @useHash
+      ++@_ignoreCount
       if prev.path != @url.path
         @window.location.replace @_formHashUrl().href
       else
@@ -115,7 +117,11 @@ class Navigator
       path: '/'
       hash: "##{@index}#{@url.path}#{@url.hash || ''}"
 
-  _urlchange: (event) ->
+  _urlchange: (event) =>
+    if @_ignoreCount
+      --@_ignoreCount
+      return
+
     newUrl = new NavigatorUrl(event.newURL || @window.location.href)
     newIndex = if event.state? then +event.state else newUrl.hashIndex()
     @_stripHash newUrl

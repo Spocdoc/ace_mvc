@@ -99,6 +99,8 @@ class Ace
       newTemplate: (type) ->
         new ace.Template(type, this)
 
+      navigate: -> ace.routing.navigate()
+
     class @Model extends Model
       constructor: (coll, idOrSpec) ->
         super coll, ace.constructor.db, idOrSpec
@@ -111,9 +113,7 @@ class Ace
 
       newModel: (type, idOrSpec) -> new ace.Model(type, idOrSpec)
 
-  push: ->
-    @historyOutlets.navigate()
-    @routing.push()
+      navigate: -> ace.routing.navigate()
 
   appendTo: (@$container) ->
     unless @root.get()

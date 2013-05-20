@@ -3,4 +3,4 @@ module.exports.routes = (match) ->
   # match '/'
 
 module.exports.vars = (outlets, Variable, ace) ->
-  outlets.text.set new Variable '/content/$root'
+  outlets.text.set new Variable '/content/$par'

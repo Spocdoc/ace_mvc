@@ -77,7 +77,7 @@ class Outlet extends Cascade
 
       else if found
         @_autoContext = undefined
-        @stopPropagation() if @_value is (value = found.get()) and @_version = found._version
+        @stopPropagation() if @_value is (value = found.get()) and @_version is found._version
         @_value = value
         @_version = found._version
 

@@ -252,6 +252,7 @@ describe 'HistoryOutlets', ->
       expect(viewTo.get().outlets.firstName.get()).eq foo
       expect(viewFrom.get().outlets.firstName.get()).eq bar
 
+  ###
   describe 'events', ->
     it 'should emit a newOutlet event after new outlets are created', ->
       @a = new HistoryOutlets
@@ -270,6 +271,7 @@ describe 'HistoryOutlets', ->
       expect(args[0].length).eq 1
       expect(args[1]).eq 'bar'
       expect(args[2].get()).eq 42
+  ###
 
   describe 'swapping outlets with pending calculations', ->
     describe 'when there are pending outflows after a navigation', ->

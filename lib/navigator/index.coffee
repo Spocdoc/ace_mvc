@@ -62,7 +62,6 @@ class Navigator
     return
 
   push: (url=@url) ->
-    console.log "PUSH"
     url = new NavigatorUrl url, @url unless url instanceof NavigatorUrl
     @url = url
 

@@ -47,6 +47,10 @@ class Ace
       newController: (type, name, settings) ->
         new ace.Controller(type, this, name, settings)
 
+      to: (path) -> ace.historyOutlets.to.value(path)
+      from: (path) -> ace.historyOutlets.from.value(path)
+      local: (path) -> ace.historyOutlets.noInherit(path)
+
     extend @, Base
 
     @root = @newOutlet('root')

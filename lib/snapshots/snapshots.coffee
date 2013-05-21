@@ -1,11 +1,13 @@
 class Snapshots extends Array
   @Compound = ->
 
-  @getPath = (path) ->
+  @getPath = (path, key) ->
     if typeof path is 'string'
-      path.split '/'
-    else
-      path
+      path = path.split '/'
+    if key?
+      path = path.concat()
+      path.push key
+    path
 
   @getPathKey = (path, key) ->
     path = @getPath(path)

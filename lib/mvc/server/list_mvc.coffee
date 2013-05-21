@@ -33,24 +33,23 @@ listMvc = (result, arr, templates, root, type) ->
 
     continue unless base[0] isnt '.'
 
-    switch type
-      when 'view','controller'
-        unless base is 'index'
-          name += '/' if name
-          name += "#{base}"
-        result[type][name] = reqPath
+    if ext in templates
+      unless base is 'template'
+        name += '/' if name
+        name += "#{base}"
+      result['template'][name] = templateLoaders[ext](fs.readFileSync(fullPath,'utf-8'))
 
-      else
-        if ext in templates
-          unless base is 'template'
-            name += '/' if name
-            name += "#{base}"
-          result['template'][name] = templateLoaders[ext](fs.readFileSync(fullPath,'utf-8'))
+    else if type in ['view','controller']
+      unless base is 'index'
+        name += '/' if name
+        name += "#{base}"
+      result[type][name] = reqPath
 
-        else if base is 'view'
-          result['view'][name] = reqPath
-        else if base is 'controller'
-          result['controller'][name] = reqPath
+    else if base is 'view'
+      result['view'][name] = reqPath
+
+    else if base is 'controller'
+      result['controller'][name] = reqPath
 
 module.exports = (templates, root) ->
   for type in templates when !templateLoaders[type]

@@ -6,7 +6,7 @@ class Outflows
     count = 0
     ->
       count = if count+1 == count then 0 else count+1
-      "#{count}-Cascade"
+      "#{count}-Outflow"
 
   include Outflows, Emitter
 

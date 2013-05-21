@@ -76,13 +76,12 @@ class Url
       @host = @hostname if @hostname?
     return
 
-  _setHostname: (hostname) ->
+  _setHostname: (@hostname) ->
     if !hostname
-      @_setHost hostname
+      @_setHost()
       return
-    @hostname = "" if @hostname.length > hostnameMaxLen
-    @hostname = @hostname.toLowerCase()
-    @host = @hostname
+    hostname = "" if hostname.length > hostnameMaxLen
+    @host = @hostname = hostname.toLowerCase()
     @host += ":#{@port}" if @port
     return
 

@@ -41,7 +41,7 @@ class Outlet extends Cascade
 
   context: (fn) -> Outlet.context(fn, this)
 
-  constructor: (value, options={}) ->
+  constructor: (init, options={}) ->
     @_multiGet = undefined
     @_eqFuncs = {}
     @_eqOutlets = {}
@@ -49,7 +49,6 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
-      debugger if @cid is 'Cascade-1'
       (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
 
       callDone = true
@@ -107,10 +106,11 @@ class Outlet extends Cascade
           try
             if fn.length > 0
               fn (result) =>
-                value = result
+                value ?= result
                 next() unless --count
             else
-              value = fn()
+              result = fn()
+              value ?= result
               next() unless --count
           finally
             @exitContext()
@@ -119,7 +119,7 @@ class Outlet extends Cascade
       done() if callDone
       return
 
-    @set value, options
+    @set init, options
 
   get: ->
     out._autoInflow this if out = Outlet.stackLast

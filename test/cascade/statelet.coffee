@@ -15,26 +15,38 @@ describe 'Statelet', ->
       else
         @getter() # gets dom value
 
-  it 'should run the setter on set() and nothing on get(), getter() on run()', ->
+  it 'should run the getter on construction', ->
     s = new Statelet @func
     expect(@getter).calledOnce
     expect(@setter).not.called
 
+  it 'should run nothing if silent', ->
+    s = new Statelet @func, silent: true
+    expect(@getter).not.called
+    expect(@setter).not.called
+
+  it 'should run the setter on set()', ->
+    s = new Statelet @func, silent: true
+
     # updates the saved value, then if enableSet is true, runs the setter
     # function and other outflows
     s.set(42)
-    expect(@getter).calledOnce
+    expect(@getter).not.called
     expect(@setter).calledOnce
 
+  it 'should run nothing on get()', ->
+    s = new Statelet @func, silent: true
     # runs the getter if enableGet is true, else returns saved value
     # if enableGet is true, calls set(newValue)
     s.get()
-    expect(@getter).calledOnce
-    expect(@setter).calledOnce
+    expect(@getter).not.called
+    expect(@setter).not.called
 
+  it 'should run getter() on run()', ->
+    s = new Statelet @func, silent: true
     s.run()
-    expect(@getter).calledTwice
-    expect(@setter).calledOnce
+    expect(@getter).calledOnce
+    expect(@setter).not.called
 
   it 'should take an optional outlet determining when its setter is run', ->
     o = new Outlet false
@@ -48,16 +60,16 @@ describe 'Statelet', ->
     expect(@value).eq 42
 
 
-  it 'should enable direct access to the setter and run every time it\'s invoked', ->
-    # may have to run the setter again after updating a dom element elsewhere
+  # it 'should enable direct access to the setter and run every time it\'s invoked', ->
+  #   # may have to run the setter again after updating a dom element elsewhere
 
-    s = new Statelet @func
-    s.set(42)
-    s.setter()
-    s.setter()
+  #   s = new Statelet @func
+  #   s.set(42)
+  #   s.setter()
+  #   s.setter()
 
-    expect(@setter).calledThrice
-    expect(@value).eq 42
+  #   expect(@setter).calledThrice
+  #   expect(@value).eq 42
 
   it 'should run the setter once at the end of the cascade block', ->
     foo = sinon.spy ->

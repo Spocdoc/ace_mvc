@@ -626,4 +626,19 @@ describe 'Outlet with objects', ->
       expect(foo).calledOnce
       expect(bar).calledTwice
 
+describe 'Outlet #modified', ->
+  it 'should run all the outflows even if the object is the same', ->
+    foo = sinon.spy ->
 
+    obj = { foo: 'bar'}
+
+    a = new Outlet obj
+    b = new Outlet a
+    c = new Outlet b
+    c.outflows.add foo
+
+    a.set(obj)
+    expect(foo).not.called
+
+    a.modified()
+    expect(foo).calledOnce

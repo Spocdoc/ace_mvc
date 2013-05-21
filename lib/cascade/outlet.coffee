@@ -28,12 +28,12 @@ class Outlet extends Cascade
 
   enterContext: (@_autoContext) ->
     Outlet.enterContext this
-    list = @_autoInflow[@_autoContext.cid] ||= {}
+    list = @_autoInflows[@_autoContext.cid] ||= {}
     list[k] = 0 for k of list
 
   exitContext: ->
     Outlet.exitContext()
-    list = @_autoInflow[@_autoContext.cid] ||= {}
+    list = @_autoInflows[@_autoContext.cid] ||= {}
     for k,v of list when !v
       @inflows[k].outflows.remove this
       delete list[k]
@@ -48,6 +48,7 @@ class Outlet extends Cascade
     @_autoInflows = {}
 
     super (done) =>
+      debugger if @cid is 'Cascade-1'
       (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
 
       callDone = false
@@ -76,14 +77,16 @@ class Outlet extends Cascade
         callDone = true
 
       else
-        values = []
+        value = undefined
+        returned = false
         num = @_calculateNum
         next = =>
           if num is @_calculateNum
-            if values.length
-              @stopPropagation() if @_value is (value = values[values.length-1])
-              @_value = value
-            callDone = true
+            @stopPropagation() if @_value is value
+            @_value = value
+          callDone = true
+          done() if returned
+          return
 
         count = 0
 
@@ -93,14 +96,16 @@ class Outlet extends Cascade
           @enterContext fn
           try
             if fn.length > 0
-              fn (value) =>
-                values.push value
+              fn (result) =>
+                value = result
                 next() unless --count
             else
-              values.push fn()
+              value = fn()
               next() unless --count
           finally
             @exitContext()
+
+        returned = true
 
       done() if callDone
       return
@@ -126,22 +131,25 @@ class Outlet extends Cascade
 
       if typeof value is 'function'
         value.cid ||= Cascade.id()
+        return @_value if @_eqFuncs[value.cid]
+
         @_eqFuncs[value.cid] = value
+        @run value unless options.silent
 
       else if typeof value?.get is 'function'
         value.cid ||= Cascade.id()
+        return @_value if @_eqOutlets[value.cid]
+
         @_multiGet = value if value.get.length > 0
         @_eqOutlets[value.cid] = value
+        @run value unless options.silent
         @outflows.add value
-        value.set this if typeof value.set is 'function'
+        value.set this, silent: true if typeof value.set is 'function'
 
       else
         @_value = value
         @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was just re-run to get this value
         @cascade() unless options.silent
-        return @_value
-
-      @run(value) unless options.silent
 
     return @_value
 
@@ -180,7 +188,7 @@ class Outlet extends Cascade
 
   # include array methods. note that all of these are preserved in closure compiler
   for method in ['length', 'join', 'push', 'pop', 'concat', 'reverse', 'shift', 'unshift', 'slice', 'splice', 'sort']
-    @prototype[method] = ->
+    @prototype[method] = do (method) -> ->
       Array.prototype[method].apply(@_value, arguments)
 
   inc: (delta) -> @set(@_value + delta)

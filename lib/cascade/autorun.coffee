@@ -6,15 +6,14 @@ class Autorun extends Outlet
   constructor: (func) ->
     if this instanceof Autorun
       super
+      @_autorunFunc = func
     else
-      autoruns.push(new Autorun(func))
+      autoruns.push new Autorun(func)
 
   detach: ->
-    # retain indirect reference -- the func -- so Autorun can be manually run() again
-    indirect = @_indirect
     ret = super
-    @_indirect = indirect
-    return ret
+    @set @_autorunFunc, silent: true
+    ret
 
 
 module.exports = Autorun

@@ -48,14 +48,14 @@ module.exports = (Cascade) ->
 
   # runs the function outside of the current block if there is one, then puts
   # the original block back
-  Cascade.Unblock: (func) ->
+  Cascade.Unblock = (func) ->
     if this instanceof Cascade.Unblock
       -> unblockRunner(func)
     else
       unblockRunner(func)
 
   # runs the function after the current block if there is one
-  Cascade.Postblock: (func) ->
+  Cascade.Postblock = (func) ->
     if this instanceof Cascade.Postblock
       -> postblockRunner(func)
     else

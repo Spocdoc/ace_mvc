@@ -26,19 +26,19 @@ class HistoryOutlets extends Snapshots
       @_syncValue = @_value = prevValue
       return
 
-  class SliderOutlet extends MultiOutlet
-    constructor: (snapshots, path, key, @_syncValue) ->
-      super @_syncValue
+  # class SliderOutlet extends MultiOutlet
+  #   constructor: (snapshots, path, key, @_syncValue) ->
+  #     super @_syncValue
 
-      @outflows.add @_out = =>
-        if @_value != @_syncValue
-          @_syncValue = @_value
-          dataStore = snapshots.dataStore[snapshots.to.index]
-          dataStore.localPath(path)[key] = @_value
+  #     @outflows.add @_out = =>
+  #       if @_value != @_syncValue
+  #         @_syncValue = @_value
+  #         dataStore = snapshots.dataStore[snapshots.to.index]
+  #         dataStore.localPath(path)[key] = @_value
 
-    sync: (value) ->
-      @_syncValue = value
-      @set value
+  #   sync: (value) ->
+  #     @_syncValue = value
+  #     @set value
 
   class FromHistoryOutlet extends Outlet
     constructor: ->
@@ -65,18 +65,18 @@ class HistoryOutlets extends Snapshots
       [path, key] = Snapshots.getPathKey path, key
       @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@index then @_snapshots.dataStore[@index].get(path)?[key] else undefined)
 
-  class SliderSnapshot extends Snapshots.Snapshot
-    constructor: (@_snapshots) ->
-      @index = -1
+  # class SliderSnapshot extends Snapshots.Snapshot
+  #   constructor: (@_snapshots) ->
+  #     @index = -1
 
-    _inherit: -> throw new Error("SliderSnapshot should never be inherited from")
+  #   _inherit: -> throw new Error("SliderSnapshot should never be inherited from")
 
-    get: (path, key) ->
-      [path, key] = Snapshots.getPathKey path, key
-      current = (base = @ensurePath(path))[key]
-      return current if current?
-      base[key] = outlet = new SliderOutlet(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
-      outlet
+  #   get: (path, key) ->
+  #     [path, key] = Snapshots.getPathKey path, key
+  #     current = (base = @ensurePath(path))[key]
+  #     return current if current?
+  #     base[key] = outlet = new SliderOutlet(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
+  #     outlet
 
   class ToHistorySnapshot extends Snapshots.Snapshot
     constructor: (@_snapshots) ->
@@ -113,7 +113,7 @@ class HistoryOutlets extends Snapshots
 
     @to = @[0]
     @from = new FromHistorySnapshot this
-    @slider = new SliderSnapshot this
+    # @slider = new SliderSnapshot this
 
     `var len = this.dataStore.length, i;
     for (i=1; i < len; ++i) push();`

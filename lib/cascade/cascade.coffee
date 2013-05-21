@@ -19,7 +19,7 @@ class Cascade
     @func ||= ->
     @inflows = {}
     @changes = []
-    @outflows = new Outflows(this)
+    @outflows = new Outflows(this, Cascade)
     @pending = new Pending(this)
     @cid = Cascade.id()
 
@@ -47,6 +47,7 @@ class Cascade
     
   run: (source) ->
     @pending.set(true)
+
     if Cascade.roots
       Cascade.roots.push => @_calculate(false, source)
     else
@@ -54,9 +55,16 @@ class Cascade
     return
 
   cascade: ->
-    @calculating = true
-    @outflows._run()
-    @calculating = false
+    @pending.set(true)
+    @pending.set(false)
+
+    if Cascade.roots
+      Cascade.roots.push => @outflows._calculate(false)
+    else
+      @calculating = true
+      @outflows._calculate(false)
+      @calculating = false
+    return
 
   _calculateDone: (dry) ->
     @calculating = true

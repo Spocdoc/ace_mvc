@@ -2,6 +2,12 @@ Emitter = require '../events/emitter'
 {include, extend} = require '../mixin'
 
 class Outflows
+  id = do ->
+    count = 0
+    ->
+      count = if count+1 == count then 0 else count+1
+      "#{count}-Cascade"
+
   include Outflows, Emitter
 
   constructor: (@cascade) ->
@@ -16,7 +22,7 @@ class Outflows
       @[outflow.cid] = current + 1
 
     else
-      @[outflow.cid ?= @cascade.constructor.id()] = 1
+      @[outflow.cid ?= id()] = 1
 
       @_arr.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
@@ -42,7 +48,6 @@ class Outflows
 
   # removes all the outflows (and removes this cascade from the inflows of
   # each). These can be restored with #attach
-  # @returns array of outflows
   detach: ->
     ret = @_arr
     @_arr = []
@@ -51,25 +56,16 @@ class Outflows
       delete @[outflow.cid]
     return ret
 
-  # @param arr [Array] array of outflows to (re)attach
   attach: (arr) ->
     @add outflow for outflow in arr
-    @_run arr
+    return
 
-  _calculate: (dry=false, arr=@_arr) ->
+  _calculate: (dry, arr=@_arr) ->
     for outflow in arr
       if typeof outflow._calculate == 'function'
         outflow._calculate(dry, @cascade)
       else if not dry
         outflow()
-    return
-
-  _run: (arr=@_arr) ->
-    @_setPending arr
-    if @cascade.constructor.roots
-      @cascade.constructor.roots.push => @_calculate(false, arr)
-    else
-      @_calculate(false, arr)
     return
 
   _setPending: (arr=@_arr) ->

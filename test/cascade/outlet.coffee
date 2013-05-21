@@ -10,6 +10,8 @@ addCallCounts = ->
 
   orig = Cascade.prototype._calculate
   Cascade.prototype._calculate = ->
+    return unless @pending.get()
+    return if @calculating
     callCounts[this.cid] ?= 0
     ++callCounts[this.cid]
     orig.apply(this, arguments)
@@ -116,6 +118,7 @@ describe 'Outlet hot', ->
     @b.set(@a1)
     expect(@b.get()).eq(@a1.get())
     expect(@callCounts[@b.cid]).eq 2
+    @b.unset(@a)
     @a.set(999)
     expect(@callCounts[@b.cid]).eq 2
 
@@ -203,8 +206,8 @@ describe 'Outlet hot', ->
       y.set(2)
       expect(x.get()).eq 2
       y.detach()
-      y.set(3)
-      expect(x.get()).eq 2
+      x.set(3)
+      expect(y.get()).eq 2
 
   describe 'automatic outflows', ->
     beforeEach ->

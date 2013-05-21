@@ -39,9 +39,9 @@ class Cascade
   detach: (inflow) ->
     unless inflow?
       inflows = @inflows
-      inflow.outflows.remove this for cid,inflow of inflows
+      inflow.outflows.removeAll this for cid,inflow of inflows
     else
-      inflow.outflows?.remove this
+      inflow.outflows?.removeAll this
 
     return
     

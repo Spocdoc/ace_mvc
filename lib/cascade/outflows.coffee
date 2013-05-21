@@ -46,6 +46,12 @@ class Outflows
 
     return
 
+  removeAll: (outflow) ->
+    return unless @[outflow.cid]?
+    @[outflow.cid] = 1
+    @remove outflow
+    return
+
   # removes all the outflows (and removes this cascade from the inflows of
   # each). These can be restored with #attach
   detach: ->

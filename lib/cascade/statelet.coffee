@@ -2,10 +2,12 @@ Cascade = require './cascade'
 
 class Statelet extends Cascade
   constructor: (@getset, options={}) ->
-    super =>
+    @_sFunc = =>
       value = if @enableGet() then @getset() else @_value
       @stopPropagation() if value == @_value
       @_value = value
+
+    super =>
 
     @_getsetOutflow = [ (=> @getter()), (=> @setter()) ]
 

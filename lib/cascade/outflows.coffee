@@ -12,21 +12,32 @@ class Outflows
    @_arr = []
 
   add: (outflow) ->
-    return if @[outflow.cid]?
-    @[outflow.cid ?= @cascade.constructor.id()] = 1
-    @_arr.push(outflow)
-    outflow.inflows?[@cascade.cid] = @cascade
+    if (current = @[outflow.cid])?
+      @[outflow.cid] = current + 1
+
+    else
+      @[outflow.cid ?= @cascade.constructor.id()] = 1
+
+      @_arr.push(outflow)
+      outflow.inflows?[@cascade.cid] = @cascade
+
     return
 
   remove: (outflow) ->
-    delete @[outflow.cid]
-    `for (var i = this._arr.length; i >= 0; --i) {
-      if (this._arr[i] === outflow) {
-        this._arr.splice(i,1);
-        break;
-      }
-    }`
-    delete outflow.inflows?[@cascade.cid]
+    return unless (current = @[outflow.cid])?
+
+    unless @[outflow.cid] = current - 1
+      delete @[outflow.cid]
+
+      `for (var i = this._arr.length; i >= 0; --i) {
+        if (this._arr[i] === outflow) {
+          this._arr.splice(i,1);
+          break;
+        }
+      }`
+
+      delete outflow.inflows?[@cascade.cid]
+
     return
 
   # removes all the outflows (and removes this cascade from the inflows of

@@ -26,22 +26,35 @@ class Outlet extends Cascade
     @stackLast = @stack.pop()
     return
 
-  enterContext: -> Outlet.enterContext this
-  exitContext: -> Outlet.exitContext()
+  enterContext: (@_autoContext) ->
+    Outlet.enterContext this
+    list = @_autoInflow[@_autoContext.cid] ||= {}
+    list[k] = 0 for k of list
+
+  exitContext: ->
+    Outlet.exitContext()
+    list = @_autoInflow[@_autoContext.cid] ||= {}
+    for k,v of list when !v
+      @inflows[k].outflows.remove this
+      delete list[k]
+    return
+
   context: (fn) -> Outlet.context(fn, this)
 
   constructor: (value, options={}) ->
     @_multiGet = undefined
     @_eqFuncs = {}
-    @_eqInflows = {}
+    @_eqOutlets = {}
+    @_autoInflows = {}
 
     super (done) =>
-      (break if found = @_eqInflows[change.cid] || @_eqFuncs[change.cid]) for change in @changes
+      (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
 
-      @enterContext()
-      try
+      callDone = false
 
-        if typeof found is 'function'
+      if typeof found is 'function'
+        @enterContext found
+        try
           if found.length > 0
             num = @_calculateNum
             found (value) =>
@@ -52,26 +65,33 @@ class Outlet extends Cascade
           else
             @stopPropagation() if @_value is (value = found())
             @_value = value
-            done()
+            callDone = true
+        finally
+          @exitContext()
 
-        else if found
-          @stopPropagation() if @_value is (value = found.get())
-          @_value = value
-          done()
+      else if found
+        @_autoContext = undefined
+        @stopPropagation() if @_value is (value = found.get())
+        @_value = value
+        callDone = true
 
-        else
-          values = []
-          num = @_calculateNum
-          next = =>
-            if num is @_calculateNum and values.length
+      else
+        values = []
+        num = @_calculateNum
+        next = =>
+          if num is @_calculateNum
+            if values.length
               @stopPropagation() if @_value is (value = values[values.length-1])
               @_value = value
-            done()
+            callDone = true
 
-          count = 0
+        count = 0
 
-          for cid,fn of @_eqFuncs
-            ++count
+        for cid,fn of @_eqFuncs
+          ++count
+
+          @enterContext fn
+          try
             if fn.length > 0
               fn (value) =>
                 values.push value
@@ -79,16 +99,16 @@ class Outlet extends Cascade
             else
               values.push fn()
               next() unless --count
+          finally
+            @exitContext()
 
-      finally
-        @exitContext()
-
+      done() if callDone
       return
 
     @set value, options
 
   get: ->
-    @outflows.add Outlet.stackLast if Outlet.stackLast
+    out._autoInflow this if out = Outlet.stackLast
 
     if len = arguments.length
       if @_multiGet
@@ -111,7 +131,7 @@ class Outlet extends Cascade
       else if typeof value?.get is 'function'
         value.cid ||= Cascade.id()
         @_multiGet = value if value.get.length > 0
-        @_eqInflows[value.cid] = value
+        @_eqOutlets[value.cid] = value
         @outflows.add value
         value.set this if typeof value.set is 'function'
 
@@ -130,8 +150,8 @@ class Outlet extends Cascade
       delete @_eqFuncs[value.cid]
 
     else if typeof value?.get is 'function'
-      return unless @_eqInflows[value.cid]
-      delete @_eqInflows[value.cid]
+      return unless @_eqOutlets[value.cid]
+      delete @_eqOutlets[value.cid]
       @_resetMultiget() if @_multiGet is value
       @outflows.remove value
       value.unset this
@@ -139,24 +159,24 @@ class Outlet extends Cascade
     else unless value?
       @_multiGet = undefined
       @_eqFuncs = {}
-      @unset value for cid,value of @_eqInflows
+      @unset value for cid,value of @_eqOutlets
 
     return
-
-  toJSON: -> @_value
 
   detach: (inflow) ->
     unless inflow?
       @_eqFuncs = {}
-      @_eqInflows = {}
+      @_eqOutlets = {}
       @_multiGet = undefined
     else if inflow.cid
       if typeof inflow is 'function'
         delete @_eqFuncs[inflow.cid]
       else if typeof inflow?.get is 'function'
-        delete @_eqInflows[inflow.cid]
+        delete @_eqOutlets[inflow.cid]
         @_resetMultiget() if @_multiGet is inflow
     super
+
+  toJSON: -> @_value
 
   # include array methods. note that all of these are preserved in closure compiler
   for method in ['length', 'join', 'push', 'pop', 'concat', 'reverse', 'shift', 'unshift', 'slice', 'splice', 'sort']
@@ -167,7 +187,16 @@ class Outlet extends Cascade
 
   _resetMultiget: ->
     @_multiGet = undefined
-    break for cid,o of @_eqInflows when o.get.length > 0 and @_multiGet = o
+    break for cid,o of @_eqOutlets when o.get.length > 0 and @_multiGet = o
     return
+
+  _autoInflow: (inflow) ->
+    return unless @_autoContext
+    list = @_autoInflows[@_autoContext.cid]
+    inflow.outflows.add this unless list[inflow.cid]?
+    list[inflow.cid] = 1
+    return
+
+
 
 module.exports = Outlet

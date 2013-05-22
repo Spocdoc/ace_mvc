@@ -57,6 +57,16 @@ describe 'HistoryOutlets', ->
       expect(@a.from.get(['controller','prop']).get()).eq 42
       expect(@a.to.controller.prop.get()).eq 43
 
+    it 'should restore the from value when navigating back', ->
+      @a.to.get(['controller','prop']).set(42)
+      @a.navigate()
+      @a.to.get(['controller','prop']).set(43)
+      expect(@a.from.get(['controller','prop']).get()).eq 42
+      expect(@a.to.controller.prop.get()).eq 43
+      @a.navigate(0)
+      expect(@a.from.get(['controller','prop']).get()).eq 43
+      expect(@a.to.controller.prop.get()).eq 42
+
   describe '#navigate', ->
     beforeEach ->
       @a = new HistoryOutlets
@@ -206,7 +216,7 @@ describe 'HistoryOutlets', ->
         @a.to.noInherit(['controller','view'])
 
       bindControllerViewOutlets()
-      @a.from.get(['controller','#view']).sets(viewFrom)
+      viewFrom.set(@a.from.get(['controller','#view']))
       expect(setsDom).not.called
       expect(viewTo.get().outlets.firstName.get()).eq foo
 
@@ -220,7 +230,6 @@ describe 'HistoryOutlets', ->
       @a.navigate(0)
       expect(firstNameTo.get()).eq foo
       expect(viewTo.get().outlets.firstName.get()).eq foo
-      console.log "hd value: ",@a.get('controller/view/firstName')
       expect(setsDom).calledTwice
 
       # now navigate re-creating the view so there are separate from and to views

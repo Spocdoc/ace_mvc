@@ -29,19 +29,13 @@ class Ace
 
     Base =
       newOutlet: (name) ->
-        path = Ace.makeOutletPath this, name
-        hdOutlet = ace.historyOutlets.to.get(path)
-        outlet = new Outlet(hdOutlet.get())
-        console.log "created outlet #{outlet.cid} at",path.join('/'), "with hd",hdOutlet.cid
-        hdOutlet.set(outlet)
+        outlet = ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
+        console.log "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
         outlet
 
       newFromOutlet: (name) ->
-        path = Ace.makeOutletPath this, name
-        console.log "created FROM outlet at ",path.join('/')
-        hdOutlet = ace.historyOutlets.from.get(path)
-        outlet = new Outlet(hdOutlet.get())
-        hdOutlet.sets(outlet)
+        outlet = ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
+        console.log "created outlet #{outlet.cid} at",path.join('/')
         outlet
 
       newController: (type, name, settings) ->

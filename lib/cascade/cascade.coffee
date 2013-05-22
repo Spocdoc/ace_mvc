@@ -48,19 +48,16 @@ class Cascade
     @pending.set(true)
 
     if Cascade.roots
-      Cascade.roots.push => @_calculate(false, source)
+      Cascade.roots.push unless source then this else (=> @_calculate(false,source))
     else
       @_calculate(false, source)
     return
 
-  cascade: ->
+  # optimization that should only be used internally when it's clear there is no Cascade.root
+  _cascade: ->
     @pending.set(true)
     @pending.set(false)
-
-    if Cascade.roots
-      Cascade.roots.push => @outflows._calculate(false)
-    else
-      @outflows._calculate(false)
+    @outflows._calculate(false)
     return
 
   _calculateDone: (dry) ->

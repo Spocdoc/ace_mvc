@@ -7,9 +7,10 @@ Emitter = require '../events/emitter'
 class HistoryOutlets extends Snapshots
   include HistoryOutlets, Emitter
 
-  class @ToHistoryOutlet extends Outlet
+  class SyncingOutlet extends Outlet
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
+
       @outflows.add @_out = =>
         if @_value != @_syncValue
           @_syncValue = @_value
@@ -20,67 +21,78 @@ class HistoryOutlets extends Snapshots
       @_syncValue = value
       @set value
 
-    localizeChanges: ->
-      prevValue = @_syncValue
-      @_out()
-      @_syncValue = @_value = prevValue
+  class SlidingOutlet extends SyncingOutlet
+    slide: (outlet) ->
+      return unless outlet != @_toOutlet
+      @unset @_toOutlet if @_toOutlet
+      @set outlet, silent: true if @_toOutlet = outlet
       return
 
-  # class SliderOutlet extends MultiOutlet
-  #   constructor: (snapshots, path, key, @_syncValue) ->
-  #     super @_syncValue
+  class @ToHistoryOutlet extends Outlet
+    constructor: (@_slidingOutlet) ->
+      @_slidingOutlet._toOutlet = this
+      super
 
-  #     @outflows.add @_out = =>
-  #       if @_value != @_syncValue
-  #         @_syncValue = @_value
-  #         dataStore = snapshots.dataStore[snapshots.to.index]
-  #         dataStore.localPath(path)[key] = @_value
+    localizeChanges: ->
+      syncValue = @_slidingOutlet._syncValue
+      @_slidingOutlet.slide()
 
-  #   sync: (value) ->
-  #     @_syncValue = value
-  #     @set value
+      if syncValue != @_value
+        @_slidingOutlet.set @_value
+      else
+        @_slidingOutlet.set undefined
+
+      @set syncValue
+      return
 
   class FromHistoryOutlet extends Outlet
     constructor: ->
       super
       @_set = @set
       @set = undefined
-      @sets = (value) =>
-        if typeof value.set is 'function'
-          @detach()
-          @_sync = => value.set.call(value, @_value)
-          @outflows.add @_sync
-          @cascade()
 
     sync: (value) ->
       @_set value
+
+  class SlidingSnapshot extends Snapshots.Snapshot
+    constructor: (@_snapshots) ->
+      @index = 0
+
+    _inherit: -> throw new Error()
+
+    get: (path, key) ->
+      [path, key] = Snapshots.getPathKey path, key
+      return current if (current = (base = @ensurePath(path))[key])?
+      base[key] = new SlidingOutlet(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
+
+    slide: do ->
+      empty = {}
+
+      recurse = (o,to) ->
+        to ||= empty
+        for k, v of o when k[0] != '_' and k isnt 'index' and !o.constructor.prototype[k]?
+          if v instanceof Snapshots.Compound
+            recurse v, to[k]
+          else
+            v.slide to[k]
+        return
+
+      (@index) -> recurse(this, @_snapshots.to)
 
   class FromHistorySnapshot extends Snapshots.Snapshot
     constructor: (@_snapshots) ->
       @index = -1
 
-    _inherit: -> throw new Error("FromHistorySnapshot should never be inherited from")
+    _inherit: -> throw new Error()
 
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@index then @_snapshots.dataStore[@index].get(path)?[key] else undefined)
 
-  # class SliderSnapshot extends Snapshots.Snapshot
-  #   constructor: (@_snapshots) ->
-  #     @index = -1
-
-  #   _inherit: -> throw new Error("SliderSnapshot should never be inherited from")
-
-  #   get: (path, key) ->
-  #     [path, key] = Snapshots.getPathKey path, key
-  #     current = (base = @ensurePath(path))[key]
-  #     return current if current?
-  #     base[key] = outlet = new SliderOutlet(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
-  #     outlet
-
   class ToHistorySnapshot extends Snapshots.Snapshot
     constructor: (@_snapshots) ->
       @index = 0
+      super
 
     _inherit: ->
       ret = super
@@ -89,10 +101,8 @@ class HistoryOutlets extends Snapshots
 
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
-      current = (base = @ensurePath(path))[key]
-      return current if current?
-      base[key] = outlet = new @_snapshots.historyOutletFactory(@_snapshots, path, key, @_snapshots.dataStore[@index].get(path)?[key])
-      outlet
+      return current if (current = (base = @ensurePath(path))[key])?
+      base[key] = new @_snapshots.historyOutletFactory @_snapshots.sliding.get(path, key)
 
     set: (path, value) ->
       @get(path).set(value)
@@ -102,8 +112,12 @@ class HistoryOutlets extends Snapshots
     noInherit: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       @_snapshots.dataStore[@index].noInherit path, key
-      @each path.concat(key), (outlet) -> outlet.localizeChanges()
-      super(path,key)
+      return unless prev = super path,key
+      if prev instanceof Snapshots.Compound
+        Snapshots.Snapshot.each prev, (outlet) -> outlet.localizeChanges()
+      else
+        prev.localizeChanges()
+      return
 
   constructor: (@dataStore = new Snapshots) ->
     # when constructing, don't want to push to dataStore again
@@ -113,7 +127,7 @@ class HistoryOutlets extends Snapshots
 
     @to = @[0]
     @from = new FromHistorySnapshot this
-    # @slider = new SliderSnapshot this
+    @sliding = new SlidingSnapshot this
 
     `var len = this.dataStore.length, i;
     for (i=1; i < len; ++i) push();`
@@ -149,7 +163,8 @@ class HistoryOutlets extends Snapshots
         @to = @[@push()-1]
       else
         @to = @[index]
-        @dataStore[index].syncTarget @to
+        @sliding.slide index
+        @dataStore[index].syncTarget @sliding
       return
 
     @emit 'didNavigate'

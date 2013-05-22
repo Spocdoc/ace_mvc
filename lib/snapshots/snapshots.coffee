@@ -51,17 +51,17 @@ class Snapshots extends Array
         o = o[p]
       return o
 
-    doEach = (o,fn) ->
+    @each: (o,fn) ->
       for k, v of o when k[0] != '_' and !o.constructor.prototype[k]?
         if v instanceof Snapshots.Compound
-          doEach v, fn
+          @each v, fn
         else
           fn(v)
       return
 
     each: (arr, fn) ->
       return unless (o = @get(arr))? and o instanceof Snapshots.Compound
-      doEach(o, fn)
+      Snapshots.Snapshot.each(o, fn)
       return
 
     syncTarget: (dst) ->
@@ -72,8 +72,10 @@ class Snapshots extends Array
     noInherit: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       o = @localPath(path)
-      o[key] = null if !{}.hasOwnProperty.call(o, key)
-      return
+      if !{}.hasOwnProperty.call(o, key)
+        prev = o[key]
+        o[key] = null
+        return prev
 
     _inherit: ->
       Object.create(this)

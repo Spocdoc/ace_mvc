@@ -261,6 +261,29 @@ describe 'Outlet hot', ->
       expect(Object.keys(z.inflows).length).eq 1
       expect(Object.keys(z.outflows).length-numOutflowKeys).eq 0
 
+    it 'should remove auto inflows that no longer apply', ->
+      b = new Outlet 0
+      c = new Outlet 2
+      calls = 0
+
+      a = new Outlet ->
+        ++calls
+        if b.get()
+          c.get()
+        return
+
+      expect(calls).eq 1
+      c.set(3)
+      expect(calls).eq 1
+      b.set(1)
+      expect(calls).eq 2
+      c.set(42)
+      expect(calls).eq 3
+      b.set(0)
+      expect(calls).eq 4
+      c.set(43)
+      expect(calls).eq 4
+
 describe 'Outlet habanero', ->
   beforeEach ->
     @f = new Outlet 2

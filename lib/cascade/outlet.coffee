@@ -49,11 +49,6 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
-      if @hasOwnProperty '_pvalue'
-        @_value = @['_pvalue']
-        delete @['_pvalue']
-        return done()
-
       (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
 
       callDone = true
@@ -124,7 +119,8 @@ class Outlet extends Cascade
       done() if callDone
       return
 
-    @set init, options
+    Cascade.Unblock =>
+      @set init, options
 
   get: ->
     out._autoInflow this if out = Outlet.stackLast
@@ -141,6 +137,7 @@ class Outlet extends Cascade
 
   set: (value, options={}) ->
     if value != @_value
+      @_calculateNum = (@_calculateNum || 0) + 1
       @_value = options['value'] if {}.hasOwnProperty.call(options, 'value')
 
       if typeof value is 'function'
@@ -167,31 +164,38 @@ class Outlet extends Cascade
           @run value unless options.silent
 
         @outflows.add value
-        value.set this, silent: true if typeof value.set is 'function'
+        if typeof value.set is 'function'
+          value.set this, silent: true
+        else if value.outflows
+          value.outflows.add this
 
       else
         @_version = 0
-        @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was just re-run to get this value
+        @_value = value
 
         if @pending.get() && !@calculating
           @_noDry = true
-          @['_pvalue'] = value
+        else if options.silent
+        else if Cascade.roots
+          @_noDry = true
+          @run()
         else
-          @_value = value
-          @cascade() unless options.silent
+          @_cascade()
 
     return @_value
 
   # call when the object value has been modified in place
-  modified: ->
-    return if @hasOwnProperty '_pvalue'
-    ++@_version
-    unless @pending.get()
-      @cascade()
-    else
-      @['_pvalue'] = @_value
-      @_noDry = true
-    return
+  modified: do ->
+    version = 0
+    ->
+      @_version = ++version
+
+      if (pending = @pending.get()) or Cascade.roots
+        @_noDry = true
+        @run() unless pending
+      else
+        @_cascade()
+      return
 
   unset: (value) ->
     if typeof value is 'function'

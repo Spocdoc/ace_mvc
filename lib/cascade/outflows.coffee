@@ -27,6 +27,9 @@ class Outflows
       @_arr.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
 
+      if @cascade.pending.get()
+        outflow.pending?.set true
+
     return
 
   remove: (outflow) ->
@@ -43,6 +46,9 @@ class Outflows
       }`
 
       delete outflow.inflows?[@cascade.cid]
+
+      if @cascade.pending.get()
+        outflow._calculate? true, @cascade
 
     return
 

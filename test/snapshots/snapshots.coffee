@@ -102,7 +102,10 @@ module.exports = snapshotTests = (clazz, options) ->
 
   describe '#noInherit', ->
     it 'should prevent inheritance', ->
-      @a[0].ensurePath(['controller']).delegate = 42
+      if typeof @a[0].set is 'function'
+        @a[0].set ['controller','delegate'], 42
+      else
+        @a[0].ensurePath(['controller']).delegate = 42
       @a.push()
       @a[1].noInherit(['controller','delegate'])
       expect(@a[1].controller.delegate).not.exist

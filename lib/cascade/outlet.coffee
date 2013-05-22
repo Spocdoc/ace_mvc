@@ -49,6 +49,11 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
+      if @hasOwnProperty '_pvalue'
+        @_value = @['_pvalue']
+        delete @['_pvalue']
+        return done()
+
       (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
 
       callDone = true
@@ -136,14 +141,18 @@ class Outlet extends Cascade
 
   set: (value, options={}) ->
     if value != @_value
-      @_value = options.value if {}.hasOwnProperty.call(options, 'value')
+      @_value = options['value'] if {}.hasOwnProperty.call(options, 'value')
 
       if typeof value is 'function'
         value.cid ||= Cascade.id()
         return @_value if @_eqFuncs[value.cid]
 
         @_eqFuncs[value.cid] = value
-        @run value unless options.silent or @pending.get()
+
+        if @pending.get() && !@calculating
+          @_noDry = true
+        else
+          @run value unless options.silent
 
       else if typeof value?.get is 'function'
         value.cid ||= Cascade.id()
@@ -151,24 +160,36 @@ class Outlet extends Cascade
 
         @_multiGet = value if value.get.length > 0
         @_eqOutlets[value.cid] = value
-        @run value unless options.silent or @pending.get()
+
+        if @pending.get() && !@calculating
+          @_noDry = true
+        else
+          @run value unless options.silent
+
         @outflows.add value
         value.set this, silent: true if typeof value.set is 'function'
 
       else
-        @_value = value
         @_version = 0
         @_calculateNum = (@_calculateNum || 0) + 1 # pretend the function was just re-run to get this value
-        @cascade() unless options.silent or @pending.get()
+
+        if @pending.get() && !@calculating
+          @_noDry = true
+          @['_pvalue'] = value
+        else
+          @_value = value
+          @cascade() unless options.silent
 
     return @_value
 
   # call when the object value has been modified in place
   modified: ->
+    return if @hasOwnProperty '_pvalue'
     ++@_version
     unless @pending.get()
       @cascade()
     else
+      @['_pvalue'] = @_value
       @_noDry = true
     return
 

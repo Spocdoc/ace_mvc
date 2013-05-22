@@ -28,7 +28,6 @@ class Cascade
       @_pending = false
     get: -> @_pending
     set: (pending) ->
-      return if pending and @cascade.calculating
       return if !!pending == @_pending
       @_pending = !!pending
       if @_pending
@@ -61,13 +60,10 @@ class Cascade
     if Cascade.roots
       Cascade.roots.push => @outflows._calculate(false)
     else
-      @calculating = true
       @outflows._calculate(false)
-      @calculating = false
     return
 
   _calculateDone: (dry) ->
-    @calculating = true
     if @_stopPropagation
       delete @_stopPropagation
       dry = true
@@ -79,7 +75,6 @@ class Cascade
 
   _calculate: (dry, source) ->
     return unless @pending.get()
-    return if @calculating
 
     @changes.push source if !dry and source and source.cid?
 
@@ -106,7 +101,6 @@ class Cascade
         return if num != @_calculateNum
         @_calculateDone(dry)
 
-    @calculating = false
     return
 
   # can be called by the func to prevent updating outflows

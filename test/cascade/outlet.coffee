@@ -11,7 +11,6 @@ addCallCounts = ->
   orig = Cascade.prototype._calculate
   Cascade.prototype._calculate = ->
     return unless @pending.get()
-    return if @calculating
     callCounts[this.cid] ?= 0
     ++callCounts[this.cid]
     orig.apply(this, arguments)

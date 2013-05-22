@@ -173,10 +173,12 @@ describe 'HistoryOutlets', ->
 
         [outlets, view.outlets] = [view.outlets, []]
         for name in outlets
-          hd = @a.to.get(['controller','view',name])
-          outlet = new Outlet(hd.get())
-          hd.set(outlet)
-          view.outlets[name] = outlet
+          # hd = @a.to.get(['controller','view',name])
+          # outlet = new Outlet(hd.get())
+          # hd.set(outlet)
+          # view.outlets[name] = outlet
+
+          view.outlets[name] = @a.get('controller/view',name)
 
         [outletMethods, view.outletMethods] = [view.outletMethods, []]
         for func in outletMethods
@@ -193,6 +195,7 @@ describe 'HistoryOutlets', ->
       @a.to.get(['controller','firstNameTo']).set(firstNameTo)
 
       bindControllerViewOutlets = =>
+        viewTo.unset()
         viewTo.set buildView()
         @a.to.get(['controller','#view']).set(viewTo)
         viewTo.get().outlets.firstName.set(firstNameTo)
@@ -217,6 +220,7 @@ describe 'HistoryOutlets', ->
       @a.navigate(0)
       expect(firstNameTo.get()).eq foo
       expect(viewTo.get().outlets.firstName.get()).eq foo
+      console.log "hd value: ",@a.get('controller/view/firstName')
       expect(setsDom).calledTwice
 
       # now navigate re-creating the view so there are separate from and to views

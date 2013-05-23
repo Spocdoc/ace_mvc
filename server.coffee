@@ -1,4 +1,4 @@
-#!/usr/bin/env coffee --nodejs --debug
+#!/usr/bin/env coffee#--nodejs --debug
 
 connect = require 'connect'
 express = require 'express'
@@ -29,7 +29,18 @@ ace.configure 'development', ->
       options:
         retry_max_delay: 30*1000
 
+ace.configure 'production', ->
+  ace.set 'debug', false
+  ace.set 'db',
+    host: '/tmp/mongodb-27017.sock'
+    db: 'test'
+    redis:
+      host: '/tmp/redis.sock'
+      port: 6379
+      options:
+        retry_max_delay: 30*1000
+
 app.use ace
 
-server.listen port = 1337, ->
+server.listen port = 1338, ->
   console.log "listening on #{port}..."

@@ -159,7 +159,7 @@ class Bundler
     bundle = (debug, file, cb) ->
       script = browserify(file)
         .transform(coffeeify)
-        .bundle({'debug': debug})
+        .bundle({'debug': false}) # TODO why doesn't this work better?
 
       script = script.pipe uglifier unless debug
 

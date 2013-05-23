@@ -46,6 +46,8 @@ class App
     Template = require '../../mvc/template'
 
     ace = new Ace
+    res.end 'foo'
+    return
     ace.routing.enable @_routeConfig, @_routes
 
     html = """

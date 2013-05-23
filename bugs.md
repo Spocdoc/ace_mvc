@@ -12,6 +12,10 @@
 
     instead, it should calculate if an inflow is also an outflow and it has priority by looking at an index number that's set sequentially for each cascade when the outflows are set to pending. this would require doing a breadth-first traversal...
 
+# Outlet
+
+  - optimization: should cache the change to function mapping instead of looping through all the functions (map from change cid to function)
+
 # HistoryOutlet
 
   - if you call `noInherit` after `ensurePath`, which creates an inherited object, then call `noInherit` on that object, it does nothing because the object is own property (despite inheriting)

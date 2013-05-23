@@ -1,7 +1,6 @@
 Routing = require './routing'
 Outlet = require '../cascade/outlet'
 HistoryOutlets = require '../snapshots/history_outlets'
-Variable = require './variable'
 View = require '../mvc/view'
 Controller = require '../mvc/controller'
 Template = require '../mvc/template'
@@ -21,7 +20,7 @@ class Ace
         path = []
     path.push name
     path
-
+    
   constructor: (@historyOutlets = new HistoryOutlets, @name='') ->
     @path = [@name]
 
@@ -30,12 +29,17 @@ class Ace
     Base =
       newOutlet: (name) ->
         outlet = ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
-        console.log "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+        # console.log "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+        outlet
+
+      newSlidingOutlet: (name) ->
+        outlet = ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
+        # console.log "created sliding outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
         outlet
 
       newFromOutlet: (name) ->
         outlet = ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
-        console.log "created outlet #{outlet.cid} at",path.join('/')
+        # console.log "created outlet #{outlet.cid} at",path.join('/')
         outlet
 
       newController: (type, name, settings) ->
@@ -51,18 +55,14 @@ class Ace
     @rootType = @newOutlet('rootType')
     @rootType.set('root') unless @rootType.get()
 
-    @rootType.outflows.add =>
-      type = @rootType.get()
-      return if (root = @root.get())?.type == type
-      @historyOutlets.noInherit(@path)
-      root?.remove()
-      @root.set(@newController(type))
-      @appendTo(@$container) if @$container
-      return
+    @rootType.outflows.add => @_setRoot()
 
     @routing = new Routing this,
       (arg) => @historyOutlets.navigate(arg),
-      (path, fn) => new Variable @historyOutlets, path, fn
+      (path, fn) =>
+        outlet = @historyOutlets.sliding.get path
+        outlet.set fn
+        outlet
 
     @constructor.db ||= new Db
 
@@ -113,9 +113,18 @@ class Ace
 
       navigate: -> ace.routing.navigate()
 
+  _setRoot: ->
+    type = @rootType.get()
+    return if (root = @root.get())?.type == type
+    @historyOutlets.noInherit(@path)
+    root?.remove()
+    @root.set(@newController(type))
+    @appendTo(@$container) if @$container
+    return
+
   appendTo: (@$container) ->
     unless @root.get()
-      @rootType.run()
+      @_setRoot()
     else
       @root.get().appendTo($container)
     return

@@ -16,8 +16,6 @@ class OutletMethod extends Outlet
       else
         []
 
-  # outlets is optional
-  # func [, outlets [, options]]
   constructor: (func, outlets, options={}) ->
     @_omFunc = =>
       args = []
@@ -30,10 +28,8 @@ class OutletMethod extends Outlet
     delete @run
 
     @_names = getArgNames(func)
+    @set options.value, options if options.value
     @rebind outlets, options if outlets
-
-    # disallow assigning the value or changing the func
-    # @set = ->
 
   # outlets is a hash from argument name to outlet
   # eg, {a: outletX, b: outletY}
@@ -42,7 +38,7 @@ class OutletMethod extends Outlet
     for name in @_names
       outlets[name].outflows.add this
       @_argOutlets.push outlets[name]
-    @run() unless options.silent or @pending.get()
+    @run() unless options.silent
     return this
 
   detach: ->

@@ -11,18 +11,11 @@ module.exports = (Cascade) ->
       roots = Cascade.roots
       delete Cascade.roots
 
-      for root in roots
-        if root instanceof Cascade
-          root._calculate(false)
-        else if typeof root is 'function'
-          root()
+      `for (var i = 0, e = roots.length; i < e; i = i + 2) {
+        Cascade.run(roots[i], roots[i+1]);
+      }`
 
-      if roots.post
-        for root in roots.post
-          if root instanceof Cascade
-            root._calculate(false)
-          else if typeof root is 'function'
-            root()
+      root() for root in roots.post if roots.post
 
     ret
 
@@ -60,3 +53,11 @@ module.exports = (Cascade) ->
       -> postblockRunner(func)
     else
       postblockRunner(func)
+
+  oldRun = Cascade.run
+
+  Cascade.run = (target, source) ->
+    return oldRun(target, source) unless Cascade.roots
+    Cascade.roots.push target
+    Cascade.roots.push source
+    return

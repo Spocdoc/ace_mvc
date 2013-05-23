@@ -41,4 +41,6 @@ class Statelet extends Outlet
     @set @_sFunc, silent: true
     ret
 
+  toJSON: -> undefined
+
 module.exports = Statelet

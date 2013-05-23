@@ -8,9 +8,9 @@ addCallCounts = ->
   callCounts = {}
   @callCounts = callCounts
 
-  orig = Cascade.prototype._calculate
-  Cascade.prototype._calculate = ->
-    return unless @pending.get()
+  orig = Cascade.prototype._run
+  Cascade.prototype._run = ->
+    return unless this.pending
     callCounts[this.cid] ?= 0
     ++callCounts[this.cid]
     orig.apply(this, arguments)
@@ -22,8 +22,8 @@ describe 'Outlet mild', ->
   it 'should set the initial value to constructor arg', ->
     expect(@a.get()).eq 1
 
-  it 'should set the value when changed and return it in setter', ->
-    expect(@a.set(2)).eq 2
+  it 'should set the value when changed', ->
+    @a.set(2)
     expect(@a.get()).eq 2
 
   it 'should cascade when set', ->
@@ -40,7 +40,7 @@ describe 'Outlet mild', ->
     @b = new Cascade @bfn
 
     @a.outflows.add @b
-    expect(@a.set 1).eq 1
+    @a.set 1
     expect(@a.get()).eq 1
     expect(@bfn).not.called
 
@@ -122,8 +122,9 @@ describe 'Outlet hot', ->
     expect(@callCounts[@b.cid]).eq 2
 
   it 'should re-fetch a function when recalculated as part of a cascade', ->
+    v = 42
     func = sinon.spy ->
-      return 42
+      return v
     expect(@callCounts[@a.cid]).not.exist
     @a.set(func)
     expect(@callCounts[@b.cid]).eq 2
@@ -132,6 +133,7 @@ describe 'Outlet hot', ->
 
     @c = new Cascade
     @c.outflows.add(@a)
+    v = 43
     @c.run()
     expect(@callCounts[@b.cid]).eq 3
     expect(@callCounts[@a.cid]).eq 2
@@ -230,10 +232,10 @@ describe 'Outlet hot', ->
       expect(x.outflows[y.cid]).to.exist
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(Object.keys(y.outflows).length-numOutflowKeys).eq 0
+      expect(y.outflows.length).eq 0
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(Object.keys(x.outflows).length-numOutflowKeys).eq 1
+      expect(x.outflows.length).eq 1
 
     it 'should assign inflows only to the direct -- not indirect -- inflows', ->
       x = new Outlet(1)
@@ -253,13 +255,13 @@ describe 'Outlet hot', ->
       expect(z.inflows[y.cid]).to.exist
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(Object.keys(x.outflows).length-numOutflowKeys).eq 1
+      expect(x.outflows.length).eq 1
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(Object.keys(y.outflows).length-numOutflowKeys).eq 1
+      expect(y.outflows.length).eq 1
 
       expect(Object.keys(z.inflows).length).eq 1
-      expect(Object.keys(z.outflows).length-numOutflowKeys).eq 0
+      expect(z.outflows.length).eq 0
 
     it 'should remove auto inflows that no longer apply', ->
       b = new Outlet 0
@@ -334,22 +336,22 @@ describe 'Outlet habanero', ->
     # outflows always 1 greater than actual number
 
     expect(Object.keys(@f.inflows).length).eq(0)
-    expect(Object.keys(@f.outflows).length-numOutflowKeys).eq(3)
+    expect(@f.outflows.length).eq(3)
 
     expect(Object.keys(@a.inflows).length).eq(1)
-    expect(Object.keys(@a.outflows).length-numOutflowKeys).eq(2)
+    expect(@a.outflows.length).eq(2)
 
     expect(Object.keys(@d.inflows).length).eq(1)
-    expect(Object.keys(@d.outflows).length-numOutflowKeys).eq(1)
+    expect(@d.outflows.length).eq(1)
 
     expect(Object.keys(@c.inflows).length).eq(3)
-    expect(Object.keys(@c.outflows).length-numOutflowKeys).eq(1)
+    expect(@c.outflows.length).eq(1)
 
     expect(Object.keys(@b.inflows).length).eq(1)
-    expect(Object.keys(@b.outflows).length-numOutflowKeys).eq(0)
+    expect(@b.outflows.length).eq(0)
 
     expect(Object.keys(@e.inflows).length).eq(1)
-    expect(Object.keys(@e.outflows).length-numOutflowKeys).eq(0)
+    expect(@e.outflows.length).eq(0)
 
 
   it 'should have run the calculation functions exactly once with complex dependencies', ->
@@ -360,6 +362,7 @@ describe 'Outlet habanero', ->
     expect(@efn).calledOnce
 
   it 'should run the appropriate outflows in the right order', ->
+    # TODO this test is flawed -- all the functions were called in this order during initialization...
     @f.set(2.2)
 
     expect(@cfn).calledAfter(@afn)
@@ -664,3 +667,25 @@ describe 'Outlet #modified', ->
 
     a.modified()
     expect(foo).calledOnce
+
+describe 'Outlet set to multiple functions', ->
+  it 'should run the function based on inflows', ->
+    x = new Outlet 1
+    y = new Outlet 2
+
+    a = new Outlet
+    a.set -> 2*x.get()
+    a.set -> 3*y.get()
+
+    b = new Outlet a
+
+    expect(a.get()).eq 6
+    expect(b.get()).eq a.get()
+
+    x.set(42)
+    expect(a.get()).eq 84
+    expect(b.get()).eq a.get()
+
+    y.set(42)
+    expect(a.get()).eq 126
+    expect(b.get()).eq a.get()

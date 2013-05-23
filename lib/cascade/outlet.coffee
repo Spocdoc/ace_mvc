@@ -1,4 +1,6 @@
 Cascade = require './cascade'
+makeId = require '../id'
+require '../polyfill'
 
 # options:
 #     silent    don't run the function immediately
@@ -41,6 +43,34 @@ class Outlet extends Cascade
 
   context: (fn) -> Outlet.context(fn, this)
 
+  _setValue: (value, version) ->
+    if @_value is value and (!version? or @_version is version)
+      @stopPropagation()
+    else
+      @_version = version || 0
+      @_value = value
+    return
+
+  _findFuncByChanges: ->
+    for cid,fn of @_eqFuncs
+      for change in @changes
+        return fn if @_autoInflows[fn.cid][change.cid]?
+
+  _pickSource: ->
+    for change in @changes
+      (return found) if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]
+
+    len = 0
+    (break if ++len > 1) for k of @_eqFuncs
+    switch len
+      when 0
+        for cid,outlet of @_eqOutlets
+          return outlet
+      when 1
+        @_eqFuncs[k]
+      else
+        @_findFuncByChanges()
+
   constructor: (init, options={}) ->
     @_multiGet = undefined
     @_eqFuncs = {}
@@ -49,78 +79,36 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
-      (break if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]) for change in @changes
-
       callDone = true
       returned = false
+
+      found = @_pickSource()
 
       if typeof found is 'function'
         @enterContext found
         try
           if found.length > 0
             callDone = false
-            num = @_calculateNum
+            num = @_runNumber
             found (value) =>
-              if num is @_calculateNum
-                if @_value is value
-                  @stopPropagation()
-                else
-                  @_version = 0
-                @_value = value
+              @_setValue value if num is @_runNumber
               callDone = true
               done() if returned
+              return
           else
-            @stopPropagation() if @_value is (value = found())
-            @_value = value
+            @_setValue found()
         finally
           @exitContext()
 
       else if found
         @_autoContext = undefined
-        @stopPropagation() if @_value is (value = found.get()) and @_version is found._version
-        @_value = value
-        @_version = found._version
-
-      else
-        value = undefined
-        returned = false
-        num = @_calculateNum
-        next = =>
-          if num is @_calculateNum
-            if @_value is value
-              @stopPropagation()
-            else
-              @_version = 0
-            @_value = value
-          callDone = true
-          done() if returned
-          return
-
-        count = 0
-
-        for cid,fn of @_eqFuncs
-          ++count
-          callDone = false
-
-          @enterContext fn
-          try
-            if fn.length > 0
-              fn (result) =>
-                value ?= result
-                next() unless --count
-            else
-              result = fn()
-              value ?= result
-              next() unless --count
-          finally
-            @exitContext()
+        @_setValue found.get(), found._version
 
       returned = true
       done() if callDone
       return
 
-    Cascade.Unblock =>
-      @set init, options
+    @set init, options
 
   get: ->
     out._autoInflow this if out = Outlet.stackLast
@@ -136,65 +124,47 @@ class Outlet extends Cascade
       @_value
 
   set: (value, options={}) ->
-    if value != @_value
-      @_calculateNum = (@_calculateNum || 0) + 1
-      @_value = options['value'] if {}.hasOwnProperty.call(options, 'value')
+    return if @_value is value
 
-      if typeof value is 'function'
-        value.cid ||= Cascade.id()
-        return @_value if @_eqFuncs[value.cid]
+    ++@_runNumber
+    outflow = false
 
-        @_eqFuncs[value.cid] = value
+    if typeof value is 'function'
+      value.cid ||= makeId()
+      return if @_eqFuncs[value.cid]
 
-        if @pending.get() && !@calculating
-          @_noDry = true
-        else
-          @run value unless options.silent
+      @_eqFuncs[value.cid] = value
 
-      else if typeof value?.get is 'function'
-        value.cid ||= Cascade.id()
-        return @_value if @_eqOutlets[value.cid]
+    else if typeof value?.get is 'function'
+      value.cid ||= makeId()
+      return if @_eqOutlets[value.cid]
 
-        @_multiGet = value if value.get.length > 0
-        @_eqOutlets[value.cid] = value
+      @_multiGet = value if value.get.length > 0
+      @_eqOutlets[value.cid] = value
 
-        if @pending.get() && !@calculating
-          @_noDry = true
-        else
-          @run value unless options.silent
+      if typeof value.set is 'function'
+        value.set this, silent: true
+      else if value.outflows
+        value.outflows.add this
 
-        @outflows.add value
-        if typeof value.set is 'function'
-          value.set this, silent: true
-        else if value.outflows
-          value.outflows.add this
+      outflow = true
 
-      else
-        @_version = 0
-        @_value = value
+    else
+      @_version = 0
+      @_value = value
 
-        if @pending.get() && !@calculating
-          @_noDry = true
-        else if options.silent
-        else if Cascade.roots
-          @_noDry = true
-          @run()
-        else
-          @_cascade()
+    unless options.silent
+      if value is @_value then @cascade() else @run value
 
-    return @_value
+    @outflows.add value if outflow
+    return
 
   # call when the object value has been modified in place
   modified: do ->
     version = 0
     ->
       @_version = ++version
-
-      if (pending = @pending.get()) or Cascade.roots
-        @_noDry = true
-        @run() unless pending
-      else
-        @_cascade()
+      @cascade()
       return
 
   unset: (value) ->
@@ -258,7 +228,5 @@ class Outlet extends Cascade
     inflow.outflows.add this unless list[inflow.cid]?
     list[inflow.cid] = 1
     return
-
-
 
 module.exports = Outlet

@@ -2,37 +2,19 @@ Outflows = require './outflows'
 Emitter = require '../events/emitter'
 addBlocks = require './blocks'
 {include, extend} = require '../mixin'
+makeId = require '../id'
 
 class Cascade
-
-  @id = do ->
-    count = 0
-    ->
-      count = if count+1 == count then 0 else count+1
-      "#{count}-Cascade"
-
   include Cascade, Emitter
-
-  addBlocks(@)
 
   constructor: (@func) ->
     @func ||= ->
     @inflows = {}
     @changes = []
     @outflows = new Outflows(this, Cascade)
-    @pending = new Pending(this)
-    @cid = Cascade.id()
-
-  class Pending
-    constructor: (@cascade) ->
-      @_pending = false
-    get: -> @_pending
-    set: (pending) ->
-      return if !!pending == @_pending
-      @_pending = !!pending
-      if @_pending
-        @cascade.outflows._setPending()
-      return
+    @pending = false
+    @_runNumber = 0
+    @cid = makeId()
 
   # remove inflow or all inflows
   detach: (inflow) ->
@@ -43,66 +25,89 @@ class Cascade
       inflow.outflows?.removeAll this
 
     return
+
+  @run: (cascade, source) ->
+    if typeof cascade is 'function'
+      cascade(source)
+    else
+      cascade._run(source)
     
   run: (source) ->
-    @pending.set(true)
-
-    if Cascade.roots
-      Cascade.roots.push unless source then this else (=> @_calculate(false,source))
+    if @pending
+      return if !@running
     else
-      @_calculate(false, source)
+      @outflows.setPending @pending = true
+    Cascade.run this, source
     return
 
-  # optimization that should only be used internally when it's clear there is no Cascade.root
-  _cascade: ->
-    @pending.set(true)
-    @pending.set(false)
-    @outflows._calculate(false)
+  cascade: ->
+    if @pending
+      @_mustRun = true
+      return
+    unless @running
+      # this is to stop recursion if this is an outflow of one of its outflows
+      @outflows.setPending @pending = true
+      @pending = false
+    Cascade.run outflow, this for outflow in @outflows
     return
 
-  _calculateDone: (dry) ->
-    if @_stopPropagation
-      delete @_stopPropagation
-      dry = true
+  setPending: (tf) ->
+    return if @pending is tf=!!tf
 
-    @pending.set(false)
-    @outflows._calculate(dry)
-    @calculating = false
-    @changes = []
+    if !tf
+      return unless @_canRun()
+      return Cascade.run this if @_mustRun
 
-  _calculate: (dry, source) ->
-    return unless @pending.get()
+    @pending = tf
+    @outflows.setPending tf
+    return
 
-    @changes.push source if !dry and source and source.cid?
+  _canRun: ->
+    for cid,inflow of @inflows when inflow.pending
+      return false unless @outflows[inflow.cid]?
+    true
 
-    for cid,inflow of @inflows when inflow.pending.get()
-      if not @outflows[inflow.cid]?
-        @_noDry = true if not dry # ie, calculate this anyway if another input is dry because at least 1 input is "wet"
+  _run: do ->
+    done = (cascade) ->
+      if cascade._stopPropagation
+        cascade._stopPropagation = false
+        cascade.setPending(false)
+      else
+        cascade.pending = false
+        cascade.cascade()
+      cascade.running = false
+      cascade.changes = []
+
+    (source) ->
+      return unless @pending
+
+      @changes.push source if source
+
+      unless @_canRun()
+        @_mustRun = true
         return
 
-    @calculating = true
-    @_calculateNum = (@_calculateNum || 0) + 1
+      @_mustRun = false
 
-    if @_noDry
-      delete @_noDry
-      dry = false
+      @running = true
+      ++@_runNumber
 
-    if not @func.length
-      @func() if not dry
-      @_calculateDone(dry)
-    else if dry
-      @_calculateDone(dry)
-    else
-      num = @_calculateNum
-      @func =>
-        return if num != @_calculateNum
-        @_calculateDone(dry)
-
-    return
+      if @func.length
+        num = @_runNumber
+        @func =>
+          return if num != @_runNumber
+          done this
+      else
+        @func()
+        done this
+      return
 
   # can be called by the func to prevent updating outflows
   stopPropagation: ->
     @_stopPropagation = true
 
 
+addBlocks Cascade
 module.exports = Cascade
+
+

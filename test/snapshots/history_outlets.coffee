@@ -195,6 +195,7 @@ describe 'HistoryOutlets', ->
           view.outletMethods.push new OutletMethod func, view.outlets, silent: true
 
         instOutlet.set view
+        view
 
       # view instance outlets in the controller
       viewFrom = new Outlet

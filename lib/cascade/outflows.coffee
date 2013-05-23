@@ -1,13 +1,8 @@
 Emitter = require '../events/emitter'
 {include, extend} = require '../mixin'
+makeId = require '../id'
 
-class Outflows
-  id = do ->
-    count = 0
-    ->
-      count = if count+1 == count then 0 else count+1
-      "#{count}-Outflow"
-
+class Outflows extends Array
   include Outflows, Emitter
 
   constructor: (@cascade) ->
@@ -15,21 +10,22 @@ class Outflows
     # uses itself as a dictionary for uniqueness
     # addition is O(1), iteration is fast, deletion is O(n), but searches
     # from the end so repeated add/delete is likely to be fast
-   @_arr = []
 
   add: (outflow) ->
     if (current = @[outflow.cid])?
       @[outflow.cid] = current + 1
 
     else
-      @[outflow.cid ?= id()] = 1
+      @[outflow.cid ?= makeId()] = 1
 
-      @_arr.push(outflow)
+      @push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
+      outflow.setPending? true if @cascade.pending
 
-      if @cascade.pending.get()
-        outflow.pending?.set true
+    return
 
+  setPending: (tf) ->
+    outflow.setPending? tf for outflow in this
     return
 
   remove: (outflow) ->
@@ -38,17 +34,15 @@ class Outflows
     unless @[outflow.cid] = current - 1
       delete @[outflow.cid]
 
-      `for (var i = this._arr.length; i >= 0; --i) {
-        if (this._arr[i] === outflow) {
-          this._arr.splice(i,1);
+      `for (var i = this.length; i >= 0; --i) {
+        if (this[i] === outflow) {
+          this.splice(i,1);
           break;
         }
       }`
 
       delete outflow.inflows?[@cascade.cid]
-
-      if @cascade.pending.get()
-        outflow._calculate? true, @cascade
+      outflow.setPending? false
 
     return
 
@@ -61,8 +55,7 @@ class Outflows
   # removes all the outflows (and removes this cascade from the inflows of
   # each). These can be restored with #attach
   detach: ->
-    ret = @_arr
-    @_arr = []
+    ret = @splice(0)
     for outflow in ret
       delete outflow.inflows?[@cascade.cid]
       delete @[outflow.cid]
@@ -70,18 +63,6 @@ class Outflows
 
   attach: (arr) ->
     @add outflow for outflow in arr
-    return
-
-  _calculate: (dry, arr=@_arr) ->
-    for outflow in arr
-      if typeof outflow._calculate == 'function'
-        outflow._calculate(dry, @cascade)
-      else if not dry
-        outflow()
-    return
-
-  _setPending: (arr=@_arr) ->
-    outflow.pending?.set?(true) for outflow in arr
     return
 
 module.exports = Outflows

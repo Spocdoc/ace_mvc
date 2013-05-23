@@ -1,4 +1,4 @@
-#!/usr/bin/env coffee#--nodejs --debug
+#!/usr/bin/env coffee#--nodejs --prof#--nodejs --debug
 
 connect = require 'connect'
 express = require 'express'
@@ -9,7 +9,9 @@ debugger
 
 app = express()
 server = require('http').createServer(app)
-app.use connect.logger 'dev'
+
+app.configure 'development', ->
+  app.use connect.logger 'dev'
 
 ace = new Ace
   routes: path.resolve('./routes')
@@ -42,5 +44,5 @@ ace.configure 'production', ->
 
 app.use ace
 
-server.listen port = 1338, ->
+server.listen port = 1337, ->
   console.log "listening on #{port}..."

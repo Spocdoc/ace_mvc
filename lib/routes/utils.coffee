@@ -1,4 +1,5 @@
 # derived from express
+module.exports = {}
 
 module.exports.parseRoute = do ->
   rPath = ///

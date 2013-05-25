@@ -3,6 +3,7 @@
 sep = '&'
 eq = '='
 
+module.exports = {}
 module.exports.parse = do ->
   rPlus = /\+/g
 

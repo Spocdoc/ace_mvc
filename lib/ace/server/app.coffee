@@ -35,9 +35,10 @@ class App
     @_routes = Routing.buildRoutes @_routeConfig
 
     @bundler = @settings.bundler
+    @bundler.set 'debug', @settings['debug']
+    @bundler.set 'routes', @settings['routes']
     @bundler.set 'globals',
       'Ace': path.resolve(__dirname, '../../ace')
-      'routes': @settings['routes']
     @bundler.start()
     return
 
@@ -63,19 +64,16 @@ class App
     ace.appendTo($html)
 
     # add client-side script
-    @bundler.getUris (pathLocal, pathExtern, pathProd) =>
-      if @settings['debug']
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathExtern}\"></script>")
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathLocal}\"></script>")
-      else
-        $html.append $("<script type=\"text/javascript\" src=\"#{pathProd}\"></script>")
+    @bundler.getUris (debugUris, releaseUris) =>
+      for uri in (if @settings['debug'] then debugUris else releaseUris)
+        $html.append $("<script type=\"text/javascript\" src=\"#{uri}\"></script>")
 
-      $script = $("""
+      $html.append $("""
       <script type=\"text/javascript\">
       (function () {
         var historyOutlets = #{OJSON.stringify ace.historyOutlets};
         var ace = new window.Ace(OJSON.fromOJSON(historyOutlets));
-        ace.routing.enable(window.routes);
+        ace.routing.enable(require('routes'));
         var navigator = ace.routing.enableNavigator();
         ace.routing.router.route(navigator.url);
         ace.appendTo($('html'));
@@ -83,9 +81,7 @@ class App
       </script>
       """)
 
-      $html.append $script
-
-      res.end "<!DOCTYPE html>#{$html.toString()}"
+      res.end "<!DOCTYPE html>\n#{$html.toString()}"
 
 module.exports = App
 

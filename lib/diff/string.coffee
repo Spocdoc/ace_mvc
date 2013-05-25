@@ -4,7 +4,7 @@
 // @formatting pretty_print
 // ==/ClosureCompiler==
 `
-gd = new (require('./diff_match_patch-min').diff_match_patch)
+gd = new (require('./diff_match_patch').diff_match_patch)
 
 module['exports'] =
   'diff': (from, to, options) ->

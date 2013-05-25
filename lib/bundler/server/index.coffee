@@ -17,30 +17,37 @@ class Server
     @bundler = new Bundler @settings
 
   handle: do ->
-    jsRegex = /^\/+[^/]*\.js/
-    localRegex = /^\/+local-/
-    externRegex = /^\/+extern-/
+    jsRegex = /^\/+(\d+)([dr])-([^/]+)\.js/
     
     (req, res, next) ->
       url = (new Url(req.url)).pathname
 
-      unless url.match jsRegex
+      unless match = url.match jsRegex
         next()
       else
         res.setHeader 'Content-Type', 'text/javascript'
 
-        if url.match localRegex
-          res.scriptType = 'local'
-        else if url.match externRegex
-          res.scriptType = 'extern'
-
-        @bundler.writeScript res
+        if match[2] is 'd'
+          @bundler.writeDebug match[1], res
+        else
+          @bundler.writeRelease match[1], res
 
       return
 
   getUris: (cb) ->
-    @bundler.getHash (hash) ->
-      cb("/local-#{hash.local}.js", "/extern-#{hash.extern}.js", "/#{hash.prod}.js")
+    @bundler.getHashes (debug, release) ->
+      debugUris = []
+      releaseUris = []
+
+      if debug
+        for hash,i in debug
+          debugUris.push "/#{i}d-#{hash}.js"
+
+      if release
+        for hash,i in release
+          debugUris.push "/#{i}r-#{hash}.js"
+
+      cb debugUris, releaseUris
       return
     return
 

@@ -89,3 +89,26 @@
 
     there may be a more efficient way? of course in prod the whole thing should be on a CDN...
 
+# closurify
+## exports
+
+  - closure doesn't work as well if all the module variables are first set to `{}` then overwritten. It does more aggressive inlining if they're not initially defined. This means that statements like this
+
+        exports.foo = 'bar';
+
+    will result in an error since the exports variable won't have been declared. For the time being, it'll have to be
+
+        module.exports = { foo: 'bar' };
+
+## require
+
+  - doesn't detect use as a function
+
+    e.g.,
+
+        var a = require('./foo')();
+
+## `__dirname` and `__filename`
+
+  - neither of these is available
+

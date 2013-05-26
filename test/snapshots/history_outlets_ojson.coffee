@@ -17,7 +17,7 @@ describe 'HistoryOutlets_OJSON', ->
     @a = new HistoryOutlets
     @a.navigate()
     @a = thruJSON @a
-    expect(@a.to.index).eq 0
+    expect(@a.to['index']).eq 0
 
   it 'should restore the dataStore entries (although not the outlets)', ->
     @a = new HistoryOutlets
@@ -35,7 +35,7 @@ describe 'HistoryOutlets_OJSON', ->
     @a.to.get(['foo','bar'])
     @a.to.get(['foo','baz'])
 
-    expect(@a.to.foo.bar.get()).eq 42
-    expect(@a.to.foo.baz.get()).eq 43
+    expect(@a.to['foo']['bar'].get()).eq 42
+    expect(@a.to['foo']['baz'].get()).eq 43
     @a.navigate(1)
-    expect(@a.to.foo.bar.get()).eq 44
+    expect(@a.to['foo']['bar'].get()).eq 44

@@ -53,7 +53,7 @@ ojsonTest = (OJSON) ->
 
     extend Nest, OJSON.copyKeys
 
-    OJSON.register Nest
+    OJSON.register 'Nest': Nest
     try
       a = [ new Nest(new Bar(1)), new Nest(new Bar(2)) ]
 
@@ -68,7 +68,7 @@ ojsonTest = (OJSON) ->
       expect(a[0]._val.toString()).eq 'bar 1'
       expect(a[1]._val.toString()).eq 'bar 2'
     finally
-      OJSON.unregister Nest
+      OJSON.unregister 'Nest'
     
   it 'should allow registering a class with a custom identifier', ->
     class Super1
@@ -83,10 +83,10 @@ ojsonTest = (OJSON) ->
         toJSON: -> @_value2
         toString: -> "orange2 #{@_value2}"
 
-    OJSON.register Super1,
-      Super2,
-      {Orange1: Super1.Orange,
-      Orange2: Super2.Orange}
+    OJSON.register 'Super1': Super1,
+      'Super2': Super2,
+      {'Orange1': Super1.Orange,
+      'Orange2': Super2.Orange}
 
     try
       a = new Super1.Orange(1)
@@ -100,7 +100,7 @@ ojsonTest = (OJSON) ->
       expect(doc.a.toString()).eq 'orange1 1'
       expect(doc.b.toString()).eq 'orange2 2'
     finally
-      OJSON.unregister Super1, Super2, 'Orange1', 'Orange2'
+      OJSON.unregister 'Super1', 'Super2', 'Orange1', 'Orange2'
 
   it 'should not include "classes" that haven\'t been registered, but should include objects', ->
     class View
@@ -129,8 +129,8 @@ ojsonTest = (OJSON) ->
     b = Object.create a
     b.bar = 'baz'
 
-    OJSON.register F
-    OJSON.register Compound
+    OJSON.register 'F': F
+    OJSON.register 'Compound': Compound
     try
       extend Compound, OJSON.copyKeys
       str = OJSON.stringify b
@@ -142,7 +142,7 @@ ojsonTest = (OJSON) ->
       expect(b.foo).not.exist
       expect(jsonF).not.called
     finally
-      OJSON.unregister F, Compound
+      OJSON.unregister 'F', 'Compound'
 
   it 'should rebuild arrays in order', ->
     a = sinon.spy ->
@@ -156,7 +156,7 @@ ojsonTest = (OJSON) ->
     class C
       @fromJSON: c
 
-    OJSON.register A, B, C
+    OJSON.register 'A':A, 'B':B, 'C':C
 
     try
       obj = [new A, new B, new C]
@@ -164,16 +164,16 @@ ojsonTest = (OJSON) ->
       expect(a).calledBefore(b)
       expect(b).calledBefore(c)
     finally
-      OJSON.unregister A, B, C
+      OJSON.unregister 'A','B','C'
 
   it 'should allow registration & unregistration', ->
     class Fro
-    OJSON.register Fro
+    OJSON.register 'Fro': Fro
     expect(-> OJSON.register Fro).to.throw(Error)
-    OJSON.unregister Fro
-    OJSON.register Fro
+    OJSON.unregister 'Fro'
+    OJSON.register 'Fro': Fro
     expect(-> OJSON.register Fro).to.throw(Error)
-    OJSON.unregister Fro
+    OJSON.unregister 'Fro'
 
   it 'should allow registration & unregistration by name', ->
     class Fro
@@ -188,7 +188,7 @@ ojsonTest = (OJSON) ->
   it 'should allow registration by name=>Constructor and unregistration by name only', ->
     class Fro
     name = 'Uno'
-    desc = {Uno: Fro}
+    desc = {'Uno': Fro}
     OJSON.register desc
     expect(-> OJSON.register desc).to.throw(Error)
     OJSON.unregister name
@@ -201,12 +201,12 @@ ojsonTest = (OJSON) ->
     before ->
       class @A
         constructor: -> @foo = 'bar'
-        _ojson: true
-      OJSON.register {another_a: @A}
+        '_ojson': true
+      OJSON.register {'another_a': @A}
 
       class @B
       extend @B, OJSON.copyKeys
-      OJSON.register {another_b: @B}
+      OJSON.register {'another_b': @B}
 
     after ->
       OJSON.unregister 'another_a','another_b'
@@ -219,7 +219,7 @@ ojsonTest = (OJSON) ->
 
     it 'should not create unique ids if the object has a toJSON method', ->
       a = new Bar(42)
-      a._ojson = true
+      a['_ojson'] = true
       str = OJSON.stringify a
       expect(str.indexOf('_ojson')).eq -1
 
@@ -233,10 +233,10 @@ ojsonTest = (OJSON) ->
       doc = OJSON.parse str
       expect(doc[1].a).eq doc[0]
       expect(doc[0].foo).eq 'bar'
-      expect(doc[0]._ojson).eq true
+      expect(doc[0]['_ojson']).eq true
 
     it 'should also restore references to plain objects', ->
-      a = {foo: 'bar', _ojson: true}
+      a = {foo: 'bar', '_ojson': true}
       b = {a: a, b: 'yay b'}
       doc = [a, b]
       str = OJSON.stringify doc
@@ -245,8 +245,8 @@ ojsonTest = (OJSON) ->
 
     it 'should allow a chain of referenced, inherited objects', ->
       class C
-        _ojson: true
-        OJSON.register {C123: @}
+        '_ojson': true
+        OJSON.register {'C123': @}
         @fromJSON: (obj) ->
           if obj._parent?
             inst = Object.create obj._parent
@@ -288,14 +288,14 @@ ojsonTest = (OJSON) ->
         class @D
           constructor: ->
             @foo = 'bar'
-            @_ojson = true
-          _ojson: true
-        OJSON.register {another_d: @D}
+            @['_ojson'] = true
+          '_ojson': true
+        OJSON.register {'another_d': @D}
 
         class @E extends @D
           constructor: ->
         extend @E, OJSON.copyKeys
-        OJSON.register {another_e: @E}
+        OJSON.register {'another_e': @E}
 
         hasOwn = {}.hasOwnProperty
 

@@ -3,6 +3,7 @@ stream = require 'stream'
 path = require 'path'
 queue = require '../../queue'
 async = require 'async'
+{defaults} = require '../../mixin'
 
 listMvc = require '../../mvc/server/list_mvc'
 readExterns = require './extern'
@@ -50,7 +51,7 @@ class Bundler
     reqs =
       'routes': @settings['routes']
 
-    options = {}
+    options = defaults {}, @settings
     globals = @settings.globals
     unless @settings.debug
       options.release = true
@@ -66,7 +67,7 @@ class Bundler
   _bundleRelease: (obj) ->
     prod = []
     prod.push obj.externs, obj.requires.release, obj.loader.release
-    prod.join('\n')
+    prod = prod.join('\n')
     @scripts.release = release = [prod]
     @hashes.release = release.map hash
     return

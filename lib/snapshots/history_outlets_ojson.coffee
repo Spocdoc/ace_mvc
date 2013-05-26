@@ -6,7 +6,7 @@ OJSON = require '../ojson'
 # isn't preserved, and the outlets themselves are not preserved
 
 module.exports = (HistoryOutlets) ->
-  OJSON.register HistoryOutlets
+  OJSON.register 'HO': HistoryOutlets
 
   HistoryOutlets.prototype.toJSON = -> OJSON.toOJSON @dataStore
 

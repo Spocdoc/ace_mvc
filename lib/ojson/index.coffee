@@ -64,16 +64,16 @@ class OJSONRef
     "#{count}oj"
   cache = {}
   constructor: (@own, @id=uniqueId()) ->
-  toJSON: -> {o: @own, i: @id}
-  @fromJSON: (obj) -> cache[obj.i] || new OJSONRef(obj.o, obj.i)
+  toJSON: -> {'o': @own, 'i': @id}
+  @fromJSON: (obj) -> cache[obj['i']] || new OJSONRef(obj['o'], obj['i'])
   @add: (inst, obj) -> cache[inst.id] = obj
   @clear: ->
     # reset all the ojson objects
-    for id, obj of cache when (j = obj?._ojson) and j instanceof OJSONRef
+    for id, obj of cache when (j = obj?['_ojson']) and j instanceof OJSONRef
       if j.own
-        obj._ojson = true
+        obj['_ojson'] = true
       else
-        delete obj._ojson
+        delete obj['_ojson']
     cache = {}
     count = 0
 
@@ -100,10 +100,10 @@ module.exports = OJSON =
             break
         res[k] = v
 
-      if obj._ojson instanceof OJSONRef
-        OJSONRef.add obj._ojson, res
-      if res?._ojson instanceof OJSONRef
-        OJSONRef.add res._ojson, res
+      if obj['_ojson'] instanceof OJSONRef
+        OJSONRef.add obj['_ojson'], res
+      if res?['_ojson'] instanceof OJSONRef
+        OJSONRef.add res['_ojson'], res
 
       res
 
@@ -120,8 +120,8 @@ module.exports = OJSON =
 
     fn = (k, v) ->
       return v if v == null or typeof v isnt 'object'
-      return fn '', v._ojson if hasOwn.call(v,'_ojson') && v._ojson instanceof OJSONRef
-      n = v.constructor._ojson || v.constructor.name
+      return fn '', v['_ojson'] if hasOwn.call(v,'_ojson') && v['_ojson'] instanceof OJSONRef
+      n = v.constructor['_ojson'] || v.constructor.name
       if not registry[n]?
         return undefined if v.constructor != Object
         return v
@@ -135,8 +135,8 @@ module.exports = OJSON =
       ret = if OJSON.useArrays and Array.isArray obj then [] else {}
 
       # add ojson ref object
-      if obj._ojson? and (!(own = hasOwn.call(obj,'_ojson')) or !(obj._ojson instanceof OJSONRef))
-        OJSONRef.add (obj._ojson = new OJSONRef(own)), obj
+      if obj['_ojson']? and (!(own = hasOwn.call(obj,'_ojson')) or !(obj['_ojson'] instanceof OJSONRef))
+        OJSONRef.add (obj['_ojson'] = new OJSONRef(own)), obj
 
       keys = Object.keys(obj)
       keys.sort(numSort)
@@ -176,7 +176,7 @@ module.exports = OJSON =
       for o in constructors
         if typeof o is 'object'
           for k,v of o
-            v._ojson = k
+            v['_ojson'] = k
             addToSet(set, k, v)
         else
           addToSet(set, o.name, o)
@@ -204,6 +204,6 @@ module.exports = OJSON =
       inst[k] = v for k,v of obj
       inst
 
-OJSON.register Date, Array, OJSONRef
+OJSON.register Date, Array, 'Ref': OJSONRef
 extend Array, OJSON.copyKeys
 

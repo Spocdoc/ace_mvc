@@ -202,7 +202,6 @@ class Url
   #       port
   # NOTE: the parameters must all be URL-encoded before being passed here
   # (except query; that's an object) including auth.
-  #TODO Closure. have to map 'hash', etc. to variables to use hasownproperty
   reform: (obj) ->
     return @_build(url) if (url = obj.href)?
 

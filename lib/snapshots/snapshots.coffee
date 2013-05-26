@@ -33,7 +33,7 @@ class Snapshots extends Array
           o[p] = new Snapshots.Compound
         else if not {}.hasOwnProperty.call(o, p)
           o[p] = Object.create(parent = o[p])
-          o[p]._parent = parent
+          o[p]['_parent'] = parent
         o = o[p]
       return o
 
@@ -91,7 +91,7 @@ class Snapshots extends Array
     if len
       parent = @[len-1]
       next = parent._inherit()
-      next._parent = parent
+      next['_parent'] = parent
       super next
     else
       super new @snapshotFactory

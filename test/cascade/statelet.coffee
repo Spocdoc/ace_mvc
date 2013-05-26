@@ -75,9 +75,8 @@ describe 'Statelet', ->
     foo = sinon.spy ->
     s = new Statelet @func, silent: true
     o = new Outlet s
-    p = new OutletMethod (o) ->
-      foo()
-    p.rebind o: o
+    obj = o: o
+    p = new OutletMethod ((o) -> foo()), obj, names: Object.keys(obj)
 
     expect(foo).calledOnce
 

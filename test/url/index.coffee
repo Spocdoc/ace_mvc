@@ -159,7 +159,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set hostname', ->
@@ -176,7 +176,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set host', ->
@@ -193,7 +193,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set pathname', ->
@@ -210,14 +210,14 @@ describe 'Url', ->
       expect(result.pathname).eq '/another/path'
       expect(result.path).eq '/another/path?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set query', ->
       url = 'https://user:pass@foo.com:80/path/to/file.html?var=val#a/hash'
       url2 = 'https://user:pass@foo.com:80/path/to/file.html?var2=val2#a/hash'
       result = new Url url
-      result.reform query: {var2: 'val2'}
+      result.reform query: {'var2': 'val2'}
       expect(result.href).eq url2
       expect(result.protocol).eq 'https:'
       expect(result.auth).eq 'user:pass'
@@ -227,7 +227,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var2=val2'
       expect(result.search).eq '?var2=val2'
-      expect(result.query).deep.eq {var2: 'val2'}
+      expect(result.query).deep.eq {'var2': 'val2'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set search', ->
@@ -244,7 +244,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var2=val2'
       expect(result.search).eq '?var2=val2'
-      expect(result.query).deep.eq {var2: 'val2'}
+      expect(result.query).deep.eq {'var2': 'val2'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set path', ->
@@ -261,7 +261,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/another/path'
       expect(result.path).eq '/another/path?var2=val2'
       expect(result.search).eq '?var2=val2'
-      expect(result.query).deep.eq {var2: 'val2'}
+      expect(result.query).deep.eq {'var2': 'val2'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set auth', ->
@@ -278,7 +278,7 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#a/hash'
 
     it 'should set hash', ->
@@ -294,5 +294,5 @@ describe 'Url', ->
       expect(result.pathname).eq '/path/to/file.html'
       expect(result.path).eq '/path/to/file.html?var=val'
       expect(result.search).eq '?var=val'
-      expect(result.query).deep.eq {var: 'val'}
+      expect(result.query).deep.eq {'var': 'val'}
       expect(result.hash).eq '#foo%20bar'

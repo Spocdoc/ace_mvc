@@ -1,0 +1,1 @@
+global['diff'] = require '../index'

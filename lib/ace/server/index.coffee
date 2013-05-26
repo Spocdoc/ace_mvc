@@ -25,11 +25,11 @@ class Main
     for name in directories(basePath) when fs.existsSync(p="#{basePath}/#{name}/server") and !(name in ['ace','bundler'])
       fn(this, @settings[name]) if typeof (fn = require(p)) is 'function'
 
-    bundler = new Bundler
+    bundler = new Bundler @settings.bundler
     bundler.set 'mvc', @settings['mvc']
     app.use bundler
 
-    @settings.bundler = bundler
+    @settings._bundler = bundler
 
     aceApp = new App @settings
     app.use aceApp

@@ -8,7 +8,7 @@ setDescendants = (outlets, doc) ->
   return
 
 set = (outlets, doc) ->
-  outlets._.set(clone doc) if outlets._
+  outlets['_'].set(clone doc) if outlets['_']
   set v, doc?[k] for k,v of outlets when k isnt '_'
   return
 
@@ -18,7 +18,7 @@ patchArray = (outlets, ops, arr) ->
 
   changed = arr.length
 
-  outlets._.set(clone arr) if outlets._
+  outlets['_'].set(clone arr) if outlets['_']
 
   for op in ops
     if (index = op['i']) < 0
@@ -66,7 +66,7 @@ patch = (ok, op, dk) ->
 
 module.exports = patchOutlets = (outlets, ops, doc) ->
   return unless ops and ops.length
-  outlets._.set(clone doc) if outlets._
+  outlets['_'].set(clone doc) if outlets['_']
 
   for op in ops
     unless op['k']?
@@ -74,7 +74,7 @@ module.exports = patchOutlets = (outlets, ops, doc) ->
         when -1, 1
           setDescendants outlets, doc
         else
-          # this will call outlets._.set again, but that's OK. this is
+          # this will call outlets['_'].set again, but that's OK. this is
           # evaluated in a Cascade.Block
           patchOutlets(outlets, op['d'], doc)
     else
@@ -84,7 +84,7 @@ module.exports = patchOutlets = (outlets, ops, doc) ->
       s = op['k'].split '.'
       `for (var j=0, je = s.length-1; j < je && o; ++j) {
         if (d != null) d = d[s[j]];
-        if (o = o[s[j]]) if (o._) o._.set(clone(d));
+        if (o = o[s[j]]) if (o['_']) o['_'].set(clone(d));
       }`
       continue unless o
       k = s[je]

@@ -34,7 +34,7 @@ class App
     @_routeConfig = require(@settings['routes'])
     @_routes = Routing.buildRoutes @_routeConfig
 
-    @bundler = @settings.bundler
+    @bundler = @settings._bundler
     @bundler.set 'debug', @settings['debug']
     @bundler.set 'routes', @settings['routes']
     @bundler.set 'globals',

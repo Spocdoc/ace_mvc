@@ -6,7 +6,7 @@
 `
 gd = new (require('./diff_match_patch').diff_match_patch)
 
-module['exports'] =
+module.exports =
   'diff': (from, to, options) ->
     return false if to == from
     d = gd.diff_main(from,to)

@@ -19,6 +19,10 @@ ace = new Ace
   mvc:
     files: path.resolve('./app')
     templates: ['htm','html','jade']
+  bundler:
+    closure:
+      jar: path.resolve './resources/compiler.jar'
+      externs: path.resolve './resources/externs.js'
 
 ace.configure 'development', ->
   ace.set 'debug', true

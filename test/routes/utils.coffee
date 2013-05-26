@@ -62,27 +62,27 @@ describe '#parseRoute', ->
 
   it 'should reform a simple url', ->
     [regex,fn] = utils.parseRoute '/:foo/:bar', keys=[]
-    params = foo: 'foovalue', bar: 'barvalue'
+    params = 'foo': 'foovalue', 'bar': 'barvalue'
     str = fn(params)
     expect(str).eq '/foovalue/barvalue'
 
   it 'should reform a url with fixed text and optional parameters', ->
     [regex,fn] = utils.parseRoute '/:foo/view.:format?', keys=[]
-    params = foo: 'foovalue'
+    params = 'foo': 'foovalue'
     str = fn(params)
     expect(str).eq '/foovalue/view'
 
-    params = foo: 'foovalue', format: 'json'
+    params = 'foo': 'foovalue', 'format': 'json'
     str = fn(params)
     expect(str).eq '/foovalue/view.json'
 
   it 'should reform a url with fixed text, captures and optional parameters', ->
     [regex,fn] = utils.parseRoute '/foo/:bar(fixed)?/:baz', keys=[]
-    params = bar: 'fixed', baz: 'mo'
+    params = 'bar': 'fixed', 'baz': 'mo'
     str = fn params
     expect(str).eq '/foo/fixed/mo'
 
-    params = baz: 'mo'
+    params = 'baz': 'mo'
     str = fn params
     expect(str).eq '/foo/mo'
 

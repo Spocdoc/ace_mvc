@@ -1,7 +1,7 @@
 HistoryOutlets = lib 'history_outlets'
 OutletMethod = lib '../cascade/outlet_method'
 Snapshots = lib 'snapshots'
-snapshotTests = require './snapshots'
+snapshotTests = require './_snapshot_tests'
 Cascade = lib '../cascade/cascade'
 
 Outlet = lib '../cascade/outlet'
@@ -15,17 +15,17 @@ describe 'HistoryOutlets', ->
       @a = new HistoryOutlets
 
     it 'should have an index', ->
-      expect(@a[0].index).eq 0
+      expect(@a[0]['index']).eq 0
 
     it 'should have an index 1 after another push', ->
       @a.push()
-      expect(@a[1].index).eq 1
+      expect(@a[1]['index']).eq 1
 
     it 'should have \'to\' set to the the first index', ->
       expect(@a.to).eq @a[0]
 
     it 'should have \'from\' index set to -1', ->
-      expect(@a.from.index).eq -1
+      expect(@a.from['index']).eq -1
 
   describe '#get', ->
     beforeEach ->
@@ -38,7 +38,7 @@ describe 'HistoryOutlets', ->
     it 'should return a HistoryOutlet at the appropriate path', ->
       ret = @a.to.get(['a','b','c'])
       ret.set(42)
-      expect(@a.to.a.b.c.get()).eq 42
+      expect(@a.to['a']['b']['c'].get()).eq 42
 
     it 'should return the same outlet when fetched multiple times', ->
       outlet = @a.to.get(['a','b','c'])
@@ -55,17 +55,17 @@ describe 'HistoryOutlets', ->
       @a.navigate()
       @a.to.get(['controller','prop']).set(43)
       expect(@a.from.get(['controller','prop']).get()).eq 42
-      expect(@a.to.controller.prop.get()).eq 43
+      expect(@a.to['controller']['prop'].get()).eq 43
 
     it 'should restore the from value when navigating back', ->
       @a.to.get(['controller','prop']).set(42)
       @a.navigate()
       @a.to.get(['controller','prop']).set(43)
       expect(@a.from.get(['controller','prop']).get()).eq 42
-      expect(@a.to.controller.prop.get()).eq 43
+      expect(@a.to['controller']['prop'].get()).eq 43
       @a.navigate(0)
       expect(@a.from.get(['controller','prop']).get()).eq 43
-      expect(@a.to.controller.prop.get()).eq 42
+      expect(@a.to['controller']['prop'].get()).eq 42
 
   describe '#navigate', ->
     beforeEach ->
@@ -73,18 +73,18 @@ describe 'HistoryOutlets', ->
 
     it 'should set \'to\' to the next index and \'from\' to the previous \'to\'', ->
       expect(@a.to).eq @a[0]
-      expect(@a.from.index).eq -1
+      expect(@a.from['index']).eq -1
       @a.navigate()
-      expect(@a.to.index).eq 1
-      expect(@a.from.index).eq 0
+      expect(@a.to['index']).eq 1
+      expect(@a.from['index']).eq 0
 
     it 'should restore values when navigating back', ->
       @a.to.get(['controller','delegate']).set(42)
       @a.navigate()
       @a.to.get(['controller','delegate']).set(43)
-      expect(@a.to.controller.delegate.get()).eq 43
+      expect(@a.to['controller']['delegate'].get()).eq 43
       @a.navigate(0)
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
 
     it 'should call outflows when navigating back and forth', ->
       x = new Outlet 42
@@ -92,16 +92,16 @@ describe 'HistoryOutlets', ->
       expect(foo).calledOnce
       @a.to.get(['controller','delegate']).set(out)
       @a.navigate()
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       x.set(43)
       expect(foo).calledTwice
-      expect(@a.to.controller.delegate.get()).eq 43
+      expect(@a.to['controller']['delegate'].get()).eq 43
       @a.navigate(0)
       expect(out.get()).eq 42
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate(1)
       expect(out.get()).eq 43
-      expect(@a.to.controller.delegate.get()).eq 43
+      expect(@a.to['controller']['delegate'].get()).eq 43
 
     it 'should clear future history and overwrite when called with no args', ->
       x = new Outlet 42
@@ -109,24 +109,24 @@ describe 'HistoryOutlets', ->
       expect(foo).calledOnce
       @a.to.get(['controller','delegate']).set(out)
       @a.navigate()
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       x.set(43)
       expect(foo).calledTwice
-      expect(@a.to.controller.delegate.get()).eq 43
+      expect(@a.to['controller']['delegate'].get()).eq 43
       @a.navigate(0)
       expect(out.get()).eq 42
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate()
-      expect(@a.to.index).eq 1
+      expect(@a.to['index']).eq 1
       expect(@a.length).eq 2
       expect(out.get()).eq 42
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate(0)
       expect(out.get()).eq 42
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate(1)
       expect(out.get()).eq 42
-      expect(@a.to.controller.delegate.get()).eq 42
+      expect(@a.to['controller']['delegate'].get()).eq 42
 
 
   describe '#noInherit', ->
@@ -137,7 +137,7 @@ describe 'HistoryOutlets', ->
       @a.to.get(['controller','delegate']).set(42)
       @a.navigate()
       @a.to.noInherit(['controller','delegate'])
-      expect(@a.to.controller.delegate).not.exist
+      expect(@a.to['controller']['delegate']).not.exist
       expect(@a.to.get(['controller','delegate']).get()).not.exist
       expect(@a.from.get(['controller','delegate']).get()).eq 42
 
@@ -145,11 +145,11 @@ describe 'HistoryOutlets', ->
     beforeEach ->
       @a = new HistoryOutlets
     it 'should set the right index for to and from when navigating', ->
-      expect(@a.from.index).eq -1
-      expect(@a.to.index).eq 0
+      expect(@a.from['index']).eq -1
+      expect(@a.to['index']).eq 0
       @a.navigate()
-      expect(@a.from.index).eq 0
-      expect(@a.to.index).eq 1
+      expect(@a.from['index']).eq 0
+      expect(@a.to['index']).eq 1
 
   describe 'web use case', ->
     beforeEach ->
@@ -192,7 +192,7 @@ describe 'HistoryOutlets', ->
 
         [outletMethods, view.outletMethods] = [view.outletMethods, []]
         for func in outletMethods
-          view.outletMethods.push new OutletMethod func, view.outlets, silent: true
+          view.outletMethods.push new OutletMethod func, view.outlets, silent: true, names: ['firstName']
 
         instOutlet.set view
         view
@@ -209,28 +209,28 @@ describe 'HistoryOutlets', ->
         viewTo.unset()
         viewTo.set buildView()
         @a.to.get(['controller','#view']).set(viewTo)
-        viewTo.get().outlets.firstName.set(firstNameTo)
+        viewTo.get().outlets['firstName'].set(firstNameTo)
 
       unbindControllerView = =>
-        viewTo.get().outlets.firstName.unset(firstNameTo)
+        viewTo.get().outlets['firstName'].unset(firstNameTo)
         @a.to.noInherit(['controller','#view'])
         @a.to.noInherit(['controller','view'])
 
       bindControllerViewOutlets()
       viewFrom.set(@a.from.get(['controller','#view']))
       expect(setsDom).not.called
-      expect(viewTo.get().outlets.firstName.get()).eq foo
+      expect(viewTo.get().outlets['firstName'].get()).eq foo
 
       # now navigate and change settings
       @a.navigate()
       firstNameTo.set(bar)
-      expect(viewTo.get().outlets.firstName.get()).eq bar
+      expect(viewTo.get().outlets['firstName'].get()).eq bar
       expect(setsDom).calledOnce
 
       # now navigate and ensure dom is updated
       @a.navigate(0)
       expect(firstNameTo.get()).eq foo
-      expect(viewTo.get().outlets.firstName.get()).eq foo
+      expect(viewTo.get().outlets['firstName'].get()).eq foo
       expect(setsDom).calledTwice
 
       # now navigate re-creating the view so there are separate from and to views
@@ -244,27 +244,27 @@ describe 'HistoryOutlets', ->
       expect(setsDom).calledThrice # new call because built a new view with a new dom
       expect(viewFrom.get()).exist
       expect(viewTo.get()).not.eq viewFrom.get()
-      expect(viewFrom.get().outlets.firstName.get()).eq foo
-      expect(viewTo.get().outlets.firstName.get()).eq bar
+      expect(viewFrom.get().outlets['firstName'].get()).eq foo
+      expect(viewTo.get().outlets['firstName'].get()).eq bar
 
       # should be able to determine direction of navigation
-      expect(@a.from.index).eq 0
-      expect(@a.to.index).eq 1
+      expect(@a.from['index']).eq 0
+      expect(@a.to['index']).eq 1
 
       # should silently not update when underlying data is changed
-      expect(viewFrom.get().outlets.firstName.get()).eq foo
-      viewFrom.get().outlets.firstName.set("invalid set")
+      expect(viewFrom.get().outlets['firstName'].get()).eq foo
+      viewFrom.get().outlets['firstName'].set("invalid set")
       oldFrom = viewFrom.get()
       Cascade.Block =>
         @a.navigate(0)
-        expect(@a.to.index).eq 0
-        expect(@a.from.index).eq 1
+        expect(@a.to['index']).eq 0
+        expect(@a.from['index']).eq 1
         # have to unbind & rebind since navigation event changed view params
         unbindControllerView()
         bindControllerViewOutlets()
       expect(viewTo.get()).eq oldFrom
-      expect(viewTo.get().outlets.firstName.get()).eq foo
-      expect(viewFrom.get().outlets.firstName.get()).eq bar
+      expect(viewTo.get().outlets['firstName'].get()).eq foo
+      expect(viewFrom.get().outlets['firstName'].get()).eq bar
 
   ###
   describe 'events', ->

@@ -12,7 +12,7 @@ clone = (obj) ->
   return r.clone(obj) if r = registry.find obj
   new obj.constructor(obj)
 
-clone['register'] = register = (constructor, fn) ->
+clone.register = register = (constructor, fn) ->
   registry.add constructor,
     clone: fn
   return

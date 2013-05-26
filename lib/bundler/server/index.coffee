@@ -45,7 +45,7 @@ class Server
 
       if release
         for hash,i in release
-          debugUris.push "/#{i}r-#{hash}.js"
+          releaseUris.push "/#{i}r-#{hash}.js"
 
       cb debugUris, releaseUris
       return

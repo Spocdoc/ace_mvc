@@ -2,17 +2,17 @@ OJSON = require '../ojson'
 {extend, include} = require '../mixin'
 
 module.exports = (Snapshots) ->
-  OJSON.register Snapshots,
+  OJSON.register 'S': Snapshots,
     'S.C': Snapshots.Compound
     'S.S': Snapshots.Snapshot
 
-  Snapshots.Snapshot.prototype._ojson = true
-  Snapshots.Compound.prototype._ojson = true
+  Snapshots.Snapshot.prototype['_ojson'] = true
+  Snapshots.Compound.prototype['_ojson'] = true
   
   restore = (obj) ->
-    if obj._parent?
-      inst = Object.create obj._parent
-      inst._parent = obj._parent
+    if obj['_parent']?
+      inst = Object.create obj['_parent']
+      inst['_parent'] = obj['_parent']
     else
       inst = new @
     inst[k] = v for k,v of obj when k not in ['_parent', '_ojson']

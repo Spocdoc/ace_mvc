@@ -27,7 +27,7 @@ class OutletMethod extends Outlet
     super @_omFunc, options
     delete @run
 
-    @_names = getArgNames(func)
+    @_names = options.names || getArgNames(func)
     @set options.value, options if options.value
     @rebind outlets, options if outlets
 

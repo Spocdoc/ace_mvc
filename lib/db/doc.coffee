@@ -277,18 +277,3 @@ class Doc
     return
 
 module.exports = Doc
-Doc.prototype['ref'] = Doc.prototype.ref
-Doc.prototype['unref'] = Doc.prototype.unref
-Doc.prototype['on'] = Doc.prototype.on
-Doc.prototype['off'] = Doc.prototype.off
-Doc.prototype['create'] = Doc.prototype.create
-Doc.prototype['read'] = Doc.prototype.read
-Doc.prototype['update'] = Doc.prototype.update
-Doc.prototype['delete'] = Doc.prototype.delete
-Doc.prototype['resolveConflict'] = Doc.prototype.resolveConflict
-Doc.prototype['resolveReject'] = Doc.prototype.resolveReject
-Doc.prototype['_delete'] = Doc.prototype._delete
-Doc.prototype['serverCreate'] = Doc.prototype.serverCreate
-Doc.prototype['serverUpdate'] = Doc.prototype.serverUpdate
-Doc.prototype['serverDelete'] = Doc.prototype.serverDelete
-

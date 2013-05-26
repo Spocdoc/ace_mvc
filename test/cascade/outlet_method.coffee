@@ -4,6 +4,7 @@ Cascade = lib 'cascade'
 
 numOutflowKeys = 2
 
+
 addCallCounts = ->
   callCounts = {}
   @callCounts = callCounts
@@ -27,8 +28,8 @@ describe 'OutletMethod mild', ->
       callCounts[@cid] ?= 0
       ++callCounts[@cid]
       2*x
-    @m = new OutletMethod @foo,
-      x: @x
+    obj = x: @x
+    @m = new OutletMethod @foo, obj, names: Object.keys(obj)
 
   it 'should find inflows based on argument names', ->
     expect(@m.inflows[@x.cid]).to.exist
@@ -98,9 +99,10 @@ describe 'OutletMethod medium', ->
       ++callCounts[@cid]
       2*x + 3*y
 
-    @m = new OutletMethod @foo,
+    obj =
       x: @x
       y: @y
+    @m = new OutletMethod @foo, obj, names: Object.keys(obj)
 
   it 'should find inflows based on argument names', ->
     expect(@m.inflows[@x.cid]).to.exist
@@ -175,16 +177,19 @@ describe 'OutletMethod #restoreValue', ->
     x = new Outlet 2
     y = new Outlet 3
 
-    mServer = new OutletMethod (x,y) -> x*y
-    mServer.rebind x: x, y: y
+    obj = x: x, y: y
+    mServer = new OutletMethod ((x,y) -> x*y), undefined, names: Object.keys(obj)
+    mServer.rebind obj
     expect(mServer.get()).eq 6
 
     # now on the client, restore the value...
 
     foo = sinon.spy (x,y) -> x*y
-    m = new OutletMethod ((x,y) -> foo(x,y)), {x: x, y:y},
+    obj = x: x, y: y
+    m = new OutletMethod ((x,y) -> foo(x,y)), obj,
       silent: true
       value: 6
+      names: Object.keys(obj)
 
     expect(foo).not.called
     expect(m.get()).eq 6
@@ -213,7 +218,8 @@ describe 'OutletMethod with object inputs', ->
     method = (a) ->
       foo()
       a[0]
-    m = new OutletMethod method, {a: a}
+    obj = a:a
+    m = new OutletMethod method, obj, names: Object.keys(obj)
     b = new Outlet ->
       bar()
       m.get()

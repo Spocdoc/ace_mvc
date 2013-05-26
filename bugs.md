@@ -112,3 +112,9 @@
 
   - neither of these is available
 
+## source maps
+
+  - shouldn't use the same file name for the CoffeeScript input and output (this makes the sourcemap useless)
+
+    instead have to have a temporary .js name for each file
+

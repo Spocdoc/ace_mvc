@@ -4,6 +4,7 @@ Model = require './model'
 {defaults} = require '../mixin'
 
 class Controller extends ControllerBase
+  debugger
   @_super = @__super__.constructor
 
   class @Config extends @_super.Config
@@ -65,5 +66,6 @@ class Controller extends ControllerBase
 
   newView: (type, name, settings) -> new View(type, this, name, settings)
   newModel: (type, idOrSpec) -> new Model(type, idOrSpec)
+  newController: (type, name, settings) -> new Controller(type, this, name, settings)
 
 module.exports = Controller

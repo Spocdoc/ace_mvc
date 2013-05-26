@@ -57,7 +57,7 @@ module.exports = (Cascade) ->
   oldRun = Cascade.run
 
   Cascade.run = (target, source) ->
-    return oldRun(target, source) unless Cascade.roots
+    return oldRun.call(Cascade, target, source) unless Cascade.roots
     Cascade.roots.push target
     Cascade.roots.push source
     return

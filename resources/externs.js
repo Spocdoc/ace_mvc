@@ -1,3 +1,15 @@
+var mvc = {
+  "model": {},
+  "view": {},
+  "controller": {},
+  "template": {},
+  "inWindow": {},
+  "statelets": {},
+  "mixins": {},
+  "outlets": {},
+  "outletMethods": {}
+};
+
 window.io = {
   "connect": function () {},
   "on": function () {},

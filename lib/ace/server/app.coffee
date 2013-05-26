@@ -72,11 +72,7 @@ class App
       <script type=\"text/javascript\">
       (function () {
         var historyOutlets = #{OJSON.stringify ace.historyOutlets};
-        var ace = new window.Ace(OJSON.fromOJSON(historyOutlets));
-        ace.routing.enable(require('routes'));
-        var navigator = ace.routing.enableNavigator();
-        ace.routing.router.route(navigator.url);
-        ace.appendTo($('html'));
+        window.Ace.newClient(historyOutlets, require('routes'), $('html'));
       }());
       </script>
       """)

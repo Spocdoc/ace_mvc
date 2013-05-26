@@ -5,7 +5,6 @@ OutletMethod = require '../cascade/outlet_method'
 clone = require '../clone'
 
 class ControllerBase
-
   class @Config
     @defaultConfig =
       mixins: []
@@ -111,6 +110,6 @@ class ControllerBase
   newOutlet: (name) -> new Outlet
   newOutletMethod: (func) ->
     new OutletMethod func, @outlets, silent: !!func.length, context: this
-  newController: (type, name, settings) -> new Controller(type, this, name, settings)
 
 module.exports = ControllerBase
+

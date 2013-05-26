@@ -36,6 +36,9 @@ class Template
     base.lazy()
     @_build(base)
 
+    # api
+    @['$root'] = @$root
+
   _build: (base) ->
     @$root = base.$root.clone()
     @$root.attr('id',@prefix)
@@ -48,3 +51,4 @@ class Template
     return
 
 module.exports = Template
+

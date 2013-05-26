@@ -14,7 +14,7 @@ class Routing
       variable
 
   @buildRoutes: (config, routes = []) ->
-    config.routes (uri, qs, outletHash) =>
+    config['routes'] (uri, qs, outletHash) =>
       [outletHash,qs] = [qs, undefined] if not outletHash and typeof qs isnt 'string'
       routes.push new Route(uri, qs, outletHash)
     routes
@@ -28,7 +28,7 @@ class Routing
       for spec in route.specs
         @uriOutlets[spec.key] ?= new Outlet
 
-    config.vars @uriOutlets, @variableFactory, @ace
+    config['vars'] @uriOutlets, @variableFactory, @ace
 
   navigate: ->
     @_doNavigate()

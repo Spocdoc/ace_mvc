@@ -11,7 +11,7 @@ uglify = (code, sourceMap) ->
   toplevel = toplevel.transform ug.Compressor({})
   toplevel.figure_out_scope()
   toplevel.compute_char_frequency()
-  toplevel.mangle_names({})
+  toplevel.mangle_names noFunArgs: true
   stream = undefined
 
   unless sourceMap

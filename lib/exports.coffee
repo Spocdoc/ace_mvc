@@ -11,10 +11,14 @@ api ControllerBase.prototype,
 
 api View.prototype,
   newTemplate: 'newTemplate'
+  appendTo: 'appendTo'
+  remove: 'remove'
 
 api Controller.prototype,
   newView: 'newView'
   newModel: 'newModel'
+  appendTo: 'appendTo'
+  remove: 'remove'
 
 api Ace,
   newClient: 'newClient'

@@ -66,5 +66,5 @@ module.exports = (fileMap, options, cb) ->
       sourceMapB64 = new Buffer(JSON.stringify sourceMap).toString('base64')
       debug = code + "/*\n//@ sourceMappingURL=data:application/json;base64,#{sourceMapB64}\n*/"
       release = uglify(code).code
-      next null, debug, release
+      next null, {debug, release}
   ], cb

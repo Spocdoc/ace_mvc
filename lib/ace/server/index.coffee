@@ -1,12 +1,11 @@
 fs = require 'fs'
 path = require 'path'
 express = require('express')
+glob = require 'glob'
+async = require 'async'
 {extend} = require '../../mixin'
 App = require './app'
 Bundler = require '../../bundler/server'
-
-directories = (path) ->
-  dir for dir in fs.readdirSync path when fs.statSync("#{path}/#{dir}").isDirectory()
 
 # express sets route, parent
 class Main
@@ -17,22 +16,41 @@ class Main
     extend @settings, settings
     @on 'mount', (app) => @_configure(app)
 
+  _loadExterns: (lib, cb) ->
+    async.waterfall [
+      (next) -> glob "#{lib}/_*/server/*", next
+      (filePaths, next) ->
+        filePaths.map (filePath) -> require filePath
+        next()
+    ], cb
+
+  _loadServerFiles: (lib, cb) ->
+    async.waterfall [
+      (next) -> glob "#{lib}/!(_*|ace|bundler)/server", nonegate: true, next
+      (filePaths, next) =>
+        filePaths.map (filePath) =>
+          name = path.basename path.resolve filePath, '..'
+          fn(this, @settings[name]) if typeof (fn = require filePath) is 'function'
+        next()
+    ], cb
+
   _configure: (app) ->
     process.on 'SIGINT', -> process.exit(1)
 
-    # load everything in server directories
-    basePath = path.resolve(__dirname, '../../')
-    for name in directories(basePath) when fs.existsSync(p="#{basePath}/#{name}/server") and !(name in ['ace','bundler'])
-      fn(this, @settings[name]) if typeof (fn = require(p)) is 'function'
+    lib = path.resolve __dirname, '../../'
+    async.series [
+      (done) => @_loadExterns lib, done
+      (done) => @_loadServerFiles lib, done
+      (done) =>
+        bundler = new Bundler @settings.bundler
+        bundler.set 'mvc', @settings['mvc']
+        app.use bundler
 
-    bundler = new Bundler @settings.bundler
-    bundler.set 'mvc', @settings['mvc']
-    app.use bundler
+        @settings._bundler = bundler
 
-    @settings._bundler = bundler
-
-    aceApp = new App @settings
-    app.use aceApp
+        aceApp = new App @settings
+        app.use aceApp
+    ]
 
 module.exports = Main
 

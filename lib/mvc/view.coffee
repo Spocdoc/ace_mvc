@@ -5,6 +5,7 @@ OutletMethod = require '../cascade/outlet_method'
 Template = require './template'
 {defaults} = require '../mixin'
 require '../polyfill'
+debugDom = global.debug 'ace:dom'
 
 class View extends ControllerBase
   @_super = @__super__.constructor
@@ -18,7 +19,7 @@ class View extends ControllerBase
 
   @defaultOutlets = @_super.defaultOutlets.concat ['template','inWindow']
 
-  appendTo: ($container) ->
+  appendTo: Outlet.noAuto ($container) ->
     @remove()
     @$container = $container
     $container.append(@$root)
@@ -35,7 +36,7 @@ class View extends ControllerBase
     @inWindow.set(true)
     return
 
-  remove: ->
+  remove: Outlet.noAuto ->
     return unless @$container
     @inWindow.detach()
     @inWindow.set(false)
@@ -50,26 +51,26 @@ class View extends ControllerBase
       switch str
         when 'toggleClass'
           outflows.add ->
-            console.log "calling #{str} in dom on #{name}"
+            debugDom "calling #{str} in dom on #{name}"
             e[str].call(e, name, outlet.get())
 
         when 'text','html'
           outflows.add ->
             if view.domCache[name] isnt (v = outlet.get())
               view.domCache[name] = v
-              console.log "calling #{str} in dom on #{name}"
+              debugDom "calling #{str} in dom on #{name}"
               e[str].call(e, v)
 
         else
           outflows.add ->
-            console.log "calling #{str} in dom on #{name}"
+            debugDom "calling #{str} in dom on #{name}"
             e[str].call(e, outlet.get())
 
       return
 
     setDom = (view, name, obj) ->
       for k, v of obj
-        view.outletMethods.push om = view.newOutletMethod v
+        view.outletMethods.push om = view.newOutletMethod(v, k)
         addStringOutflow(view, name, k, om)
       return
 
@@ -84,8 +85,8 @@ class View extends ControllerBase
           when 'string'
             addStringOutflow this, s, m, outlet
           when 'function'
-            @outletMethods.push om = @newOutletMethod m
-            om.outflows.add -> outlet.set(om.get())
+            @outletMethods.push om = @newOutletMethod(m,k)
+            outlet.set om
       else
         @[s] = m
 

@@ -89,7 +89,7 @@
 
     there may be a more efficient way? of course in prod the whole thing should be on a CDN...
 
-# closurify
+# Closurify
 ## exports
 
   - closure doesn't work as well if all the module variables are first set to `{}` then overwritten. It does more aggressive inlining if they're not initially defined. This means that statements like this
@@ -102,11 +102,19 @@
 
 ## require
 
-  - doesn't detect use as a function
+  - the drop-in replacement can lead to empty statements like
 
-    e.g.,
+        ...
+        __1
+        ...
 
-        var a = require('./foo')();
+    that in closure may be distilled to
+
+        ...
+        void 0
+        ...
+
+    if the whole variable is removed, which is invalid code. This is really a closure bug, but it would be preferable to issue a warning and remove the expression from both the debug and pre-closure code
 
 ## `__dirname` and `__filename`
 
@@ -117,4 +125,14 @@
   - shouldn't use the same file name for the CoffeeScript input and output (this makes the sourcemap useless)
 
     instead have to have a temporary .js name for each file
+
+    UPDATE: this seems to work now?
+
+
+
+# Server replies
+
+  - the ace server reads all its configuration files asynchronously and doesn't prevent the http server from trying to serve requests before it's added itself (so clients get 404 until the server is up)
+
+    preferably it should not open the server until everything is ready to serve requests (especially since it could be part of a cluster)
 

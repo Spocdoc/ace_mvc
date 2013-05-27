@@ -4,7 +4,6 @@ Model = require './model'
 {defaults} = require '../mixin'
 
 class Controller extends ControllerBase
-  debugger
   @_super = @__super__.constructor
 
   class @Config extends @_super.Config
@@ -40,13 +39,14 @@ class Controller extends ControllerBase
 
   _buildMethod: (k, m) ->
     if k[0] is '$'
-      @outletMethods.push om = @newOutletMethod m
-      vo = @view[k[1..]]
-      om.outflows.add => vo.set(om.get())
+      @outletMethods.push om = @newOutletMethod(m, k)
+      @view[k[1..]].set om
     else
       @[k] = m
 
   _build: (base, settings) ->
+    if !base
+      debugger
     base = base.get(this)
     config = base.config
 

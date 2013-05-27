@@ -57,23 +57,21 @@ class Bundler
       options.release = true
 
     async.parallel
-      externs: (next) -> readExterns next
-      requires: (next) -> makeReqs mvc, reqs, options, (err, debug, release) ->
-        next(err, {debug, release})
-      loader: (next) -> makeLoader mvc, globals, options, (err, debug, release) ->
-        next(err, {debug, release})
+      externs: (done) -> readExterns done
+      requires: (done) -> makeReqs mvc, reqs, options, done
+      loader: (done) -> makeLoader mvc, globals, options, done
       cb
 
   _bundleRelease: (obj) ->
     prod = []
-    prod.push obj.externs, obj.requires.release, obj.loader.release
+    prod.push obj.externs.release, obj.requires.release, obj.loader.release
     prod = prod.join('\n')
     @scripts.release = release = [prod]
     @hashes.release = release.map hash
     return
 
   _bundleDebug: (obj) ->
-    @scripts.debug = debug = [obj.externs, obj.requires.debug, obj.loader.debug]
+    @scripts.debug = debug = [obj.externs.debug, obj.requires.debug, obj.loader.debug]
     @hashes.debug = debug.map hash
     return
 

@@ -6,9 +6,9 @@ fs = require 'fs'
 
 readFile = (filePath, cb) -> fs.readFile filePath, 'utf-8', cb
 
-module.exports = readExterns = (cb) ->
+readExterns = (aGlob, cb) ->
   async.waterfall [
-    (next) -> glob './_*/client/**/*.js', cwd: lib, nonegate: true, next
+    (next) -> glob aGlob, cwd: lib, nonegate: true, next
     (files, next) ->
       files.sort()
       files = files.map (filePath) -> path.resolve lib, filePath
@@ -16,4 +16,10 @@ module.exports = readExterns = (cb) ->
     (codes, next) ->
       next null, codes.join('\n')
   ], cb
+
+module.exports = (cb) ->
+  async.parallel
+    debug: (done) -> readExterns './_*/client/**/!(debug*).js', done
+    release: (done) -> readExterns './_*/client/**/!(release*).js', done
+    cb
 

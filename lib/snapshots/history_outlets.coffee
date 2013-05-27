@@ -3,6 +3,7 @@ Outlet = require '../cascade/outlet'
 Cascade = require '../cascade/cascade'
 Emitter = require '../events/emitter'
 {include, extend} = require '../mixin'
+debugCascade = global.debug 'ace:cascade'
 
 class HistoryOutlets extends Snapshots
   include HistoryOutlets, Emitter
@@ -64,7 +65,9 @@ class HistoryOutlets extends Snapshots
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       return current if (current = (base = @ensurePath(path))[key])?
-      base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore[@['index']].get(path)?[key])
+      outlet = base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore[@['index']].get(path)?[key])
+      debugCascade "created new sliding outlet #{outlet.cid} at #{path.concat(key).join('/')}"
+      outlet
 
     slide: do ->
       empty = {}

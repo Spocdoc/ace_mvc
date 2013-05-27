@@ -1,6 +1,7 @@
 Cascade = require './cascade'
 makeId = require '../id'
 require '../polyfill'
+debug = global.debug 'ace:cascade'
 
 # options:
 #     silent    don't run the function immediately
@@ -9,15 +10,13 @@ class Outlet extends Cascade
   @stack = []
   @stackLast = undefined
 
-  # ordinarily, outlets automatically add outflows to any outlet that's
-  # retrieved in the current outlet's function. when this is unwanted,
-  # execute the function in a new Outlet.context
-  @context: (fn, ctx=null) ->
-    @enterContext ctx
-    try
-      fn()
-    finally
-      @exitContext()
+  @noAuto: (fn) ->
+    ->
+      Outlet.enterContext()
+      try
+        fn.apply(this, arguments)
+      finally
+        Outlet.exitContext()
 
   @enterContext: (ctx=null) ->
     @stack.push @stackLast
@@ -40,8 +39,6 @@ class Outlet extends Cascade
       @inflows[k].outflows.remove this
       delete list[k]
     return
-
-  context: (fn) -> Outlet.context(fn, this)
 
   _setValue: (value, version) ->
     if @_value is value and (!version? or @_version is version)
@@ -79,6 +76,7 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
+      debug "#{@changes[0]?.cid} -> #{@cid}"
       callDone = true
       returned = false
 

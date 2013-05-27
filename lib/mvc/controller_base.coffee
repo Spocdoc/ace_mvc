@@ -3,6 +3,7 @@ Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
 {extend} = require '../mixin'
 clone = require '../clone'
+debugCascade = global.debug 'ace:cascade'
 
 class ControllerBase
   class @Config
@@ -12,11 +13,10 @@ class ControllerBase
       outletMethods: []
 
     constructor: (@name, config) ->
-      @config = clone @constructor.defaultConfig
-
       if typeof config is 'function'
         @func = config
       else
+        @config = clone @constructor.defaultConfig
         extend @config, config
 
     get: (controllerBase, args=[]) ->
@@ -108,8 +108,10 @@ class ControllerBase
     return
 
   newOutlet: (name) -> new Outlet
-  newOutletMethod: (func) ->
-    new OutletMethod func, @outlets, silent: !!func.length, context: this
+  newOutletMethod: (func, debug) ->
+    om = new OutletMethod func, @outlets, silent: !!func.length, context: this
+    debugCascade "created outlet method #{om.cid} for #{debug}"
+    om
 
 module.exports = ControllerBase
 

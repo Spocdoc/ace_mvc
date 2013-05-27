@@ -48,6 +48,6 @@ module.exports = makeLoader = (mvc, globals, options, cb) ->
           # the require(path,1) is a hack so it doesn't get replaced in closurify
           script.push "#{clazz}.add(#{quote(name)}, require(#{quote(reqName)},1));"
 
-      closurify script.join('\n'), options, cb
-
-  ]
+      closurify script.join('\n'), options, (err, debug, release) ->
+        next(err, {debug,release})
+  ], cb

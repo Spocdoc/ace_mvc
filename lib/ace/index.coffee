@@ -8,28 +8,30 @@ Db = require '../db/db'
 Model = require '../mvc/model'
 Statelet = require '../cascade/statelet'
 {include,extend} = require '../mixin'
+debugCascade = global.debug 'ace:cascade'
 
 commonMethods =
   newOutlet: (name) ->
     outlet = @ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
-    console.log "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+    debugCascade "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
     outlet
 
   newSlidingOutlet: (name) ->
     outlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
-    console.log "created sliding outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+    debugCascade "created sliding outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
     outlet
 
   newFromOutlet: (name) ->
     outlet = @ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
-    console.log "created outlet #{outlet.cid} at",path.join('/')
+    debugCascade "created outlet #{outlet.cid} at",path.join('/')
     outlet
 
   newController: (type, name, settings) ->
+    debugCascade "creating new controller",type,name
     new Ace.Controller(@ace,type, this, name, settings)
 
-  # to: (path) -> ace.historyOutlets.to.value(path)
-  # from: (path) -> ace.historyOutlets.from.value(path)
+  to: (path) -> @ace.historyOutlets.sliding.get(path).get()
+  from: (path) -> @ace.historyOutlets.from.get(path).get()
   local: (path) -> @ace.historyOutlets.noInherit(path)
 
 class Ace

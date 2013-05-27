@@ -19,7 +19,7 @@ readExterns = (aGlob, cb) ->
 
 module.exports = (cb) ->
   async.parallel
-    debug: (done) -> readExterns './_*/client/**/!(debug*).js', done
-    release: (done) -> readExterns './_*/client/**/!(release*).js', done
+    debug: (done) -> readExterns './_*/client/**/!(release*).js', done
+    release: (done) -> readExterns './_*/client/**/!(debug*).js', done
     cb
 

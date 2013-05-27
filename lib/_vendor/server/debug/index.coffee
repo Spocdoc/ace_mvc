@@ -5,23 +5,24 @@ crc32 = require './crc32'
 isatty = tty.isatty(2)
 env = process.env
 
-COLORS = [1..8]
+COLORS = [1,2,3,4,5,6,12,13,14]
 colors = {
   red: 1
   green: 2
-  blue: 3
-  magenta: 4
-  cyan: 5
-  white: 6
-  default: 7
-  RED: 8
-  GREEN: 9
-  YELLOW: 10
-  BLUE: 11
-  MAGENTA: 12
-  CYAN: 13
-  WHITE: 14
-  BLACK: 15
+  yellow: 3
+  blue: 4
+  magenta: 5
+  cyan: 6
+  white: 7
+  default: 8
+  RED: 9
+  GREEN: 10
+  YELLOW: 11
+  BLUE: 12
+  MAGENTA: 13
+  CYAN: 14
+  WHITE: 15
+  BLACK: 16
 }
 
 includes = []

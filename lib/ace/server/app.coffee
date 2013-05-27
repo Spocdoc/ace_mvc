@@ -5,8 +5,11 @@ express = require('express')
 Url = require '../../url'
 OJSON = require '../../ojson'
 
-directories = (path) ->
-  dir for dir in fs.readdirSync path when fs.statSync("#{path}/#{dir}").isDirectory()
+quote = do ->
+  regexQuotes = /(['\\])/g
+  regexNewlines = /([\n])/g
+  (str) ->
+    '\''+str.replace(regexQuotes,'\\$1').replace(regexNewlines,'\\n')+'\''
 
 # express sets route, parent
 class App
@@ -40,6 +43,21 @@ class App
     @bundler.set 'globals',
       'Ace': path.resolve(__dirname, '../../ace')
     @bundler.start()
+
+    @$html = $("""
+<html>
+    <head>
+        <title></title>
+    </head>
+</html>
+    """)
+
+    if @settings.debug and debug = process.env.DEBUG
+      @$html.find('head').append $("""
+        <script type="text/javascript">
+          window.DEBUG = '#{quote(debug)}';
+        </script>""")
+
     return
 
   handle: (req, res, next) ->
@@ -49,15 +67,7 @@ class App
     ace = new Ace
     ace.routing.enable @_routeConfig, @_routes
 
-    html = """
-<html>
-    <head>
-        <title></title>
-    </head>
-</html>
-    """
-
-    $html = $(html)
+    $html = @$html.clone()
     ace.rootType.set('body')
 
     ace.routing.router.route req.url

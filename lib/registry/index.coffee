@@ -1,3 +1,5 @@
+require '../polyfill'
+
 class Registry
   constructor: ->
     @r = Object.create null

@@ -49,11 +49,11 @@ module.exports = makeLoader = (mvc, globals, options, cb) ->
           script.push "#{clazz}.add(#{quote(name)}, require(#{quote(reqName)},1));"
 
       closurify script.join('\n'), options, (err, obj) ->
-        if release = obj.release
+        if release = obj?.release
           console.error release[1]
           release = release[0]
 
         next err,
-          debug: obj.debug
+          debug: obj?.debug
           release: release
   ], cb

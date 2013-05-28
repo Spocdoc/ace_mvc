@@ -4,6 +4,7 @@ PathBuilder = require '../routes/path_builder'
 Navigator = require '../navigator'
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
+debugCascade = global.debug 'ace:cascade'
 
 class Routing
   constructor: (@ace, @_doNavigate, Variable) ->
@@ -26,7 +27,9 @@ class Routing
     for route in routes
       @router.push route
       for spec in route.specs
-        @uriOutlets[spec.key] ?= new Outlet
+        unless @uriOutlets[spec.key]
+          @uriOutlets[spec.key] = new Outlet
+          debugCascade "created uri outlet #{@uriOutlets[spec.key]}"
 
     config['vars'] @uriOutlets, @variableFactory, @ace
 

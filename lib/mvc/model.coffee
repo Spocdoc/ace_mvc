@@ -30,11 +30,11 @@ class Model
 
       @_attach()
       @_outlets = {}
-      @_ocalc = []
-      @_ops = new Outlet []
-      @_ops.outflows.add =>
-        return unless (ops = @_ops.get()).length
-        @_ops.set([])
+      @_pushers = {}
+      @_ops = []
+      @_updater = new Outlet =>
+        return unless (ops = @_ops).length
+        @_ops = []
         @doc.update ops
         return
     finally
@@ -49,19 +49,19 @@ class Model
     # 'undelete'
 
   serverUpdate: (ops) ->
-      @copy = diff.patch @copy, ops
-      Cascade.Block =>
-        patchOutlets ops, @_outlets, @copy
+    @copy = diff.patch @copy, ops
+    Cascade.Block =>
+      patchOutlets ops, @_outlets, @copy
 
   _configureOutlet: (path, outlet) ->
-    fn = =>
+    @_pushers.push pusher = new Oultet (=>
       ops = diff @doc, outlet.get(), path: path
       @doc = diff.patch @doc, ops
       @_ops.push ops...
+      pusher.modified()), silent: true
 
-    @_ocalc.push calc = new Outlet fn, silent: true
-    outlet.outflows.add calc
-    calc.outflows.add @_ops
+    outlet.outflows.add pusher
+    pusher.outflows.add @_updater
     outlet
 
   get: (path, key) ->

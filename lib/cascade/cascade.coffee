@@ -3,6 +3,7 @@ Emitter = require '../events/emitter'
 addBlocks = require './blocks'
 {include, extend} = require '../mixin'
 makeId = require '../id'
+debug = global.debug 'ace:cascade'
 
 class Cascade
   include Cascade, Emitter
@@ -33,17 +34,13 @@ class Cascade
       cascade._run(source)
     
   run: (source) ->
-    if @pending
-      return if !@running
-    else
-      @outflows.setPending @pending = true
-    Cascade.run this, source
+    sp = source?.pending
+    @outflows.setPending @pending = true
+    @_mustRun = true # must run at least once since explicitly asked it to
+    Cascade.run this, source unless sp
     return
 
   cascade: ->
-    if @pending
-      @_mustRun = true
-      return
     unless @running
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true

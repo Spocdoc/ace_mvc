@@ -261,7 +261,9 @@ describe 'HistoryOutlets', ->
         expect(@a.from['index']).eq 1
         # have to unbind & rebind since navigation event changed view params
         unbindControllerView()
-        bindControllerViewOutlets()
+        viewTo.unset()
+        viewTo.set buildView()
+        @a.to.get(['controller','#view']).set(viewTo)
       expect(viewTo.get()).eq oldFrom
       expect(viewTo.get().outlets['firstName'].get()).eq foo
       expect(viewFrom.get().outlets['firstName'].get()).eq bar
@@ -310,8 +312,8 @@ describe 'HistoryOutlets', ->
         Cascade.Block =>
           # called by a controller somewhere
           ho.navigate()
-          ho.get(['ace','tlcType']).set('reader type')
           ho.get(['ace','Controller','foo']).set('new property')
+          ho.get(['ace','tlcType']).set('reader type')
 
         expect(o3.get()).eq "some controller property"
         expect(ho.get(['ace','Controller','foo']).get()).eq 'new property'

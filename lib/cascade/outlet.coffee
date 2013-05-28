@@ -41,6 +41,7 @@ class Outlet extends Cascade
     return
 
   _setValue: (value, version) ->
+    debug "_setValue #{@} to #{value}"
     if @_value is value and (!version? or @_version is version)
       @stopPropagation()
     else
@@ -76,7 +77,8 @@ class Outlet extends Cascade
     @_version = 0
 
     super (done) =>
-      debug "#{@changes[0]?.cid} -> #{@cid}"
+      debug "#{@changes[0]?.constructor.name} [#{@changes[0]?.cid}] -> #{@constructor.name} [#{@cid}]"
+
       callDone = true
       returned = false
 
@@ -123,6 +125,8 @@ class Outlet extends Cascade
 
   set: (value, options={}) ->
     return if @_value is value
+
+    debug "set #{@constructor.name} [#{@cid}] to [#{value}]"
 
     ++@_runNumber
     outflow = false
@@ -201,6 +205,8 @@ class Outlet extends Cascade
     super
 
   toJSON: -> @_value
+
+  toString: -> "#{@constructor.name} [#{@cid}] value [#{@_value}]"
 
   # include array methods. note that all of these are preserved in closure compiler
   for method in ['length', 'join', 'concat', 'slice']

@@ -29,10 +29,11 @@ class HistoryOutlets extends Snapshots
       @set outlet, silent: true if @_toOutlet = outlet
       return
 
-  class @ToHistoryOutlet extends Outlet
+  class ToHistoryOutlet extends Outlet
     constructor: (@_slidingOutlet) ->
       @_slidingOutlet._toOutlet = this
-      super
+      super @_slidingOutlet.get()
+      @_slidingOutlet.set this, silent: true
 
     localizeChanges: ->
       syncValue = @_slidingOutlet._syncValue
@@ -66,7 +67,7 @@ class HistoryOutlets extends Snapshots
       [path, key] = Snapshots.getPathKey path, key
       return current if (current = (base = @ensurePath(path))[key])?
       outlet = base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore[@['index']].get(path)?[key])
-      debugCascade "created new sliding outlet #{outlet.cid} at #{path.concat(key).join('/')}"
+      debugCascade "created #{outlet} at #{path.concat(key).join('/')}"
       outlet
 
     slide: do ->
@@ -110,7 +111,7 @@ class HistoryOutlets extends Snapshots
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       return current if (current = (base = @ensurePath(path))[key])?
-      base[key] = new @['_snapshots'].historyOutletFactory @['_snapshots'].sliding.get(path, key)
+      base[key] = new ToHistoryOutlet @['_snapshots'].sliding.get(path, key)
 
     set: (path, value) ->
       @get(path).set(value)
@@ -145,8 +146,6 @@ class HistoryOutlets extends Snapshots
       @[name] = do (fn) => => fn.apply(@to, arguments)
 
   snapshotFactory: => new ToHistorySnapshot(this)
-
-  historyOutletFactory: @ToHistoryOutlet
 
   push: ->
     return super if arguments.length

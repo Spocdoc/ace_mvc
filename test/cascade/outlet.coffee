@@ -581,47 +581,48 @@ describe 'Outlet with objects', ->
 
   it 'should calculate a changed object outflow once when multiple outlets cause it to change in a block', ->
     foo = sinon.spy ->
-    changer = new Outlet []
-    counter = new Outlet foo, silent: true
-    changer.outflows.add counter
+
+    ops = []
+    updater = new Outlet foo, silent: true
+
+    outlets = [
+      new Outlet
+      new Outlet
+      new Outlet
+    ]
+
+    pushers = []
+
+    letters = "abc"
+
+    for i in [0..2]
+      do (i) ->
+        outlet = new Outlet
+        pushers.push outlet
+
+        fn = ->
+          ops.push letters[i]
+          outlet.modified()
+        outlet.set fn, silent: true
+
+        outlets[i].outflows.add outlet
+        outlet.outflows.add updater
+
     expect(foo).not.called
 
-    a = new Outlet
-    b = new Outlet
-    c = new Outlet
-
-    ac = new Outlet (-> changer.push('a')), silent: true
-    bc = new Outlet (-> changer.push('b')), silent: true
-    cc = new Outlet (-> changer.push('c')), silent: true
-
-    a.outflows.add ac
-    b.outflows.add bc
-    c.outflows.add cc
-
-    ac.outflows.add changer
-    bc.outflows.add changer
-    cc.outflows.add changer
-
-    expect(changer.get()).deep.eq []
-
     Cascade.Block =>
-      a.set(1)
-      b.set(1)
-      c.set(1)
+      outlets[i].set 1 for i in [0..2]
 
-    expect(changer.get()).deep.eq ['a','b','c']
+    expect(ops).deep.eq ['c','b','a']
     expect(foo).calledOnce
 
-    changer.set([])
-    expect(foo).calledTwice
+    ops = []
 
     Cascade.Block =>
-      a.set(2)
-      b.set(2)
-      c.set(2)
+      outlets[i].set 2 for i in [0..2]
 
-    expect(changer.get()).deep.eq ['a','b','c']
-    expect(foo).calledThrice
+    expect(ops).deep.eq ['c','b','a']
+    expect(foo).calledTwice
 
   describe '#get(args...)', ->
     it 'should invoke underlying object\'s get(args) when called with arguments', ->
@@ -689,3 +690,16 @@ describe 'Outlet set to multiple functions', ->
     y.set(42)
     expect(a.get()).eq 126
     expect(b.get()).eq a.get()
+
+describe 'Outlet unrun cascade', ->
+  it 'should allow setting several times in a block and run once with the right final value', ->
+    a = undefined
+    b = undefined
+
+    Cascade.Block =>
+      a = new Outlet 42
+      b = new Outlet a
+      b.set(43)
+
+    expect(a.get()).eq 43
+    expect(b.get()).eq 43

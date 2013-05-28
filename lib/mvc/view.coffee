@@ -21,6 +21,7 @@ class View extends ControllerBase
 
   appendTo: Outlet.noAuto ($container) ->
     @remove()
+    debugDom "append #{@} to #{$container}"
     @$container = $container
     $container.append(@$root)
 
@@ -38,6 +39,8 @@ class View extends ControllerBase
 
   remove: Outlet.noAuto ->
     return unless @$container
+    debugDom "remove #{@} from #{@$container}"
+    @$container = undefined
     @inWindow.detach()
     @inWindow.set(false)
     @$root.remove()
@@ -51,19 +54,19 @@ class View extends ControllerBase
       switch str
         when 'toggleClass'
           outflows.add ->
-            debugDom "calling #{str} in dom on #{name}"
+            debugDom "calling #{str} in dom on #{name} with #{outlet.get()}"
             e[str].call(e, name, outlet.get())
 
         when 'text','html'
           outflows.add ->
             if view.domCache[name] isnt (v = outlet.get())
               view.domCache[name] = v
-              debugDom "calling #{str} in dom on #{name}"
+              debugDom "calling #{str} in dom on #{name} with #{v}"
               e[str].call(e, v)
 
         else
           outflows.add ->
-            debugDom "calling #{str} in dom on #{name}"
+            debugDom "calling #{str} in dom on #{name} with #{outlet.get()}"
             e[str].call(e, outlet.get())
 
       return

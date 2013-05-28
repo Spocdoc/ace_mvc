@@ -1,6 +1,7 @@
 Url = require '../url'
 Cascade = require '../cascade/cascade'
 Route = require './route'
+debug = global.debug 'ace:routing'
 
 class Router extends Array
   constructor: (@outlets) ->
@@ -10,8 +11,11 @@ class Router extends Array
   # @param url [String]
   # @returns first matching Route
   route: (url) ->
+    debug "Routing #{url}"
     url = new Url(url, slashes: false) unless url instanceof Url
-    return null unless ret = @matchPath url.pathname, url.hash
+    unless ret = @matchPath url.pathname, url.hash
+      debug "no match for #{url}"
+      return null
     [route,params] = ret
 
     Cascade.Block =>

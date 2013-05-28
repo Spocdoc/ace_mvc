@@ -1,11 +1,10 @@
 # inspired by <https://github.com/visionmedia/debug>
 tty = require 'tty'
-crc32 = require './crc32'
 
 isatty = tty.isatty(2)
 env = process.env
 
-COLORS = [1,2,3,4,5,6,12,13,14]
+COLORS = [2,4,6,3,5,12,13,1,14]
 colors = {
   red: 1
   green: 2
@@ -38,8 +37,9 @@ for name in (env.DEBUG || '').split(/[\s,]+/)
 
 getColor = do ->
   _colors = {}
+  _lastColor = -1
   (name) ->
-    _colors[name] ||= COLORS[crc32(name) % COLORS.length]
+    _colors[name] ||= COLORS[++_lastColor % COLORS.length]
 
 color = (str, color) ->
   "\u001b[38;5;#{color}m#{str}\u001b[0m"

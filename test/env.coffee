@@ -3,6 +3,7 @@ global.chai = require 'chai'
 global.expect = chai.expect
 global.should = chai.should()
 global.sinon = require 'sinon'
+global.debug = -> ->
 chai.use(require('sinon-chai'))
 
 path = require 'path'

@@ -1,3 +1,5 @@
+debug = global.debug 'ace:cascade:block'
+
 module.exports = (Cascade) ->
 
   blockRunner = (func) ->
@@ -5,15 +7,23 @@ module.exports = (Cascade) ->
       ret = func()
     else
       Cascade.roots = []
+      Cascade.roots.cids = {}
+
+      debug "Building up Cascade.Block"
 
       ret = func()
+
+      debug "Running Cascade.Block..."
 
       roots = Cascade.roots
       delete Cascade.roots
 
-      `for (var i = 0, e = roots.length; i < e; i = i + 2) {
-        Cascade.run(roots[i], roots[i+1]);
+      `for (var i = roots.length-2; i >= 0; i = i - 2) {
+          debug("Running block "+i);
+          Cascade.run(roots[i], roots[i+1]);
       }`
+
+      debug "Done running Cascade.Block"
 
       root() for root in roots.post if roots.post
 
@@ -58,6 +68,8 @@ module.exports = (Cascade) ->
 
   Cascade.run = (target, source) ->
     return oldRun.call(Cascade, target, source) unless Cascade.roots
-    Cascade.roots.push target
-    Cascade.roots.push source
+
+    Cascade.roots.push target, source
+    debug "added #{target} to Cascade roots with source #{source} at index #{Cascade.roots.length-2}"
     return
+

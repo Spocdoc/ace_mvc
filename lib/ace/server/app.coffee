@@ -55,7 +55,7 @@ class App
     if @settings.debug and debug = process.env.DEBUG
       @$html.find('head').append $("""
         <script type="text/javascript">
-          window.DEBUG = '#{quote(debug)}';
+          window.DEBUG = #{quote(debug)};
         </script>""")
 
     return
@@ -68,7 +68,6 @@ class App
     ace.routing.enable @_routeConfig, @_routes
 
     $html = @$html.clone()
-    ace.rootType.set('body')
 
     ace.routing.router.route req.url
     ace.appendTo($html)

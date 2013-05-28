@@ -4,6 +4,7 @@ OutletMethod = require '../cascade/outlet_method'
 {extend} = require '../mixin'
 clone = require '../clone'
 debugCascade = global.debug 'ace:cascade'
+debugMVC = global.debug 'ace:mvc'
 
 class ControllerBase
   class @Config
@@ -33,6 +34,7 @@ class ControllerBase
   @defaultOutlets = []
 
   constructor: (@type, @parent, @name, settings) ->
+    debugMVC "Building #{@}"
     Outlet.enterContext()
     try
       @path = @parent.path
@@ -43,6 +45,10 @@ class ControllerBase
         @_build(@constructor.Config[@type], settings)
     finally
       Outlet.exitContext()
+    debugMVC "done building #{@}"
+
+  toString: ->
+    "#{@constructor.name} [#{@type}] name [#{@name}]"
 
   _buildOutlet: (outlet) ->
     if typeof outlet isnt 'string'
@@ -110,7 +116,7 @@ class ControllerBase
   newOutlet: (name) -> new Outlet
   newOutletMethod: (func, debug) ->
     om = new OutletMethod func, @outlets, silent: !!func.length, context: this
-    debugCascade "created outlet method #{om.cid} for #{debug}"
+    debugCascade "created outlet method for #{debug}: #{om}"
     om
 
 module.exports = ControllerBase

@@ -156,6 +156,8 @@ class Url
     href += @hash if @hash
     @href = href
 
+  toString: -> @href
+
   constructor: (url='', defaults) ->
     @defaults defaults if defaults
     @_build(url)

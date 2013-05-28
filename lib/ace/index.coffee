@@ -13,17 +13,17 @@ debugCascade = global.debug 'ace:cascade'
 commonMethods =
   newOutlet: (name) ->
     outlet = @ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
-    debugCascade "created outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+    debugCascade "created #{outlet} at",path.join('/')
     outlet
 
   newSlidingOutlet: (name) ->
     outlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
-    debugCascade "created sliding outlet #{outlet.cid} at",path.join('/'),"with value",outlet.get()
+    debugCascade "created #{outlet} at",path.join('/')
     outlet
 
   newFromOutlet: (name) ->
     outlet = @ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
-    debugCascade "created outlet #{outlet.cid} at",path.join('/')
+    debugCascade "created #{outlet} at",path.join('/')
     outlet
 
   newController: (type, name, settings) ->
@@ -55,11 +55,15 @@ class Ace
     path
     
   class @Template extends Template
+    @_bootstrapped = {} # re-used element ids from the server-rendered dom
+
     constructor: (@ace, others...) ->
       super others...
 
     _build: (base) ->
-      return super unless @$root = @ace.$container?.find("##{@prefix}")
+      boot = @constructor._bootstrapped
+      return super unless !boot[@prefix] && (@$root = @ace.$container?.find("##{@prefix}")).length
+      boot[@prefix] = true
       @$['root'] = @$root
       for id in base.ids
         (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
@@ -111,7 +115,7 @@ class Ace
 
     @root = @newOutlet('root')
     @rootType = @newOutlet('rootType')
-    @rootType.set('root') unless @rootType.get()
+    @rootType.set('body') unless @rootType.get()
 
     @rootType.outflows.add => @_setRoot()
 
@@ -123,6 +127,8 @@ class Ace
         outlet
 
     @constructor.db ||= new Db
+
+  toString: -> "Ace [#{@name}]"
 
   _setRoot: ->
     type = @rootType.get()

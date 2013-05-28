@@ -17,13 +17,13 @@ class Snapshots extends Array
   class @Snapshot
 
     syncTarget = (src, dst) ->
-      # sync your keys first then nested
-      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
-        continue if v instanceof Snapshots.Compound
-        dst[k].sync(v)
+      # sync nested keys first then yours
       for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
         continue unless v instanceof Snapshots.Compound
         syncTarget src[k], dst[k]
+      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
+        continue if v instanceof Snapshots.Compound
+        dst[k].sync(v)
       return
 
     localPath: (arr) ->

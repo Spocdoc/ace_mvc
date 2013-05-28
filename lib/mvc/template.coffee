@@ -1,4 +1,5 @@
 $ = global.$
+debugMVC = global.debug 'ace:mvc'
 
 class TemplateBase
   constructor: (@dom) ->
@@ -27,6 +28,7 @@ class Template
     return this
 
   constructor: (@type, @parent, @name) ->
+    debugMVC "Building #{@}"
     @path = @parent.path
     @path = @path.concat(@name) if @name
     @prefix = @path.join('-') || "ace"
@@ -38,6 +40,11 @@ class Template
 
     # api
     @['$root'] = @$root
+    debugMVC "done building #{@}"
+
+  toString: ->
+    "#{@constructor.name} [#{@type}] name [#{@name}]"
+
 
   _build: (base) ->
     @$root = base.$root.clone()

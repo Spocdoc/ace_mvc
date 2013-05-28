@@ -1,5 +1,6 @@
 Outlet = require './outlet'
 Autorun = require './autorun'
+debug = global.debug 'ace:cascade'
 
 class OutletMethod extends Outlet
   getArgNames = do ->
@@ -24,8 +25,10 @@ class OutletMethod extends Outlet
 
     # prevent super constructor from calling `run` immediately
     @run = ->
-    super @_omFunc, options
+    super undefined, options
     delete @run
+
+    debug "new outlet method created: #{@} method [#{func.toString()}]"
 
     @_names = options.names || getArgNames(func)
     @set options.value, options if options.value

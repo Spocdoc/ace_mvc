@@ -2,54 +2,66 @@ fs = require 'fs'
 path = require 'path'
 express = require('express')
 {extend} = require '../../mixin'
-Bundler = require './bundler'
+BundlerJS = require './js'
+BundlerCSS = require './css'
 Url = require '../../url'
+async = require 'async'
 
 class Server
   constructor: (settings) ->
-    # TODO: is this really the only way to extend express. wtf
     extend @, express()
     delete @handle
-
     extend @settings, settings
 
-  start: ->
-    @bundler = new Bundler @settings
+    @debugUris =
+      js: []
+      css: []
+
+    @releaseUris =
+      js: []
+      css: []
+
+  boot: (cb) ->
+    @js = new BundlerJS @settings
+    @css = new BundlerCSS @settings
+
+    for type in ['css','js']
+      @[type].on 'update', do (type) => (debug, release) =>
+          @debugUris[type] = []
+          @releaseUris[type] = []
+          if debug
+            for hash,i in debug
+              @debugUris[type].push "/#{i}d-#{hash}.#{type}"
+          if release
+            for hash,i in release
+              @releaseUris[type].push "/#{i}r-#{hash}.#{type}"
+          return
+
+    async.parallel [
+      (done) => @js.bundle done
+      (done) => @css.bundle done
+    ], (err) -> cb(err)
 
   handle: do ->
-    jsRegex = /^\/+(\d+)([dr])-([^/]+)\.js/
+    regex = /^\/+(\d+)([dr])-(?:[^/]+)\.(js|css)$/
     
     (req, res, next) ->
       url = (new Url(req.url)).pathname
 
-      unless match = url.match jsRegex
+      unless match = url.match regex
         next()
       else
-        res.setHeader 'Content-Type', 'text/javascript'
+        if (type = match[3]) is 'css'
+          res.setHeader 'Content-Type', 'text/css'
+        else
+          res.setHeader 'Content-Type', 'text/javascript'
 
         if match[2] is 'd'
-          @bundler.writeDebug match[1], res
+          @[type].writeDebug match[1], res
         else
-          @bundler.writeRelease match[1], res
+          @[type].writeRelease match[1], res
 
       return
-
-  getUris: (cb) ->
-    @bundler.getHashes (debug, release) ->
-      debugUris = []
-      releaseUris = []
-
-      if debug
-        for hash,i in debug
-          debugUris.push "/#{i}d-#{hash}.js"
-
-      if release
-        for hash,i in release
-          releaseUris.push "/#{i}r-#{hash}.js"
-
-      cb debugUris, releaseUris
-      return
-    return
 
 module.exports = Server
 

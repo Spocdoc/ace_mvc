@@ -5,7 +5,7 @@ debug = global.debug 'ace:cascade'
 class OutletMethod extends Outlet
   getArgNames = do ->
     regexComments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg
-    regexFunction = /^function\s*[^\(]*\(([^\)]*)\)\s*\{([^]*)\}$/m
+    regexFunction = /^function\s*[^\(]*\(([^\)]*)\)\s*\{([\s\S]*)\}$/m
     regexTrim = /^\s*|\s*$/mg
     regexTrimCommas = /\s*,\s*/mg
 

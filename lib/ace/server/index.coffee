@@ -10,11 +10,8 @@ Bundler = require '../../bundler/server'
 # express sets route, parent
 class Main
   constructor: (settings) ->
-    # TODO: is this really the only way to extend express. wtf
     extend @, express()
-
     extend @settings, settings
-    @on 'mount', (app) => @_configure(app)
 
   _loadExterns: (lib, cb) ->
     async.waterfall [
@@ -34,23 +31,34 @@ class Main
         next()
     ], cb
 
-  _configure: (app) ->
+  boot: (cb) ->
+    app = @parent
     process.on 'SIGINT', -> process.exit(1)
 
     lib = path.resolve __dirname, '../../'
-    async.series [
+    async.waterfall [
       (done) => @_loadExterns lib, done
       (done) => @_loadServerFiles lib, done
       (done) =>
-        bundler = new Bundler @settings.bundler
-        bundler.set 'mvc', @settings['mvc']
-        app.use bundler
+        listMvc = require '../../mvc/server/list_mvc'
+        listMvc @settings['root'], done
+      (mvc, done) =>
+        @settings.mvc = mvc
 
-        @settings._bundler = bundler
+        extend @settings['bundler'],
+          mvc: mvc
+          'debug': @settings['debug']
+          'routes': @settings['routes']
+          'globals':
+            'Ace': path.resolve(__dirname, '../../ace')
 
-        aceApp = new App @settings
-        app.use aceApp
-    ]
+        app.use @bundler = new Bundler @settings['bundler']
+        @bundler.boot done
+
+      (done) =>
+        app.use @aceApp = new App @bundler, @settings
+        @aceApp.boot done
+    ], cb
 
 module.exports = Main
 

@@ -76,14 +76,13 @@ class Ace
     constructor: (@ace, others...) -> super others...
 
     newStatelet: (name) ->
-      Ace.makeOutletPath this, name
-      hdOutlet = @ace.historyOutlets.to.get(path)
-      statelet = new Statelet undefined,
-        value: hdOutlet.get()
-        enableSet: @inWindow
-      hdOutlet.set(statelet)
+      hdOutlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
+      statelet = new Statelet undefined, enableSet: @inWindow, silent: true
+      statelet.set hdOutlet.get() # so it propagates the update
+      hdOutlet.set(statelet) # so it synchronizes with the history outlets store
 
-      @ace.routing.navigator?.on 'willNavigate', -> statelet.run()
+      @ace.historyOutlets.on 'willNavigate', -> statelet.update()
+      debugCascade "created #{statelet} at",path.join('/')
       statelet
 
     newTemplate: (type) ->
@@ -143,7 +142,7 @@ class Ace
     unless @root.get()
       @_setRoot()
     else
-      @root.get().appendTo($container)
+      @root.get().appendTo(@$container)
     return
 
 module.exports = Ace

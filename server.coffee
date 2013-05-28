@@ -1,4 +1,4 @@
-#!/usr/bin/env coffee#--nodejs --debug-brk
+#!/usr/bin/env coffee --nodejs --debug
 
 connect = require 'connect'
 express = require 'express'
@@ -16,9 +16,7 @@ app.configure 'development', ->
 ace = new Ace
   routes: path.resolve('./routes')
   server: server
-  mvc:
-    files: path.resolve('./app')
-    templates: ['htm','html','jade']
+  root: path.resolve('./app')
   bundler:
     closure:
       jar: path.resolve './resources/compiler.jar'
@@ -48,5 +46,9 @@ ace.configure 'production', ->
 
 app.use ace
 
-server.listen port = 1337, ->
-  console.log "listening on #{port}..."
+ace.boot (err) ->
+  throw err if err?
+
+  server.listen port = 1337, ->
+    console.log "listening on #{port}..."
+

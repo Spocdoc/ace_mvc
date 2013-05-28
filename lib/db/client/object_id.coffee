@@ -1,4 +1,6 @@
 class ObjectID
+  @name = 'ObjectID'
+
   constructor: (@hex) ->
     if !@hex?
       id = []

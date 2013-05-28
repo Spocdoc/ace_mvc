@@ -16,6 +16,9 @@ class Controller extends ControllerBase
   @defaultOutlets = @_super.defaultOutlets.concat ['view','model']
 
   appendTo: ($container) -> @view.appendTo($container)
+  prependTo: ($container) -> @view.prependTo($container)
+  insertBefore: ($elem) -> @view.insertBefore($elem)
+  insertAfter: ($elem) -> @view.insertAfter($elem)
   remove: -> @view.remove()
 
   _buildView: (arg, settings) ->
@@ -39,8 +42,9 @@ class Controller extends ControllerBase
 
   _buildMethod: (k, m) ->
     if k[0] is '$'
-      @outletMethods.push om = @newOutletMethod(m, k)
-      @view[k[1..]].set om
+      if typeof m is 'function'
+        @outletMethods.push m = @newOutletMethod(m, k)
+      @view[k[1..]].set m
     else
       @[k] = m
 
@@ -58,6 +62,7 @@ class Controller extends ControllerBase
       @_buildView settings?.view || config.view || base.name, settings
 
     @_buildMethods config
+    @_buildMethods config['methods']
 
     unless @_mixing
       @_setOutlets settings

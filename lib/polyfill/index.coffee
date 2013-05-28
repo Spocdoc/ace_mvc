@@ -39,3 +39,10 @@
 # Date.now
 
     Date['now'] ?= (new Date()).getTime()
+
+# IE<9 doesn't have names on functions
+
+    unless Array.name is 'Array'
+      Array.name = 'Array'
+      Object.name = 'Object'
+      Date.name = 'Date'

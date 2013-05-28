@@ -2,12 +2,15 @@ $ = global.$
 debugMVC = global.debug 'ace:mvc'
 
 class TemplateBase
-  constructor: (@dom) ->
+  constructor: (@dom, @name) ->
 
   lazy: ->
     return if @$root
     @$root = $(@dom)
-    @$root = $('<div></div>').append(@$root) if @$root.length > 1 or @$root.attr('id')?
+    if @name is 'body'
+      @$root = $('<body></body>').append(@$root)
+    else if @$root.length > 1 or @$root.attr('id')? or @$root.attr('class')
+      @$root = $('<div></div>').append(@$root)
     @ids = @constructor._getIds(@$root)
 
   @_getIds: do ->
@@ -24,7 +27,7 @@ class TemplateBase
 class Template
   @add: (name, domString) ->
     throw new Error("Template: already added #{name}") if @[name]?
-    TemplateBase[name] = new TemplateBase(domString)
+    TemplateBase[name] = new TemplateBase(domString, name)
     return this
 
   constructor: (@type, @parent, @name) ->
@@ -40,6 +43,7 @@ class Template
 
     # api
     @['$root'] = @$root
+    @$root.addClass @parent.type.replace('/','-')
     debugMVC "done building #{@}"
 
   toString: ->

@@ -1,6 +1,6 @@
 glob = require 'glob'
 path = require 'path'
-lib = path.resolve __dirname, '../../'
+lib = path.resolve __dirname, '../../../'
 async = require 'async'
 closurify = require 'closurify'
 

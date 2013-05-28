@@ -58,6 +58,8 @@ numSort = (a,b) ->
 # (it has to keep track of whether it's ownProperty or not because it's added
 # to objects that inherit a truthy _ojson)
 class OJSONRef
+  @name = 'OJSONRef'
+
   count = 0
   uniqueId = ->
     count = if count+1 == count then 0 else count+1

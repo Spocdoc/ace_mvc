@@ -1,0 +1,1 @@
+global.Faker = require 'Faker'

@@ -19,12 +19,37 @@ class View extends ControllerBase
 
   @defaultOutlets = @_super.defaultOutlets.concat ['template','inWindow']
 
-  appendTo: Outlet.noAuto ($container) ->
+  insertAfter: ($elem) ->
+    @remove()
+    $container = $elem.parent()
+    debugDom "insert #{@} after #{$elem}"
+    @$container = $container
+    $elem.after(@$root)
+    @_setInWindow $container
+
+  insertBefore: ($elem) ->
+    @remove()
+    $container = $elem.parent()
+    debugDom "insert #{@} before #{$elem}"
+    @$container = $container
+    $elem.before(@$root)
+    @_setInWindow $container
+
+  prependTo: ($container) ->
+    @remove()
+    debugDom "prepend #{@} to #{$container}"
+    @$container = $container
+    $container.prepend(@$root)
+    @_setInWindow $container
+
+  appendTo: ($container) ->
     @remove()
     debugDom "append #{@} to #{$container}"
     @$container = $container
     $container.append(@$root)
+    @_setInWindow $container
 
+  _setInWindow: Outlet.noAuto ($container) ->
     if other = $container.template?.view?.inWindow
       @inWindow.set(other)
       return
@@ -113,18 +138,33 @@ class View extends ControllerBase
 
     return
 
+  _buildStatelet: (statelet) ->
+    unless typeof statelet is 'string'
+      for k,v of statelet
+        if v instanceof Cascade
+          o = v
+        else
+          @_stateletDefaults[k] = v
+          o = @newStatelet k
+        @[k] ||= @outlets[k] = o
+    else
+      @[statelet] ||= @outlets[statelet] = @newStatelet(statelet)
+    return
+
   _buildStatelets: (statelets) ->
     return unless statelets
     @_stateletDefaults ||= {}
-    for k,v of statelets
-      @_stateletDefaults[k] = v
-      @[k] = @outlets[k] = @newStatelet(k)
+
+    if Array.isArray statelets
+      @_buildStatelet k for k in statelets
+    else
+      @_buildStatelet statelets
     return
 
   _setStatelet: (k, v) ->
     if typeof v is 'function'
-      v = v() unless v.length
-    @outlets[k]?.set(v)
+      v = v.call(this) unless v.length
+    @outlets[k]?.runner.getset = v
     return
 
   _setStatelets: (settings) ->
@@ -147,6 +187,7 @@ class View extends ControllerBase
       @_buildTemplate settings?.template || config.template || base.name
 
     @_buildMethods config
+    @_buildMethods config['methods']
 
     unless @_mixing
       @_setOutlets settings

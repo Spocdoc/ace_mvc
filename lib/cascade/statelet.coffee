@@ -8,8 +8,8 @@ class StateletRunner extends Cascade
     @enableGet = new Outlet options.enableGet ? true
     @enableSet = new Outlet options.enableSet ? true
 
-    # empty function. the statelet will call the runner's get()
-    super ->
+    super =>
+      @set @_statelet._value
 
     @enableSet.outflows.add =>
       unless @_willSet
@@ -27,8 +27,12 @@ class StateletRunner extends Cascade
     @_value = if @getset and @enableGet.get() then @getset() else @_value
 
   set: (value) ->
+    if value instanceof Cascade
+      @_statelet = value
+      return
+
     debug "set #{@constructor.name} [#{@cid}] to [#{value}]"
-    return @_value if @_value is value or  value instanceof Cascade
+    return @_value if @_value is value
     @_value = value
     unless @_willSet
       @_willSet = true
@@ -45,8 +49,6 @@ class Statelet extends Outlet
     @enableSet = @runner.enableSet
 
     @enableGet.outflows.add => @update()
-
-    @outflows.add => @runner.set @_value
 
   update: ->
     @run @runner

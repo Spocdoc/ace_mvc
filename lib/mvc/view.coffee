@@ -62,7 +62,7 @@ class View extends ControllerBase
     return unless @$container
     debugDom "remove #{@} from #{@$container}"
     @$container = undefined
-    @inWindow.detach()
+    @inWindow.unset()
     @inWindow.set(false)
     @$root.remove()
     return
@@ -161,7 +161,7 @@ class View extends ControllerBase
   _setStatelet: (k, v) ->
     if typeof v is 'function'
       v = v.call(this) unless v.length
-    @outlets[k]?.runner.getset = v
+    @outlets[k]?.runner.getset = (arg) => v.call(this, arg)
     return
 
   _setStatelets: (settings) ->

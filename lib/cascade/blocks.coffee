@@ -7,6 +7,8 @@ module.exports = (Cascade) ->
       ret = func()
     else
       Cascade.roots = []
+      unless Cascade.post
+        post = Cascade.post = []
 
       debug "Building up Cascade.Block"
 
@@ -15,29 +17,32 @@ module.exports = (Cascade) ->
       debug "Running Cascade.Block..."
 
       roots = Cascade.roots
-      delete Cascade.roots
+      Cascade.roots = null
 
       `for (var i = roots.length-2; i >= 0; i = i - 2) {
           debug("Running block "+i);
           Cascade.run(roots[i], roots[i+1]);
       }`
 
-      debug "Done running Cascade.Block"
+      debug "Running post block"
 
-      root() for root in roots.post if roots.post
+      Cascade.post = null
+      root() for root in post if post
+
+      debug "Done running Cascade.Block"
 
     ret
 
   unblockRunner = (func) ->
     roots = Cascade.roots
-    delete Cascade.roots
+    Cascade.roots = null
     ret = func()
     Cascade.roots = roots
     ret
 
   postblockRunner = (func) ->
-    if roots = Cascade.roots
-      (roots.post ||= []).push func
+    if post = Cascade.post
+      post.push func
     else
       func()
     return

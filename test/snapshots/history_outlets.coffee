@@ -3,6 +3,7 @@ OutletMethod = lib '../cascade/outlet_method'
 Snapshots = lib 'snapshots'
 snapshotTests = require './_snapshot_tests'
 Cascade = lib '../cascade/cascade'
+Auto = lib '../cascade/auto'
 
 Outlet = lib '../cascade/outlet'
 
@@ -87,8 +88,8 @@ describe 'HistoryOutlets', ->
       expect(@a.to['controller']['delegate'].get()).eq 42
 
     it 'should call outflows when navigating back and forth', ->
-      x = new Outlet 42
-      out = new Outlet foo = sinon.spy -> x.get()
+      x = new Auto 42
+      out = new Auto foo = sinon.spy -> x.get()
       expect(foo).calledOnce
       @a.to.get(['controller','delegate']).set(out)
       @a.navigate()
@@ -104,8 +105,8 @@ describe 'HistoryOutlets', ->
       expect(@a.to['controller']['delegate'].get()).eq 43
 
     it 'should clear future history and overwrite when called with no args', ->
-      x = new Outlet 42
-      out = new Outlet foo = sinon.spy -> x.get()
+      x = new Auto 42
+      out = new Auto foo = sinon.spy -> x.get()
       expect(foo).calledOnce
       @a.to.get(['controller','delegate']).set(out)
       @a.navigate()
@@ -184,7 +185,7 @@ describe 'HistoryOutlets', ->
         [outlets, view.outlets] = [view.outlets, []]
         for name in outlets
           # hd = @a.to.get(['controller','view',name])
-          # outlet = new Outlet(hd.get())
+          # outlet = new Auto(hd.get())
           # hd.set(outlet)
           # view.outlets[name] = outlet
 
@@ -198,11 +199,11 @@ describe 'HistoryOutlets', ->
         view
 
       # view instance outlets in the controller
-      viewFrom = new Outlet
-      viewTo = new Outlet
+      viewFrom = new Auto
+      viewTo = new Auto
 
       # from model
-      firstNameTo = new Outlet foo
+      firstNameTo = new Auto foo
       @a.to.get(['controller','firstNameTo']).set(firstNameTo)
 
       bindControllerViewOutlets = =>
@@ -302,7 +303,7 @@ describe 'HistoryOutlets', ->
         o2 = ho.get(['ace','Controller','foo'])
         o2.set("some controller property")
 
-        o3 = new Outlet o2
+        o3 = new Auto o2
 
         o1.outflows.add =>
           unless 0 == o1.get().indexOf(o1_5.get())

@@ -1,6 +1,7 @@
 OutletMethod = lib 'outlet_method'
 Outlet = lib 'outlet'
 Cascade = lib 'cascade'
+Auto = lib 'auto'
 
 numOutflowKeys = 2
 
@@ -194,7 +195,7 @@ describe 'OutletMethod #restoreValue', ->
     expect(foo).not.called
     expect(m.get()).eq 6
 
-    mOutflow = new Outlet (bar = sinon.spy -> m.get())
+    mOutflow = new Auto (bar = sinon.spy -> m.get())
     expect(m.outflows[mOutflow.cid]).exist
     expect(bar).calledOnce
     expect(mOutflow.get()).eq 6
@@ -269,7 +270,11 @@ describe 'OutletMethod', ->
     fn = ->
       b.set num
       c.set num
+      num
 
-    a = new OutletMethod fn, {}
+    a = new OutletMethod fn, {}, silent: true
+    a.outflows.add bar = sinon.spy ->
+    a.run()
 
     expect(count).eq 2
+    expect(bar).calledOnce

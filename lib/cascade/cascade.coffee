@@ -35,12 +35,14 @@ class Cascade
     
   run: (source) ->
     sp = source?.pending
+    debug "called run on #{@}"
     @outflows.setPending @pending = true
     @_mustRun = true # must run at least once since explicitly asked it to
     Cascade.run this, source unless sp
     return
 
   cascade: ->
+    debug "called cascade on #{@}"
     unless @running
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true
@@ -55,6 +57,8 @@ class Cascade
       return unless @_canRun()
       return Cascade.run this if @_mustRun
 
+    debug "set pending [#{tf}] on #{@}"
+
     @pending = tf
     @outflows.setPending tf
     return
@@ -67,6 +71,7 @@ class Cascade
   _run: do ->
     done = (cascade) ->
       if cascade._stopPropagation
+        debug "#{cascade} called stopPropagation"
         cascade._stopPropagation = false
         cascade.setPending(false)
       else
@@ -76,11 +81,14 @@ class Cascade
       cascade.changes = []
 
     (source) ->
-      return unless @pending
+      unless @pending
+        debug "not running #{@} because not pending"
+        return
 
       @changes.push source if source
 
       unless @_canRun()
+        debug "can't run #{source}->#{@} yet because pending inflows"
         @_mustRun = true
         return
 

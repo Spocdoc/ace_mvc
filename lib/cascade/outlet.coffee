@@ -21,10 +21,12 @@ class Outlet extends Cascade
   @enterContext: (ctx=null) ->
     @stack.push @stackLast
     @stackLast = ctx
+    debug "Set auto context #{ctx}"
     return
 
   @exitContext: ->
     @stackLast = @stack.pop()
+    debug "Set auto context back to #{@stackLast}"
     return
 
   enterContext: (@_autoContext) ->
@@ -75,6 +77,7 @@ class Outlet extends Cascade
     @_eqOutlets = {}
     @_autoInflows = {}
     @_version = 0
+    @auto = !!options.auto
 
     super (done) =>
       debug "#{@changes[0]?.constructor.name} [#{@changes[0]?.cid}] -> #{@constructor.name} [#{@cid}]"
@@ -85,7 +88,10 @@ class Outlet extends Cascade
       found = @_pickSource()
 
       if typeof found is 'function'
-        @enterContext found
+        if @auto
+          @enterContext found
+        else
+          Outlet.enterContext()
         try
           if found.length > 0
             callDone = false
@@ -98,11 +104,15 @@ class Outlet extends Cascade
           else
             @_setValue found()
         finally
-          @exitContext()
+          if @auto
+            @exitContext()
+          else
+            Outlet.exitContext()
 
       else if found
-        @_autoContext = undefined
+        Outlet.enterContext()
         @_setValue found.get(), found._version
+        Outlet.exitContext()
 
       returned = true
       done() if callDone
@@ -177,7 +187,6 @@ class Outlet extends Cascade
     else if typeof value?.get is 'function'
       return unless @_eqOutlets[value.cid]
       delete @_eqOutlets[value.cid]
-      delete @_autoInflows[value.cid]
       @_resetMultiget() if @_multiGet is value
       @outflows.remove value
       value.unset this
@@ -206,7 +215,7 @@ class Outlet extends Cascade
 
   toJSON: -> @_value
 
-  toString: -> "#{@constructor.name} [#{@cid}] value [#{@_value}]"
+  toString: -> "#{@constructor.name}#{if @auto then "/auto" else ""} [#{@cid}] value [#{@_value}]"
 
   # include array methods. note that all of these are preserved in closure compiler
   for method in ['length', 'join', 'concat', 'slice']
@@ -229,6 +238,7 @@ class Outlet extends Cascade
   _autoInflow: (inflow) ->
     return unless @_autoContext
     list = @_autoInflows[@_autoContext.cid]
+    debug "Adding auto inflow #{inflow} to #{@}"
     inflow.outflows.add this unless list[inflow.cid]?
     list[inflow.cid] = 1
     return

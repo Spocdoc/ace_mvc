@@ -14,5 +14,5 @@ module.exports = (app, config) ->
     connect: (path) ->
       new SockioEmulator(db)
 
-  s = sockio(db, app.settings.server)
+  s = sockio(db, config.redis, app.settings.server)
 

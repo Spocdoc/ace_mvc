@@ -1,4 +1,5 @@
 $ = global.$
+Outlet = require '../cascade/outlet'
 debugMVC = global.debug 'ace:mvc'
 
 class TemplateBase
@@ -45,6 +46,7 @@ class Template
     @['$root'] = @$root
     @$root.addClass @parent.type.replace('/','-')
     debugMVC "done building #{@}"
+    return this
 
   toString: ->
     "#{@constructor.name} [#{@type}] name [#{@name}]"

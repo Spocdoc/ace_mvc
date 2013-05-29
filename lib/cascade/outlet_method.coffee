@@ -1,6 +1,5 @@
 Cascade = require './cascade'
 Outlet = require './outlet'
-Autorun = require './autorun'
 debug = global.debug 'ace:cascade'
 
 class OutletMethod extends Outlet

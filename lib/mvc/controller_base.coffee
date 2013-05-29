@@ -35,16 +35,12 @@ class ControllerBase
 
   constructor: (@type, @parent, @name, settings) ->
     debugMVC "Building #{@}"
-    Outlet.enterContext()
-    try
-      @path = @parent.path
-      @path = @path.concat(@name) if @name
-      @outlets = {}
-      @outletMethods = []
-      Cascade.Block =>
-        @_build(@constructor.Config[@type], settings)
-    finally
-      Outlet.exitContext()
+    @path = @parent.path
+    @path = @path.concat(@name) if @name
+    @outlets = {}
+    @outletMethods = []
+    Cascade.Block =>
+      @_build(@constructor.Config[@type], settings)
     debugMVC "done building #{@}"
 
   toString: ->
@@ -113,9 +109,9 @@ class ControllerBase
     --@_mixing
     return
 
-  newOutlet: (name) -> new Outlet
+  newOutlet: (name) -> new Outlet undefined, auto: true
   newOutletMethod: (func, debug) ->
-    om = new OutletMethod func, @outlets, silent: !!func.length, context: this
+    om = new OutletMethod func, @outlets, silent: !!func.length, context: this, auto: true
     debugCascade "created outlet method for #{debug}: #{om}"
     om
 

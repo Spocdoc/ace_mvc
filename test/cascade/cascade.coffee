@@ -1,6 +1,6 @@
 Cascade = lib 'cascade'
 Outlet = lib 'outlet'
-Autorun = lib 'autorun'
+Auto = lib 'auto'
 
 numOutflowKeys = 2
 
@@ -260,7 +260,7 @@ describe 'Cascade.Block medium', ->
     
     foo = sinon.spy ->
 
-    a = new Autorun =>
+    a = new Auto =>
       @modelWidth.get()
       @modelHeight.get()
       foo()
@@ -294,7 +294,7 @@ describe 'Cascade.Outflows', ->
   describe '#detach and #attach', ->
     it 'when its outflows are detached, it doesn\'t update them', ->
       x = new Outlet 1
-      a = new Autorun foo = sinon.spy ->
+      a = new Auto foo = sinon.spy ->
         y = x.get() * 2
       expect(foo).calledOnce
       outflows = x.outflows.detach()
@@ -303,10 +303,10 @@ describe 'Cascade.Outflows', ->
  
 #     it 'when its outflows are reattached, it immediately updates only the new outflows', ->
 #       x = new Outlet 1
-#       a = new Autorun foo = sinon.spy -> x.get() * 2
+#       a = new Auto foo = sinon.spy -> x.get() * 2
 #       expect(foo).calledOnce
 #       outflows = x.outflows.detach()
-#       b = new Autorun bar = sinon.spy -> x.get() * 3
+#       b = new Auto bar = sinon.spy -> x.get() * 3
 #       x.set(2)
 #       expect(foo).calledOnce
 #       expect(bar).calledTwice
@@ -316,10 +316,10 @@ describe 'Cascade.Outflows', ->
 
     it 'when its outflows are re-attached and it has changed, it updates them', ->
       x = new Outlet 1
-      a = new Autorun foo = sinon.spy -> x.get() * 2
+      a = new Auto foo = sinon.spy -> x.get() * 2
       expect(foo).calledOnce
       outflows = x.outflows.detach()
-      b = new Autorun bar = sinon.spy -> x.get() * 3
+      b = new Auto bar = sinon.spy -> x.get() * 3
       x.set(2)
       expect(foo).calledOnce
       expect(bar).calledTwice
@@ -332,8 +332,8 @@ describe 'Cascade.Outflows', ->
 
     it 'when its outflows are detached, the previous outflows have the corresponding inflow removed', ->
       x = new Outlet 1
-      a = new Outlet foo = sinon.spy ->
-        y = x.get() * 2
+      a = new Outlet (foo = sinon.spy ->
+        y = x.get() * 2),auto:true
       expect(Object.keys(a.inflows).length).eq 1
       outflows = x.outflows.detach()
       expect(Object.keys(a.inflows).length).eq 0

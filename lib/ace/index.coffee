@@ -10,31 +10,66 @@ Statelet = require '../cascade/statelet'
 {include,extend} = require '../mixin'
 debugCascade = global.debug 'ace:cascade'
 
-commonMethods =
-  newOutlet: (name) ->
+publicMethods =
+  newOutlet: Outlet.noAuto (name) ->
     outlet = @ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
+    outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newSlidingOutlet: (name) ->
+  newSlidingOutlet: Outlet.noAuto (name) ->
     outlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
+    outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newFromOutlet: (name) ->
+  newFromOutlet: Outlet.noAuto (name) ->
     outlet = @ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
+    outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newController: (type, name, settings) ->
+  newController: Outlet.noAuto (type, name, settings) ->
     debugCascade "creating new controller",type,name
     new Ace.Controller(@ace,type, this, name, settings)
 
-  to: (path) -> @ace.historyOutlets.sliding.get(path).get()
-  from: (path) -> @ace.historyOutlets.from.get(path).get()
-  local: (path) -> @ace.historyOutlets.noInherit(path)
+  local: Outlet.noAuto (path) -> @ace.historyOutlets.noInherit(path)
+
+  to: (path) ->
+    Outlet.enterContext()
+    outlet = @ace.historyOutlets.sliding.get(path)
+    Outlet.exitContext()
+    outlet.get()
+
+  from: (path) ->
+    Outlet.enterContext()
+    outlet = @ace.historyOutlets.from.get(path)
+    Outlet.exitContext()
+    outlet.get()
+
+  newView: Outlet.noAuto (type, name, settings) ->
+    new Ace.View(@ace, type, this, name, settings)
+
+  newModel: Outlet.noAuto (type, idOrSpec) -> new Ace.Model(@ace, type, idOrSpec)
+
+  navigate: Outlet.noAuto -> @ace.routing.navigate()
+
+  newStatelet: Outlet.noAuto (name) ->
+    hdOutlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
+    statelet = new Statelet undefined, enableSet: @inWindow, silent: true, auto: true
+    statelet.set hdOutlet.get() # so it propagates the update
+    hdOutlet.set(statelet) # so it synchronizes with the history outlets store
+
+    @ace.historyOutlets.on 'willNavigate', -> statelet.update()
+    debugCascade "created #{statelet} at",path.join('/')
+    statelet
+
+  newTemplate: Outlet.noAuto (type) ->
+    new Ace.Template(@ace, type, this)
+
 
 class Ace
+  include @, publicMethods
 
   @newClient: (historyOutletsOJSON, routesObj, $container) ->
     global['ace'] = new Ace(OJSON.fromOJSON(historyOutletsOJSON))
@@ -71,46 +106,22 @@ class Ace
       return
 
   class @View extends View
-    include @, commonMethods
+    include @, publicMethods
 
     constructor: (@ace, others...) -> super others...
-
-    newStatelet: (name) ->
-      hdOutlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
-      statelet = new Statelet undefined, enableSet: @inWindow, silent: true
-      statelet.set hdOutlet.get() # so it propagates the update
-      hdOutlet.set(statelet) # so it synchronizes with the history outlets store
-
-      @ace.historyOutlets.on 'willNavigate', -> statelet.update()
-      debugCascade "created #{statelet} at",path.join('/')
-      statelet
-
-    newTemplate: (type) ->
-      new Ace.Template(@ace, type, this)
-
-    navigate: -> @ace.routing.navigate()
 
   class @Model extends Model
     constructor: (@ace, coll, idOrSpec) ->
       super coll, @ace.constructor.db, idOrSpec
 
   class @Controller extends Controller
-    include @, commonMethods
+    include @, publicMethods
 
     constructor: (@ace, others...) -> super others...
-
-    newView: (type, name, settings) ->
-      new Ace.View(@ace, type, this, name, settings)
-
-    newModel: (type, idOrSpec) -> new Ace.Model(@ace, type, idOrSpec)
-
-    navigate: -> @ace.routing.navigate()
 
   constructor: (@historyOutlets = new HistoryOutlets, @name='') ->
     @path = [@name]
     @ace = this
-
-    extend @, commonMethods
 
     @root = @newOutlet('root')
     @rootType = @newOutlet('rootType')

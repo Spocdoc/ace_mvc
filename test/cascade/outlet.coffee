@@ -1,5 +1,6 @@
 Outlet = lib 'outlet'
 Cascade = lib 'cascade'
+Auto = lib 'auto'
 
 numOutflowKeys = 2
 timeout = (fn) -> setTimeout(fn, 0)
@@ -17,7 +18,7 @@ addCallCounts = ->
 
 describe 'Outlet mild', ->
   beforeEach ->
-    @a = new Outlet(1)
+    @a = new Auto(1)
 
   it 'should set the initial value to constructor arg', ->
     expect(@a.get()).eq 1
@@ -46,8 +47,8 @@ describe 'Outlet mild', ->
 
 describe 'Outlet medium', ->
   beforeEach ->
-    @a = new Outlet(1)
-    @b = new Outlet(2)
+    @a = new Auto(1)
+    @b = new Auto(2)
     @b.set(@a)
 
   it 'should cascade a value immediately when set', ->
@@ -61,8 +62,8 @@ describe 'Outlet synchronization', ->
   beforeEach ->
 
   it 'should keep two outlets in sync when one is set to the other', ->
-    @a = new Outlet(1)
-    @b = new Outlet(2)
+    @a = new Auto(1)
+    @b = new Auto(2)
 
     addCallCounts.call this
 
@@ -71,9 +72,9 @@ describe 'Outlet synchronization', ->
     expect(@a.get()).eq 42
 
   it 'should keep multiple outlets in sync', ->
-    @model = new Outlet(1)
-    @view1 = new Outlet @model
-    @view2 = new Outlet @model
+    @model = new Auto(1)
+    @view1 = new Auto @model
+    @view2 = new Auto @model
 
     @model.set(2)
     expect(@model.get()).eq 2
@@ -86,9 +87,9 @@ describe 'Outlet synchronization', ->
     expect(@view2.get()).eq 3
 
   it 'should keep outlets in sync even when one is a function', ->
-    @x = new Outlet 42
-    @first = new Outlet => 2*@x.get()
-    @second = new Outlet @first
+    @x = new Auto 42
+    @first = new Auto => 2*@x.get()
+    @second = new Auto @first
 
     expect(@second.get()).eq 84
 
@@ -104,8 +105,8 @@ describe 'Outlet synchronization', ->
 
 describe 'Outlet hot', ->
   beforeEach ->
-    @a = new Outlet(1)
-    @b = new Outlet(2)
+    @a = new Auto(1)
+    @b = new Auto(2)
 
     addCallCounts.call this
 
@@ -113,7 +114,7 @@ describe 'Outlet hot', ->
 
   it 'when the inflow outlet is changed to another outlet, it should not recalculate when the original inflow outlet changes', ->
     expect(@callCounts[@b.cid]).eq 1
-    @a1 = new Outlet(3)
+    @a1 = new Auto(3)
     @b.set(@a1)
     expect(@b.get()).eq(@a1.get())
     expect(@callCounts[@b.cid]).eq 2
@@ -140,7 +141,7 @@ describe 'Outlet hot', ->
     expect(func).calledTwice
 
   it 'should not cascade outflows when assigned to a function whose value is the same as the previous value', ->
-    x = new Outlet 1
+    x = new Auto 1
     foo = -> 1
     bar = sinon.spy ->
     x.outflows.add bar
@@ -150,7 +151,7 @@ describe 'Outlet hot', ->
 
   it 'should not cascade outflows when assigned to the same inflow', ->
     foo = -> 1
-    x = new Outlet foo
+    x = new Auto foo
     bar = sinon.spy ->
     x.outflows.add bar
     x.set foo
@@ -159,7 +160,7 @@ describe 'Outlet hot', ->
   it 'should not cascade outflows when assigned to a new inflow that gives the same value', ->
     foo = -> 1
     bar = -> 1
-    x = new Outlet foo
+    x = new Auto foo
     out = sinon.spy ->
     x.outflows.add out
 
@@ -169,8 +170,8 @@ describe 'Outlet hot', ->
   describe '#detach', ->
 
     beforeEach ->
-      @a = new Outlet(1)
-      @b = new Outlet(2)
+      @a = new Auto(1)
+      @b = new Auto(2)
 
       addCallCounts.call this
 
@@ -202,8 +203,8 @@ describe 'Outlet hot', ->
       expect(func).calledOnce
 
     it 'should not update a previously attached inflow when updated after detached', ->
-      x = new Outlet 1
-      y = new Outlet x
+      x = new Auto 1
+      y = new Auto x
       y.set(2)
       expect(x.get()).eq 2
       y.detach()
@@ -212,16 +213,16 @@ describe 'Outlet hot', ->
 
   describe 'automatic outflows', ->
     beforeEach ->
-      @a = new Outlet(1)
-      @b = new Outlet(2)
+      @a = new Auto(1)
+      @b = new Auto(2)
 
       addCallCounts.call this
 
       @b.set(@a)
 
     it 'should assign inflows when input is a function calling other outlet\'s getters', ->
-      x = new Outlet(1)
-      y = new Outlet -> 2 * x.get() + 0*x.get()
+      x = new Auto(1)
+      y = new Auto -> 2 * x.get() + 0*x.get()
 
       x.set(2)
       expect(y.get()).eq 4
@@ -238,9 +239,9 @@ describe 'Outlet hot', ->
       expect(x.outflows.length).eq 1
 
     it 'should assign inflows only to the direct -- not indirect -- inflows', ->
-      x = new Outlet(1)
-      y = new Outlet -> 2 * x.get()
-      z = new Outlet -> 2 * y.get()
+      x = new Auto(1)
+      y = new Auto -> 2 * x.get()
+      z = new Auto -> 2 * y.get()
 
       x.set(2)
       expect(y.get()).eq 4
@@ -264,11 +265,11 @@ describe 'Outlet hot', ->
       expect(z.outflows.length).eq 0
 
     it 'should remove auto inflows that no longer apply', ->
-      b = new Outlet 0
-      c = new Outlet 2
+      b = new Auto 0
+      c = new Auto 2
       calls = 0
 
-      a = new Outlet ->
+      a = new Auto ->
         ++calls
         if b.get()
           c.get()
@@ -288,22 +289,22 @@ describe 'Outlet hot', ->
 
 describe 'Outlet habanero', ->
   beforeEach ->
-    @f = new Outlet 2
+    @f = new Auto 2
 
     @afn = sinon.spy => Math.floor(@f.get())
-    @a = new Outlet @afn
+    @a = new Auto @afn
 
     @bfn = sinon.spy => @a.get()*2
-    @b = new Outlet @bfn
+    @b = new Auto @bfn
 
     @dfn = sinon.spy => @f.get()*2
-    @d = new Outlet @dfn
+    @d = new Auto @dfn
 
     @cfn = sinon.spy => @a.get()*3 + @d.get()*2 + @f.get()
-    @c = new Outlet @cfn
+    @c = new Auto @cfn
 
     @efn = sinon.spy => @c.get()*2
-    @e = new Outlet @efn
+    @e = new Auto @efn
 
     @expectValues = (f) ->
       expect(@f.get()).eq(f)
@@ -381,10 +382,10 @@ describe 'Outlet habanero', ->
 
 describe 'Outlet stopPropagation', ->
   it 'should still call when one inflow is pending then becomes stopPropagate', ->
-    d = new Outlet(42)
-    a = new Outlet fn_a = sinon.spy -> d.get() * 2
-    b = new Outlet fn_b = sinon.spy -> 2
-    c = new Outlet fn_c = sinon.spy -> a.get() + b.get()
+    d = new Auto(42)
+    a = new Auto fn_a = sinon.spy -> d.get() * 2
+    b = new Auto fn_b = sinon.spy -> 2
+    c = new Auto fn_c = sinon.spy -> a.get() + b.get()
 
     d.outflows.add a
     d.outflows.add b
@@ -403,10 +404,10 @@ describe 'Outlet stopPropagation', ->
     expect(c.get()).eq (43*2+2)
 
   it 'should not call when pending and all inflows call stopPropagate', ->
-    d = new Outlet(42)
-    a = new Outlet fn_a = sinon.spy -> 2
-    b = new Outlet fn_b = sinon.spy -> 2
-    c = new Outlet fn_c = sinon.spy -> a.get() + b.get()
+    d = new Auto(42)
+    a = new Auto fn_a = sinon.spy -> 2
+    b = new Auto fn_b = sinon.spy -> 2
+    c = new Auto fn_c = sinon.spy -> a.get() + b.get()
 
     d.outflows.add a
     d.outflows.add b
@@ -433,9 +434,9 @@ describe 'Outlet async', ->
     bfn1 = sinon.spy ->
     cfn1 = sinon.spy ->
 
-    d = new Outlet(42)
+    d = new Auto(42)
 
-    a = new Outlet (done) ->
+    a = new Auto (done) ->
       afn0()
       if (d.get() > 42)
         afn1()
@@ -452,11 +453,11 @@ describe 'Outlet async', ->
     expect(d.outflows[a.cid]).exist
     expect(a.get()).eq 1
 
-    b = new Outlet ->
+    b = new Auto ->
       bfn1()
       2 * a.get()
 
-    c = new Outlet ->
+    c = new Auto ->
       cfn1()
       if (b.get() == 4)
         timeout ->
@@ -473,8 +474,8 @@ describe 'Outlet async', ->
 
   it 'tracks dependencies in the synchronous part of the call', (fin) ->
     bfn1 = sinon.spy ->
-    a = new Outlet 42
-    b = new Outlet (done) ->
+    a = new Auto 42
+    b = new Auto (done) ->
       bfn1()
       q = a.get()
       timeout ->
@@ -487,13 +488,13 @@ describe 'Outlet async', ->
     a.set(43)
 
   it  'should accept only the value of the most recent call', (fin) ->
-    c = new Outlet 0
+    c = new Auto 0
 
     afn2 = sinon.spy ->
     afn3 = sinon.spy ->
     bfn1 = sinon.spy ->
 
-    a = new Outlet (done) ->
+    a = new Auto (done) ->
       switch c.get()
         when 0 then done(0)
         when 1
@@ -520,7 +521,7 @@ describe 'Outlet async', ->
               afn3()
               done(3)
 
-    b = new Outlet ->
+    b = new Auto ->
       switch a.get()
         when 0 then return
         else
@@ -535,9 +536,9 @@ describe 'Outlet async', ->
 
   it 'should ignore the async call if it\'s set explicitly before the async returns', (fin) ->
 
-    c = new Outlet 0
+    c = new Auto 0
 
-    a = new Outlet (done) ->
+    a = new Auto (done) ->
       switch c.get()
         when 0 then done(0)
         else
@@ -556,7 +557,7 @@ describe 'Outlet with objects', ->
   # it 'should always recalculate when set to an object', ->
   #   arr = [1,2,3]
   #   arg = undefined
-  #   a = new Outlet arr
+  #   a = new Auto arr
   #   b = sinon.spy (argg) -> arg = argg
   #   a.outflows.add b
   #   expect(b.calledOnce)
@@ -567,8 +568,8 @@ describe 'Outlet with objects', ->
   #   expect(arg).eq.arr
 
   it 'should handle interdependent object-valued outlets', ->
-    a = new Outlet
-    b = new Outlet
+    a = new Auto
+    b = new Auto
     a.set(b)
     v = [1,2,3,4]
     a.set(v)
@@ -583,12 +584,12 @@ describe 'Outlet with objects', ->
     foo = sinon.spy ->
 
     ops = []
-    updater = new Outlet foo, silent: true
+    updater = new Auto foo, silent: true
 
     outlets = [
-      new Outlet
-      new Outlet
-      new Outlet
+      new Auto
+      new Auto
+      new Auto
     ]
 
     pushers = []
@@ -597,7 +598,7 @@ describe 'Outlet with objects', ->
 
     for i in [0..2]
       do (i) ->
-        outlet = new Outlet
+        outlet = new Auto
         pushers.push outlet
 
         fn = ->
@@ -636,7 +637,7 @@ describe 'Outlet with objects', ->
           foo()
           "yay"
 
-      outlet = new Outlet obj
+      outlet = new Auto obj
 
       expect(foo).not.called
       expect(bar).calledOnce
@@ -658,9 +659,9 @@ describe 'Outlet #modified', ->
 
     obj = { foo: 'bar'}
 
-    a = new Outlet obj
-    b = new Outlet a
-    c = new Outlet b
+    a = new Auto obj
+    b = new Auto a
+    c = new Auto b
     c.outflows.add foo
 
     a.set(obj)
@@ -671,14 +672,14 @@ describe 'Outlet #modified', ->
 
 describe 'Outlet set to multiple functions', ->
   it 'should run the function based on inflows', ->
-    x = new Outlet 1
-    y = new Outlet 2
+    x = new Auto 1
+    y = new Auto 2
 
-    a = new Outlet
+    a = new Auto
     a.set -> 2*x.get()
     a.set -> 3*y.get()
 
-    b = new Outlet a
+    b = new Auto a
 
     expect(a.get()).eq 6
     expect(b.get()).eq a.get()
@@ -697,8 +698,8 @@ describe 'Outlet unrun cascade', ->
     b = undefined
 
     Cascade.Block =>
-      a = new Outlet 42
-      b = new Outlet a
+      a = new Auto 42
+      b = new Auto a
       b.set(43)
 
     expect(a.get()).eq 43

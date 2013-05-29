@@ -1,5 +1,7 @@
 OJSON = require '../../ojson'
 sockio = require("socket.io")
+redis = require 'redis'
+RedisStore = require 'socket.io/lib/stores/redis'
 {extend} = require '../../mixin'
 Listener = require '../../events/listener'
 
@@ -8,9 +10,28 @@ onevent = (event, origin, ojSpec) ->
   return if origin == @id
   @emit event, ojSpec
 
-module.exports = (db, server) ->
+module.exports = (db, redisInfo, server) ->
 
   io = sockio.listen(server)
+  io.set 'store', new RedisStore
+    redis: redis
+    redisPub: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+    redisSub: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+    redisClient: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+
+  io.set 'browser client', false
+  io.set 'transports', [
+    'websocket'
+    'flashsocket'
+    'htmlfile'
+    'xhr-polling'
+  ]
+
+  io.configure 'development', ->
+    io.set 'log level', 2
+
+  io.configure 'production', ->
+    io.set 'log level', 1
 
   io.on 'connection', (sock) ->
     extend sock, Listener # no name clashes

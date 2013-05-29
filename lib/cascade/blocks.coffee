@@ -7,7 +7,6 @@ module.exports = (Cascade) ->
       ret = func()
     else
       Cascade.roots = []
-      Cascade.roots.cids = {}
 
       debug "Building up Cascade.Block"
 

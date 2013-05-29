@@ -42,12 +42,12 @@ publicMethods =
 
   newStatelet: (name) ->
     hdOutlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
-    statelet = new Statelet undefined, enableSet: @inWindow, silent: true, auto: true
+    statelet = new Statelet undefined, enableSet: @inWindow, silent: true
     statelet.set hdOutlet._value # so it propagates the update
     hdOutlet.set(statelet) # so it synchronizes with the history outlets store
 
     @ace.historyOutlets.on 'willNavigate', -> statelet.update()
-    debugCascade "created #{statelet} at",path.join('/')
+    debugCascade "created #{statelet} at",path.join('/'),"backed by #{hdOutlet}"
     statelet
 
 class Ace

@@ -67,32 +67,33 @@ class Outlet extends Cascade
       found ||= @_pickSource()
 
       if typeof found is 'function'
-        @_autoContext = found.cid
-        prev = Outlet.auto
-        if @auto
-          Outlet.auto = this
-          for k of (@_autoInflow = @_autoInflows[found.cid] ||= {})
-            @_autoInflow[k] = 0
-        else
-          Outlet.auto = null
-
-        try
-          if found.length > 0
-            callDone = false
-            num = @_runNumber
-            found (value) =>
-              @_setValue value if num is @_runNumber
-              callDone = true
-              done() if returned
-              return
-          else
-            @_setValue found()
-        finally
-          Outlet.auto = prev
+        Cascade.Block =>
+          @_autoContext = found.cid
+          prev = Outlet.auto
           if @auto
-            for k,v of @_autoInflow when !v
-              @inflows[k].outflows.remove this
-              delete @_autoInflow[k]
+            Outlet.auto = this
+            for k of (@_autoInflow = @_autoInflows[found.cid] ||= {})
+              @_autoInflow[k] = 0
+          else
+            Outlet.auto = null
+
+          try
+            if found.length > 0
+              callDone = false
+              num = @_runNumber
+              found (value) =>
+                @_setValue value if num is @_runNumber
+                callDone = true
+                done() if returned
+                return
+            else
+              @_setValue found()
+          finally
+            Outlet.auto = prev
+            if @auto
+              for k,v of @_autoInflow when !v
+                @inflows[k].outflows.remove this
+                delete @_autoInflow[k]
 
       else if found
         prev = Outlet.auto; Outlet.auto = null

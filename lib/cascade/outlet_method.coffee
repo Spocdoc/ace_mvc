@@ -18,7 +18,7 @@ class OutletMethod extends Outlet
         []
 
   constructor: (func, outlets, options={}) ->
-    @_omFunc = new Cascade.Block =>
+    @_omFunc = =>
       args = []
       args.push a.get() for a in @_argOutlets
       func.apply(options.context, args)

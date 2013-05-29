@@ -28,11 +28,10 @@ class StateletRunner extends Cascade
 
   set: (value) ->
     if value instanceof Cascade
-      @_statelet = value
+      @outflows.add @_statelet = value
       return
 
     debug "set #{@constructor.name} [#{@cid}] to [#{value}]"
-    return @_value if @_value is value
     @_value = value
     unless @_willSet
       @_willSet = true

@@ -135,17 +135,32 @@ class View extends ControllerBase
 
     return
 
-  _buildStatelet: (statelet) ->
-    unless typeof statelet is 'string'
-      for k,v of statelet
-        if v instanceof Cascade
-          o = v
+  _buildStatelet: (k,v,name) ->
+    name ||= k
+
+    if Array.isArray v
+      for e,i in v
+        @_buildStatelet k, e, "#{name}-#{i}"
+      return
+
+    if v instanceof Cascade
+      o = v
+    else if typeof v is 'string'
+      name = "#{name}-#{v}"
+      @_stateletDefaults[name] = (arg) =>
+        if arg?
+          @[k][v](arg)
         else
-          @_stateletDefaults[k] = v
-          o = @newStatelet k
-        @[k] ||= @outlets[k] = o
-    else
-      @[statelet] ||= @outlets[statelet] = @newStatelet(statelet)
+          @[k][v]()
+    else if typeof v is 'function'
+      if v.length > 1
+        @_stateletDefaults[name] = (arg) =>
+          v.call(this, @[k], arg)
+      else
+        @_stateletDefaults[name] = (arg) => v.call(this, arg)
+
+    o ||= @newStatelet name
+    @[name] ||= @outlets[name] = o
     return
 
   _buildStatelets: (statelets) ->
@@ -153,15 +168,23 @@ class View extends ControllerBase
     @_stateletDefaults ||= {}
 
     if Array.isArray statelets
-      @_buildStatelet k for k in statelets
+      @_buildStatelets k for k in statelets
     else
-      @_buildStatelet statelets
+      for k,v of statelets
+        @_buildStatelet k,v
     return
 
   _setStatelet: (k, v) ->
-    if typeof v is 'function'
-      v = v.call(this) unless v.length
-    @outlets[k]?.runner.getset = (arg) => v.call(this, arg)
+    if typeof v is 'function' and !v.length
+      v = v.call(this)
+      if v.length > 1
+        fn = (arg) => v.call(this,@[k], arg)
+      else
+        fn = (arg) => v.call(this,arg)
+    else
+      fn = v
+
+    @outlets[k]?.runner.getset = fn
     return
 
   _setStatelets: (settings) ->

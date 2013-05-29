@@ -135,4 +135,7 @@
   - the ace server reads all its configuration files asynchronously and doesn't prevent the http server from trying to serve requests before it's added itself (so clients get 404 until the server is up)
 
     preferably it should not open the server until everything is ready to serve requests (especially since it could be part of a cluster)
+# Statelets
+
+  - if the value is the same from one page to another, the dom won't be updated (because the cascade leading to the statelet sees an identical value and stops propagating updates)
 

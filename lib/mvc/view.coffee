@@ -49,20 +49,16 @@ class View extends ControllerBase
     $container.append(@$root)
     @_setInWindow $container
 
-  _setInWindow: Outlet.noAuto ($container) ->
+  _setInWindow: ($container) ->
     if other = $container.template?.view?.inWindow
-      @inWindow.set(other)
-      return
+    else
+      for parent in $container.parents()
+        (break) if other = parent.template?.view?.inWindow
 
-    for parent in $container.parents()
-      if other = parent.template?.view?.inWindow
-        @inWindow.set(other)
-        return
-
-    @inWindow.set(true)
+    @inWindow.set(other || true)
     return
 
-  remove: Outlet.noAuto ->
+  remove: ->
     return unless @$container
     debugDom "remove #{@} from #{@$container}"
     @$container = undefined

@@ -16,29 +16,25 @@ class Model
   @add: (coll) -> return this
 
   constructor: (@coll, @db, idOrSpec) ->
-    Outlet.enterContext()
-    try
-      if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-        return exists if exists = @constructor[@coll][idOrSpec]
-        @doc = @db.coll(@coll).read(idOrSpec)
-      else
-        @doc = @db.coll(@coll).create(idOrSpec)
+    if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
+      return exists if exists = @constructor[@coll][idOrSpec]
+      @doc = @db.coll(@coll).read(idOrSpec)
+    else
+      @doc = @db.coll(@coll).create(idOrSpec)
 
-      @id = @doc._id
-      @copy = clone(@doc.doc)
-      @constructor[@coll][@id] = this
+    @id = @doc._id
+    @copy = clone(@doc.doc)
+    @constructor[@coll][@id] = this
 
-      @_attach()
-      @_outlets = {}
-      @_pushers = {}
+    @_attach()
+    @_outlets = {}
+    @_pushers = {}
+    @_ops = []
+    @_updater = new Outlet =>
+      return unless (ops = @_ops).length
       @_ops = []
-      @_updater = new Outlet =>
-        return unless (ops = @_ops).length
-        @_ops = []
-        @doc.update ops
-        return
-    finally
-      Outlet.exitContext()
+      @doc.update ops
+      return
 
   _attach: ->
     @doc ||= @db.coll(@coll).read(@id)
@@ -55,7 +51,7 @@ class Model
 
   _configureOutlet: (path, outlet) ->
     @_pushers.push pusher = new Oultet (=>
-      ops = diff @doc, outlet.get(), path: path
+      ops = diff @doc, outlet._value, path: path
       @doc = diff.patch @doc, ops
       @_ops.push ops...
       pusher.modified()), silent: true

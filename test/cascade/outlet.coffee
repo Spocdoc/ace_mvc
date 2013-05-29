@@ -211,7 +211,7 @@ describe 'Outlet hot', ->
       x.set(3)
       expect(y.get()).eq 2
 
-  describe 'automatic outflows', ->
+  describe 'automatic inflows', ->
     beforeEach ->
       @a = new Auto(1)
       @b = new Auto(2)
@@ -286,6 +286,27 @@ describe 'Outlet hot', ->
       expect(calls).eq 4
       c.set(43)
       expect(calls).eq 4
+
+    it 'should not add spurious inflows that result from function outflows calling get()', ->
+      a = new Auto 42
+      c = new Auto 43
+      d = new Auto 44
+
+      c.outflows.add ->
+        a.get()
+
+      b = new Auto ->
+        c.set d
+
+      names = {}
+      str = 'abcd'
+      for obj,i in [a,b,c,d]
+        names[obj.cid] = str[i]
+
+      expect(Object.keys(a.inflows).map((key) -> names[key])).deep.eq []
+      expect(Object.keys(b.inflows).map((key) -> names[key])).deep.eq []
+      expect(Object.keys(c.inflows).map((key) -> names[key])).deep.eq ['d']
+      expect(Object.keys(d.inflows).map((key) -> names[key])).deep.eq ['c']
 
 describe 'Outlet habanero', ->
   beforeEach ->

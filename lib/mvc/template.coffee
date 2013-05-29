@@ -32,6 +32,7 @@ class Template
     return this
 
   constructor: (@type, @parent, @name) ->
+    prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
     @path = @parent.path
     @path = @path.concat(@name) if @name
@@ -46,7 +47,7 @@ class Template
     @['$root'] = @$root
     @$root.addClass @parent.type.replace('/','-')
     debugMVC "done building #{@}"
-    return this
+    Outlet.auto = prev
 
   toString: ->
     "#{@constructor.name} [#{@type}] name [#{@name}]"

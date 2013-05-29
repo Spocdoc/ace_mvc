@@ -11,62 +11,44 @@ Statelet = require '../cascade/statelet'
 debugCascade = global.debug 'ace:cascade'
 
 publicMethods =
-  newOutlet: Outlet.noAuto (name) ->
+  newOutlet: (name) ->
     outlet = @ace.historyOutlets.to.get path = Ace.makeOutletPath(this, name)
     outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newSlidingOutlet: Outlet.noAuto (name) ->
+  newSlidingOutlet: (name) ->
     outlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
     outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newFromOutlet: Outlet.noAuto (name) ->
+  newFromOutlet: (name) ->
     outlet = @ace.historyOutlets.from.get path = Ace.makeOutletPath(this, name)
     outlet.auto = true
     debugCascade "created #{outlet} at",path.join('/')
     outlet
 
-  newController: Outlet.noAuto (type, name, settings) ->
-    debugCascade "creating new controller",type,name
-    new Ace.Controller(@ace,type, this, name, settings)
+  local: (path) -> @ace.historyOutlets.noInherit(path)
+  to: (path) -> @ace.historyOutlets.sliding.get(path).get()
+  from: (path) -> @ace.historyOutlets.from.get(path).get()
 
-  local: Outlet.noAuto (path) -> @ace.historyOutlets.noInherit(path)
+  newController: (type, name, settings) -> debugCascade "creating new controller",type,name; new Ace.Controller(@ace,type, this, name, settings)
+  newView: (type, name, settings) -> debugCascade "creating new view",type,name; new Ace.View(@ace, type, this, name, settings)
+  newTemplate: (type) -> debugCascade "creating new template",type; new Ace.Template(@ace, type, this)
+  newModel: (type, idOrSpec) -> debugCascade "creating new model",type,idOrSpec; new Ace.Model(@ace, type, idOrSpec)
 
-  to: (path) ->
-    Outlet.enterContext()
-    outlet = @ace.historyOutlets.sliding.get(path)
-    Outlet.exitContext()
-    outlet.get()
+  navigate: -> @ace.routing.navigate()
 
-  from: (path) ->
-    Outlet.enterContext()
-    outlet = @ace.historyOutlets.from.get(path)
-    Outlet.exitContext()
-    outlet.get()
-
-  newView: Outlet.noAuto (type, name, settings) ->
-    new Ace.View(@ace, type, this, name, settings)
-
-  newModel: Outlet.noAuto (type, idOrSpec) -> new Ace.Model(@ace, type, idOrSpec)
-
-  navigate: Outlet.noAuto -> @ace.routing.navigate()
-
-  newStatelet: Outlet.noAuto (name) ->
+  newStatelet: (name) ->
     hdOutlet = @ace.historyOutlets.sliding.get path = Ace.makeOutletPath(this, name)
     statelet = new Statelet undefined, enableSet: @inWindow, silent: true, auto: true
-    statelet.set hdOutlet.get() # so it propagates the update
+    statelet.set hdOutlet._value # so it propagates the update
     hdOutlet.set(statelet) # so it synchronizes with the history outlets store
 
     @ace.historyOutlets.on 'willNavigate', -> statelet.update()
     debugCascade "created #{statelet} at",path.join('/')
     statelet
-
-  newTemplate: Outlet.noAuto (type) ->
-    new Ace.Template(@ace, type, this)
-
 
 class Ace
   include @, publicMethods

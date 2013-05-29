@@ -32,7 +32,7 @@ class HistoryOutlets extends Snapshots
   class ToHistoryOutlet extends Outlet
     constructor: (@_slidingOutlet) ->
       @_slidingOutlet._toOutlet = this
-      super @_slidingOutlet.get()
+      super @_slidingOutlet._value
       @_slidingOutlet.set this, silent: true
 
     localizeChanges: ->

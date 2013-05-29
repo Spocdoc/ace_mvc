@@ -7,39 +7,18 @@ debug = global.debug 'ace:cascade'
 #     silent    don't run the function immediately
 #     value     initialize the value (eg, if the value parameter is a function; used with silent)
 class Outlet extends Cascade
-  @stack = []
-  @stackLast = undefined
-
-  @noAuto: (fn) ->
-    ->
-      Outlet.enterContext()
-      try
-        fn.apply(this, arguments)
-      finally
-        Outlet.exitContext()
-
-  @enterContext: (ctx=null) ->
-    @stack.push @stackLast
-    @stackLast = ctx
-    debug "Set auto context #{ctx}"
-    return
-
-  @exitContext: ->
-    @stackLast = @stack.pop()
-    debug "Set auto context back to #{@stackLast}"
-    return
+  @auto = undefined
 
   enterContext: (@_autoContext) ->
-    Outlet.enterContext this
-    list = @_autoInflows[@_autoContext.cid] ||= {}
-    list[k] = 0 for k of list
+    return
 
   exitContext: ->
-    Outlet.exitContext()
-    list = @_autoInflows[@_autoContext.cid] ||= {}
-    for k,v of list when !v
-      @inflows[k].outflows.remove this
-      delete list[k]
+    Outlet.auto = @_auto
+    if @auto
+      list = @_autoInflows[@_autoContext.cid] ||= {}
+      for k,v of list when !v
+        @inflows[k].outflows.remove this
+        delete list[k]
     return
 
   _setValue: (value, version) ->
@@ -57,9 +36,6 @@ class Outlet extends Cascade
         return fn if @_autoInflows[fn.cid][change.cid]?
 
   _pickSource: ->
-    for change in @changes
-      (return found) if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]
-
     len = 0
     (break if ++len > 1) for k of @_eqFuncs
     switch len
@@ -85,13 +61,21 @@ class Outlet extends Cascade
       callDone = true
       returned = false
 
-      found = @_pickSource()
+      for change in @changes
+        (break) if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]
+
+      found ||= @_pickSource()
 
       if typeof found is 'function'
+        @_autoContext = found.cid
+        prev = Outlet.auto
         if @auto
-          @enterContext found
+          Outlet.auto = this
+          for k of (@_autoInflow = @_autoInflows[found.cid] ||= {})
+            @_autoInflow[k] = 0
         else
-          Outlet.enterContext()
+          Outlet.auto = null
+
         try
           if found.length > 0
             callDone = false
@@ -104,15 +88,16 @@ class Outlet extends Cascade
           else
             @_setValue found()
         finally
+          Outlet.auto = prev
           if @auto
-            @exitContext()
-          else
-            Outlet.exitContext()
+            for k,v of @_autoInflow when !v
+              @inflows[k].outflows.remove this
+              delete @_autoInflow[k]
 
       else if found
-        Outlet.enterContext()
+        prev = Outlet.auto; Outlet.auto = null
         @_setValue found.get(), found._version
-        Outlet.exitContext()
+        Outlet.auto = prev
 
       returned = true
       done() if callDone
@@ -120,8 +105,14 @@ class Outlet extends Cascade
 
     @set init, options
 
+  cascade: ->
+    prev = Outlet.auto; Outlet.auto = null
+    Cascade.prototype.cascade.call this
+    Outlet.auto = prev
+    return
+
   get: ->
-    out._autoInflow this if out = Outlet.stackLast
+    Outlet.auto?._addAuto this
 
     if len = arguments.length
       if @_multiGet
@@ -235,12 +226,10 @@ class Outlet extends Cascade
     break for cid,o of @_eqOutlets when o.get.length > 0 and @_multiGet = o
     return
 
-  _autoInflow: (inflow) ->
-    return unless @_autoContext
-    list = @_autoInflows[@_autoContext.cid]
+  _addAuto: (inflow) ->
     debug "Adding auto inflow #{inflow} to #{@}"
-    inflow.outflows.add this unless list[inflow.cid]?
-    list[inflow.cid] = 1
+    inflow.outflows.add this unless @_autoInflow[inflow.cid]?
+    @_autoInflow[inflow.cid] = 1
     return
 
 module.exports = Outlet

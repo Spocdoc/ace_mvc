@@ -34,6 +34,7 @@ class ControllerBase
   @defaultOutlets = []
 
   constructor: (@type, @parent, @name, settings) ->
+    prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
     @path = @parent.path
     @path = @path.concat(@name) if @name
@@ -42,6 +43,7 @@ class ControllerBase
     Cascade.Block =>
       @_build(@constructor.Config[@type], settings)
     debugMVC "done building #{@}"
+    Outlet.auto = prev
 
   toString: ->
     "#{@constructor.name} [#{@type}] name [#{@name}]"

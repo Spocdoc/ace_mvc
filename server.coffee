@@ -1,4 +1,4 @@
-#!/usr/bin/env coffee --nodejs --debug
+#!/usr/bin/env coffee#--nodejs --debug
 
 connect = require 'connect'
 express = require 'express'
@@ -9,6 +9,8 @@ debugger
 
 app = express()
 server = require('http').createServer(app)
+
+app.use connect.static path.resolve './public'
 
 app.configure 'development', ->
   app.use connect.logger 'dev'

@@ -87,7 +87,7 @@ if module is require.main
 
   async.waterfall [
     (next) -> glob './*/**/!(_*).coffee', next
-    # (next) -> glob './diff/array.coffee', next
+    # (next) -> glob './routes/utils.coffee', next
     (files, next) ->
       async.eachLimit files, os.cpus().length, writeClosure, next
     ], (err) ->

@@ -12,12 +12,18 @@ api ControllerBase.prototype,
 api View.prototype,
   newTemplate: 'newTemplate'
   appendTo: 'appendTo'
+  prependTo: 'prependTo'
+  insertBefore: 'insertBefore'
+  insertAfter: 'insertAfter'
   remove: 'remove'
 
 api Controller.prototype,
   newView: 'newView'
   newModel: 'newModel'
   appendTo: 'appendTo'
+  prependTo: 'prependTo'
+  insertBefore: 'insertBefore'
+  insertAfter: 'insertAfter'
   remove: 'remove'
 
 api Ace,
@@ -30,6 +36,8 @@ api Ace.View.prototype,
   newSlidingOutlet: 'newSlidingOutlet'
   newStatelet: 'newStatelet'
   local: 'local'
+  from: 'from'
+  to: 'to'
 
 api Ace.Controller.prototype,
   newController: 'newController'
@@ -40,4 +48,6 @@ api Ace.Controller.prototype,
   newView: 'newView'
   newModel: 'newModel'
   local: 'local'
+  from: 'from'
+  to: 'to'
 

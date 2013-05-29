@@ -251,4 +251,25 @@ describe 'OutletMethod setting other outlets', ->
     a.set(-1)
     expect(foo).calledOnce
 
+describe 'OutletMethod', ->
+  it 'should run in a cascade block', ->
+    count = 0
 
+    b = new Outlet
+    c = new Outlet
+    d = new Outlet -> ++count
+
+    b.outflows.add d
+    c.outflows.add d
+
+    expect(count).eq 1
+
+    num = 42
+
+    fn = ->
+      b.set num
+      c.set num
+
+    a = new OutletMethod fn, {}
+
+    expect(count).eq 2

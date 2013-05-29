@@ -1,3 +1,4 @@
+Cascade = require './cascade'
 Outlet = require './outlet'
 Autorun = require './autorun'
 debug = global.debug 'ace:cascade'
@@ -18,7 +19,7 @@ class OutletMethod extends Outlet
         []
 
   constructor: (func, outlets, options={}) ->
-    @_omFunc = =>
+    @_omFunc = new Cascade.Block =>
       args = []
       args.push a.get() for a in @_argOutlets
       func.apply(options.context, args)

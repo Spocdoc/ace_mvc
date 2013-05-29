@@ -1,6 +1,7 @@
 Url = require '../url'
 Emitter = require '../events/emitter'
 {include, extend} = require '../mixin'
+debug = global.debug 'ace:navigator'
 
 class NavigatorUrl extends Url
   hasHashPath: do ->
@@ -125,9 +126,13 @@ class Navigator
     newIndex = if event.state? then +event.state else newUrl.hashIndex()
     @_stripHash newUrl
 
+    debug "Got url change from #{@url} to #{newUrl}"
+
     if not isFinite(newIndex) or newUrl.href isnt @_urls[newIndex]?.href
+      debug "emitting new url navigate [#{newUrl}]"
       @_navigate newUrl
     else if newIndex != @index
+      debug "emitting index navigate to [#{newIndex}]"
       @index = newIndex
       @url = @_urls[newIndex]
       @emit 'navigate', @index

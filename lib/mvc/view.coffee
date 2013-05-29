@@ -132,6 +132,7 @@ class View extends ControllerBase
     @domCache = {}
     @$ = @template.$
     @[k] = v for k,v of @template when k[0] is '$'
+    @$root = @template.$root # closure mangling
 
     # disallow changing the template
     outlet.set = ->

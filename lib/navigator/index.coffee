@@ -41,6 +41,7 @@ class Navigator
   constructor: (win=window, @useHash=false) ->
     @window = win
     @useHash ||= !@window.history || !@window.history.pushState
+    @useHash = true #TODO DEBUG
     @url = new NavigatorUrl(@window.location.href)
     @index = 0
     @_urls = [@url]

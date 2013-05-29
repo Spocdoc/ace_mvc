@@ -38,9 +38,17 @@ class App
 
     @$html = $("""
     <html>
-        <head>
-            <title></title>
-        </head>
+    <head>
+    <title></title>
+    <script type="text/javascript">
+    (function () {
+    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
+    window.wrongPage = window.location.hash.match(/^#\\d+(.*)/);
+    a && (window.wrongPage && b) && (document.location.href = hashPath[1]);
+    })();
+    </script>
+    </head>
+    <body></body>
     </html>
     """)
 
@@ -61,12 +69,29 @@ class App
 
     $html = @$html.clone()
     $head = $html.find 'head'
+    $body = $html.find 'body'
 
     ace.routing.router.route req.url
-    ace.appendTo($html)
+    ace.appendTo($body)
     uris = (if @settings['debug'] then @bundler.debugUris else @bundler.releaseUris)
 
-    $body = $html.find 'body'
+    $body.prepend $("""
+    <script type="text/javascript">
+      window.wrongPage && document.write('<div id="wrong-page" style="display:none">');
+    </script
+    """)
+
+    $body.append $("""
+    <script type="text/javascript">
+    (function () {
+    if (window.wrongPage) {
+      document.write("</div>");
+      var a = document.getElementById("wrong-page");
+      a.parentNode.removeChild(a)
+    }
+    })();
+    </script>
+    """)
 
     # add client-side script
     for uri in uris.js
@@ -79,7 +104,7 @@ class App
     <script type="text/javascript">
     (function () {
       var historyOutlets = #{OJSON.stringify ace.historyOutlets};
-      window.Ace.newClient(historyOutlets, require('routes'), $('html'));
+      window.Ace.newClient(historyOutlets, require('routes'), $('body'));
     }());
     </script>
     """)

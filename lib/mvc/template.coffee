@@ -8,9 +8,7 @@ class TemplateBase
   lazy: ->
     return if @$root
     @$root = $(@dom)
-    if @name is 'body'
-      @$root = $('<body></body>').append(@$root)
-    else if @$root.length > 1 or @$root.attr('id')? or @$root.attr('class')
+    if @$root.length > 1 or @$root.attr('id')? or @$root.attr('class')
       @$root = $('<div></div>').append(@$root)
     @ids = @constructor._getIds(@$root)
 

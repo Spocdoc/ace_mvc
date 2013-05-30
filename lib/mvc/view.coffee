@@ -76,14 +76,14 @@ class View extends ControllerBase
         when 'toggleClass'
           outflows.add ->
             debugDom "calling #{str} in dom on #{name} with #{outlet.get()}"
-            e[str].call(e, name, outlet.get())
+            e[str].call(e, name, ''+outlet.get())
 
         when 'text','html'
           outflows.add ->
             if view.domCache[name] isnt (v = outlet.get())
-              view.domCache[name] = v
+              view.domCache[name] = ''+v
               debugDom "calling #{str} in dom on #{name} with #{v}"
-              e[str].call(e, v)
+              e[str].call(e, ''+v)
 
         else
           outflows.add ->

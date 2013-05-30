@@ -130,6 +130,7 @@ class Outlet extends Cascade
     debug "set #{@constructor.name} [#{@cid}] to [#{value}]"
 
     ++@_runNumber
+    @running = false
     outflow = false
 
     if typeof value is 'function'
@@ -159,7 +160,7 @@ class Outlet extends Cascade
       if value is @_value
         @cascade() unless options.init
       else if options.init
-        @pending = true
+        @setThisPending true
         @_run value
       else
         @run value
@@ -224,7 +225,12 @@ class Outlet extends Cascade
 
   _addAuto: (inflow) ->
     debug "Adding auto inflow #{inflow} to #{@}"
-    inflow.outflows.add this unless @_autoInflow[inflow.cid]?
+    unless @_autoInflow[inflow.cid]?
+      inflow.outflows.add this
+      if inflow.pending and !@outflows[inflow.cid]
+        # then shouldn't run -- keep this pending but set @running to false
+        ++@_runNumber
+        @running = false
     @_autoInflow[inflow.cid] = 1
     return
 

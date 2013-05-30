@@ -37,7 +37,15 @@ publicMethods =
   newController: (type, name, settings) -> debugCascade "creating new controller",type,name; new Ace.Controller(@ace,type, this, name, settings)
   newView: (type, name, settings) -> debugCascade "creating new view",type,name; new Ace.View(@ace, type, this, name, settings)
   newTemplate: (type) -> debugCascade "creating new template",type; new Ace.Template(@ace, type, this)
-  newModel: (type, idOrSpec) -> debugCascade "creating new model",type,idOrSpec; new Ace.Model(@ace, type, idOrSpec)
+
+  newModel: (type, idOrSpec) ->
+    debugCascade "creating new model",type,idOrSpec
+
+    if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
+      return exists if exists = @ace.modelCache[type]?[idOrSpec]
+
+    model = new Ace.Model(@ace, type, idOrSpec)
+    (@ace.modelCache[type] ||= {})[model.id] = model
 
   navigate: -> @ace.routing.navigate()
 
@@ -111,6 +119,7 @@ class Ace
   constructor: (@historyOutlets = new HistoryOutlets, @name='') ->
     @path = [@name]
     @ace = this
+    @modelCache = {}
 
     @root = @newOutlet('root')
     @rootType = @newOutlet('rootType')

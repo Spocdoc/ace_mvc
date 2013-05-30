@@ -5,6 +5,7 @@ express = require('express')
 Url = require '../../url'
 OJSON = require '../../ojson'
 Bundler = require '../../bundler/server'
+Cascade = undefined
 
 quote = do ->
   regexQuotes = /(['\\])/g
@@ -22,6 +23,7 @@ class App
   boot: (cb) ->
     app = @parent
 
+    Cascade = require '../../cascade/cascade'
     Template = require '../../mvc/template'
     View = require '../../mvc/view'
     Controller = require '../../mvc/controller'
@@ -60,19 +62,10 @@ class App
 
     cb()
 
-  handle: (req, res, next) ->
-    Ace = require '../index'
-    Template = require '../../mvc/template'
-
-    ace = new Ace
-    ace.routing.enable @_routeConfig, @_routes
-
-    $html = @$html.clone()
+  _finish: (ace, $html, res, next) ->
     $head = $html.find 'head'
     $body = $html.find 'body'
 
-    ace.routing.router.route req.url
-    ace.appendTo($body)
     uris = (if @settings['debug'] then @bundler.debugUris else @bundler.releaseUris)
 
     $body.prepend $("""
@@ -111,6 +104,32 @@ class App
     """)
 
     res.end "<!DOCTYPE html>\n#{$html.toString()}"
+    return
+
+  handle: (req, res, next) ->
+    cc = Cascade.newContext()
+
+    Ace = require '../index'
+    Template = require '../../mvc/template'
+
+    ace = new Ace
+    ace.routing.enable @_routeConfig, @_routes
+
+    $html = @$html.clone()
+
+    ace.routing.router.route req.url
+    ace.appendTo($html.find('body'))
+
+    setTimeout (=> @_finish ace, $html, res, next), 1000
+
+    # if cc.pending
+    #   Cascade.on 'done', =>
+    #     process.nextTick =>
+    #       @_finish ace, $html, res, next
+    # else
+    #   @_finish ace, $html, res, next
+
+    return
 
 module.exports = App
 

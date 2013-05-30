@@ -17,11 +17,8 @@ class Model
 
   @add: (coll) -> return this
 
-  cache = {}
-
   constructor: (@coll, @db, idOrSpec) ->
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-      return exists if exists = cache[@coll]?[idOrSpec]
       @doc = @db.coll(@coll).read(idOrSpec)
     else
       @doc = @db.coll(@coll).create(idOrSpec)
@@ -29,7 +26,6 @@ class Model
 
     @id = @doc.id
     @copy = clone(@doc.doc)
-    (cache[@coll] ||= {})[@id] = this
 
     @_onload = []
     @_attach()

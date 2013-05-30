@@ -6,7 +6,7 @@ makeId = require '../id'
 debug = global.debug 'ace:cascade'
 
 class Cascade
-  include Cascade, Emitter
+  extend Cascade, Emitter
 
   constructor: (@func) ->
     @func ||= ->
@@ -16,6 +16,11 @@ class Cascade
     @pending = false
     @_runNumber = 0
     @cid = makeId()
+
+  @newContext: ->
+    @_emitter = {}
+    @_emitter.pending = 0
+    @_emitter
 
   # remove inflow or all inflows
   detach: (inflow) ->
@@ -36,7 +41,8 @@ class Cascade
   run: (source) ->
     sp = source?.pending
     debug "called run on #{@}"
-    @outflows.setPending @pending = true
+    @setThisPending true
+    @outflows.setPending true
     @_mustRun = true # must run at least once since explicitly asked it to
     Cascade.run this, source unless sp
     return
@@ -44,12 +50,22 @@ class Cascade
   cascade: ->
     debug "called cascade on #{@}"
     unless @running
+      @setThisPending false
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true
       @pending = false
     for outflow in @outflows when outflow.pending in [undefined, true]
       outflow._mustRun = true # explicitly requested a cascade so must run even if there's a loop later
       Cascade.run outflow, this
+    return
+
+  setThisPending: (tf) ->
+    return if @pending is tf=!!tf
+    debug "set pending [#{tf}] on #{@}"
+    @pending = tf
+    if cc = Cascade._emitter
+      unless (cc.pending += if tf then 1 else -1)
+        Cascade.emit 'done'
     return
 
   setPending: (tf) ->
@@ -59,9 +75,7 @@ class Cascade
       return unless @_canRun()
       return Cascade.run this if @_mustRun
 
-    debug "set pending [#{tf}] on #{@}"
-
-    @pending = tf
+    @setThisPending tf
     @outflows.setPending tf
     return
 
@@ -72,15 +86,22 @@ class Cascade
 
   _run: do ->
     done = (cascade) ->
+      prev = Cascade._emitter
+      Cascade._emitter = cascade._cc
+
       if cascade._stopPropagation
         debug "#{cascade} called stopPropagation"
         cascade._stopPropagation = false
         cascade.setPending(false)
       else
-        cascade.pending = false
+        cascade.setThisPending false
         cascade.cascade()
       cascade.running = false
       cascade.changes = []
+
+      Cascade._emitter = prev
+      return
+
 
     (source) ->
       unless @pending
@@ -98,6 +119,7 @@ class Cascade
 
       @running = true
       ++@_runNumber
+      @_cc = Cascade._emitter
 
       if @func.length
         num = @_runNumber

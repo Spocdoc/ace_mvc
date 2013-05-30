@@ -1,10 +1,7 @@
-Emitter = require '../events/emitter'
 {include, extend} = require '../mixin'
 makeId = require '../id'
 
 class Outflows extends Array
-  include Outflows, Emitter
-
   constructor: (@cascade) ->
     # uses an array for faster iteration
     # uses itself as a dictionary for uniqueness

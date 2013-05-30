@@ -4,6 +4,7 @@ addBlocks = require './blocks'
 {include, extend} = require '../mixin'
 makeId = require '../id'
 debug = global.debug 'ace:cascade'
+debugCount = global.debug 'ace:cascade:count'
 
 class Cascade
   extend Cascade, Emitter
@@ -64,7 +65,9 @@ class Cascade
     debug "set pending [#{tf}] on #{@}"
     @pending = tf
     if cc = Cascade._emitter
+      debugCount "#{if tf then "+1" else "-1"} from #{cc.pending}"
       unless (cc.pending += if tf then 1 else -1)
+        debugCount "done"
         Cascade.emit 'done'
     return
 

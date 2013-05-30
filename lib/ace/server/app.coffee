@@ -120,14 +120,12 @@ class App
     ace.routing.router.route req.url
     ace.appendTo($html.find('body'))
 
-    setTimeout (=> @_finish ace, $html, res, next), 1000
-
-    # if cc.pending
-    #   Cascade.on 'done', =>
-    #     process.nextTick =>
-    #       @_finish ace, $html, res, next
-    # else
-    #   @_finish ace, $html, res, next
+    if cc.pending
+      Cascade.on 'done', =>
+        process.nextTick =>
+          @_finish ace, $html, res, next
+    else
+      @_finish ace, $html, res, next
 
     return
 

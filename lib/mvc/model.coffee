@@ -20,6 +20,7 @@ class Model
   constructor: (@coll, @db, idOrSpec) ->
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
       @doc = @db.coll(@coll).read(idOrSpec)
+      @_loaded = @doc.live
     else
       @doc = @db.coll(@coll).create(idOrSpec)
       @_loaded = true

@@ -1,6 +1,6 @@
-Outlet = require '../cascade/outlet'
+Auto = require '../cascade/auto'
 
-class PathBuilder extends Outlet
+class PathBuilder extends Auto
   constructor: (@router) ->
     super =>
       params = {}

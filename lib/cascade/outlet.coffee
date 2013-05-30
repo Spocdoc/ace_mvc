@@ -2,6 +2,7 @@ Cascade = require './cascade'
 makeId = require '../id'
 require '../polyfill'
 debug = global.debug 'ace:cascade'
+debugError = global.debug 'ace:error'
 
 # options:
 #     silent    don't run the function immediately
@@ -88,6 +89,8 @@ class Outlet extends Cascade
             else
               @_setValue found()
           catch _error
+            if _error
+              debugError "Caught error: #{_error}"
           finally
             Outlet.auto = prev
             if @auto

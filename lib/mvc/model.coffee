@@ -41,18 +41,26 @@ class Model
 
   onload: (cb) ->
     if @_loaded
-      cb()
+      cb @doc.rejected
     else
       @_onload.push cb
     return
 
   _attach: ->
     @doc ||= @db.coll(@coll).read(@id)
-    @listenOn @doc, 'update', @serverUpdate
+    @listenOn @doc, 'reject', @serverReject
     # 'reject'
     # 'conflict'
     # 'delete'
     # 'undelete'
+    @listenOn @doc, 'update', @serverUpdate
+
+  serverReject: (err) ->
+    unless @_loaded
+      @_loaded = true
+      cb(err) for cb in @_onload
+      delete @_onload
+    return
 
   serverUpdate: (ops) ->
     debug "serverUpdate for #{@}"

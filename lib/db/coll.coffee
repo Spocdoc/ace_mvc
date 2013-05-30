@@ -11,7 +11,10 @@ class Coll
     doc
 
   read: (id = new ObjectID, spec) ->
-    id = new ObjectID(id) if typeof id is 'string'
+    if typeof id is 'string'
+      try
+        id = new ObjectID(id) # on the server, mongodb's ObjectID throws an exception if it's an invalid id
+      catch _error
     return d if d = @docs[id]
     d = new Doc this, id, spec
     @docs[id] = d

@@ -11,7 +11,6 @@ class Controller extends ControllerBase
 
     @defaultConfig = defaults {}, @_super.defaultConfig,
       view: ''
-      model: ''
 
   @defaultOutlets = @_super.defaultOutlets.concat ['view','model']
 
@@ -45,12 +44,15 @@ class Controller extends ControllerBase
       if typeof m is 'function'
         @outletMethods.push m = @newOutletMethod(m, k)
       @view[k[1..]].set m
+    else if @outlets[k]
+      if m.length
+        @_outletDefaults[k] = (done) => m.call(this,done)
+      else
+        @_outletDefaults[k] = => m.call(this)
     else
       @[k] = m
 
   _build: (base, settings) ->
-    if !base
-      debugger
     base = base.get(this)
     config = base.config
 

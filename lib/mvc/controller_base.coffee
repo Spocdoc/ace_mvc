@@ -12,6 +12,8 @@ class ControllerBase
       mixins: []
       outlets: []
       outletMethods: []
+      extend: (obj) ->
+        extend @, obj
 
     constructor: (@name, config) ->
       if typeof config is 'function'

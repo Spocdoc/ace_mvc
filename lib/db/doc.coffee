@@ -78,7 +78,7 @@ class Doc
 
   update: (ops) ->
     @outgoing.push ops if ops
-    return if @conflicted or @rejected
+    return if @conflicted or @rejected?
     if @pending & ~UP_NOW
       @pending |= UP_LATER
       return
@@ -143,7 +143,7 @@ class Doc
 
   _subscribe: ->
     return if @live
-    if @conflicted or @rejected
+    if @conflicted or @rejected?
       @pending |= SUB_LATER
       return
     if @pending
@@ -180,7 +180,7 @@ class Doc
       @create()
     else if @pending & READ_LATER
       @read()
-    else unless @conflicted or @rejected
+    else unless @conflicted or @rejected?
       if @pending & UP_LATER
         @update()
       else if @pending & SUB_LATER
@@ -201,6 +201,9 @@ class Doc
           @serverCreate doc
         when 'no'
           @live = false
+          @serverDelete()
+        when 'rej'
+          @_reject err[1]
           @serverDelete()
     return
 
@@ -233,13 +236,13 @@ class Doc
     return
 
   _reject: (data) ->
-    @rejected ||= data || true
+    @rejected = data ?= ''
     @emit 'reject', data
     return
 
   _conflict: (data) ->
     @conflicted ||= data || true
-    return if @rejected
+    return if @rejected?
     return if !@incoming[@doc._v] and @live
     @_patchIncoming()
     [outgoing, @outgoing] = [@outgoing, []]
@@ -247,7 +250,7 @@ class Doc
     return
 
   _doServerUpdate: ->
-    return if @pending || @rejected
+    return if @pending || @rejected?
 
     if @conflicted
       @_conflict()

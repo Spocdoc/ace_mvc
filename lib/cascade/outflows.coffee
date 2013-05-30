@@ -42,7 +42,7 @@ class Outflows extends Array
       }`
 
       delete outflow.inflows?[@cascade.cid]
-      outflow.setPending? false
+      outflow.setPending? false unless outflow.running
 
     return
 

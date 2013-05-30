@@ -48,7 +48,6 @@ class Outlet extends Cascade
         @_findFuncByChanges()
 
   constructor: (init, options={}) ->
-    @_multiGet = undefined
     @_eqFuncs = {}
     @_eqOutlets = {}
     @_autoInflows = {}
@@ -94,6 +93,7 @@ class Outlet extends Cascade
               for k,v of @_autoInflow when !v
                 @inflows[k].outflows.remove this
                 delete @_autoInflow[k]
+                debug "Removing auto inflow #{k} from #{@}"
 
       else if found
         prev = Outlet.auto; Outlet.auto = null
@@ -115,16 +115,14 @@ class Outlet extends Cascade
 
   get: ->
     Outlet.auto?._addAuto this
+    
+    if @_value and len = arguments.length
+      if @_value.get?.length > 0
+        return @_value.get(arguments...)
+      else if len is 1 and typeof @_value is 'object'
+        return @_value[arguments[0]]
 
-    if len = arguments.length
-      if @_multiGet
-        @_multiGet.get(arguments...)
-      else if len is 1 and typeof @_value is 'object' and @_value isnt null
-        @_value[arguments[0]]
-      else
-        @_value
-    else
-      @_value
+    @_value
 
   set: (value, options={}) ->
     return if @_value is value
@@ -140,11 +138,10 @@ class Outlet extends Cascade
 
       @_eqFuncs[value.cid] = value
 
-    else if typeof value?.get is 'function'
+    else if value instanceof Cascade
       value.cid ||= makeId()
       return if @_eqOutlets[value.cid]
 
-      @_multiGet = value if value.get.length > 0
       @_eqOutlets[value.cid] = value
 
       if typeof value.set is 'function'
@@ -152,7 +149,7 @@ class Outlet extends Cascade
       else if value.outflows
         value.outflows.add this
 
-      outflow = typeof value._run is 'function'
+      outflow = true
 
     else
       @_version = 0
@@ -186,12 +183,10 @@ class Outlet extends Cascade
     else if typeof value?.get is 'function'
       return unless @_eqOutlets[value.cid]
       delete @_eqOutlets[value.cid]
-      @_resetMultiget() if @_multiGet is value
       @outflows.remove value
       value.unset? this
 
     else unless value?
-      @_multiGet = undefined
       @_eqFuncs = {}
       @unset value for cid,value of @_eqOutlets
 
@@ -201,7 +196,6 @@ class Outlet extends Cascade
     unless inflow?
       @_eqFuncs = {}
       @_eqOutlets = {}
-      @_multiGet = undefined
       @_autoInflows = {}
     else if inflow.cid
       delete @_autoInflows[inflow.cid]
@@ -209,7 +203,6 @@ class Outlet extends Cascade
         delete @_eqFuncs[inflow.cid]
       else if typeof inflow?.get is 'function'
         delete @_eqOutlets[inflow.cid]
-        @_resetMultiget() if @_multiGet is inflow
     super
 
   toJSON: -> @_value
@@ -228,11 +221,6 @@ class Outlet extends Cascade
       ret
 
   inc: (delta) -> @set(@_value + delta)
-
-  _resetMultiget: ->
-    @_multiGet = undefined
-    break for cid,o of @_eqOutlets when o.get.length > 0 and @_multiGet = o
-    return
 
   _addAuto: (inflow) ->
     debug "Adding auto inflow #{inflow} to #{@}"

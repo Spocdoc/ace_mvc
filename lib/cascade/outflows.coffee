@@ -1,5 +1,6 @@
 {include, extend} = require '../mixin'
 makeId = require '../id'
+debug = global.debug 'ace:cascade:outflows'
 
 class Outflows extends Array
   constructor: (@cascade) ->
@@ -15,6 +16,8 @@ class Outflows extends Array
     else
       @[outflow.cid ?= makeId()] = 1
 
+      debug "adding outflow #{outflow} to #{@cascade}"
+
       @push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
       outflow.setPending? true if @cascade.pending
@@ -29,6 +32,8 @@ class Outflows extends Array
     return unless (current = @[outflow.cid])?
 
     unless @[outflow.cid] = current - 1
+      debug "removing outflow #{outflow} from #{@cascade}"
+
       delete @[outflow.cid]
 
       `for (var i = this.length; i >= 0; --i) {

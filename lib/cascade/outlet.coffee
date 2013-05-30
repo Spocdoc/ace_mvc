@@ -87,6 +87,7 @@ class Outlet extends Cascade
                 return
             else
               @_setValue found()
+          catch _error
           finally
             Outlet.auto = prev
             if @auto
@@ -225,13 +226,15 @@ class Outlet extends Cascade
 
   _addAuto: (inflow) ->
     debug "Adding auto inflow #{inflow} to #{@}"
-    unless @_autoInflow[inflow.cid]?
+    if @_autoInflow[inflow.cid]?
+      @_autoInflow[inflow.cid] = 1
+    else
       inflow.outflows.add this
       if inflow.pending and !@outflows[inflow.cid]
         # then shouldn't run -- keep this pending but set @running to false
         ++@_runNumber
         @running = false
-    @_autoInflow[inflow.cid] = 1
+        throw 0
     return
 
 module.exports = Outlet

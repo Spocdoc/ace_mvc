@@ -100,6 +100,7 @@ class App
     for uri in uris.css
       $head.prepend $("""<link href="#{uri}" rel="stylesheet" type="text/css"/>""")
 
+    # TODO: also restore the models
     $body.append $("""
     <script type="text/javascript">
     (function () {

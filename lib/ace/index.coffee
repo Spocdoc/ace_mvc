@@ -9,6 +9,7 @@ Model = require '../mvc/model'
 Statelet = require '../cascade/statelet'
 {include,extend} = require '../mixin'
 debugCascade = global.debug 'ace:cascade'
+debugBoot = global.debug 'ace:boot:mvc'
 
 publicMethods =
   newOutlet: (name) ->
@@ -79,8 +80,14 @@ class Ace
 
     _build: (base) ->
       boot = @constructor._bootstrapped
-      return super unless !boot[@prefix] && (@$root = @ace.$container?.find("##{@prefix}")).length
+      prev = boot[@prefix]
       boot[@prefix] = true
+
+      unless !prev && (@$root = @ace.$container?.find("##{@prefix}")).length
+        debugBoot "Not bootstrapping template with prefix #{@prefix}"
+        return super
+
+      debugBoot "Bootstrapping template with prefix #{@prefix}"
       @$['root'] = @$root
       for id in base.ids
         (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
@@ -115,6 +122,7 @@ class Ace
       (arg) => @historyOutlets.navigate(arg),
       (path, fn) =>
         outlet = @historyOutlets.sliding.get path
+        outlet.auto = true
         outlet.set fn
         outlet
 

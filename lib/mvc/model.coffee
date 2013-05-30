@@ -3,11 +3,13 @@ Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 ObjectID = global.mongo.ObjectID
 Emitter = require '../events/emitter'
+Snapshots = require '../snapshots/snapshots'
 Listener = require '../events/listener'
 {include,extend} = require '../mixin'
 clone = require '../clone'
 diff = require '../diff'
 patchOutlets = require '../diff/to_outlets'
+debug = global.debug 'ace:mvc:model'
 
 class Model
   include Model, Emitter
@@ -15,20 +17,24 @@ class Model
 
   @add: (coll) -> return this
 
+  cache = {}
+
   constructor: (@coll, @db, idOrSpec) ->
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-      return exists if exists = @constructor[@coll][idOrSpec]
+      return exists if exists = cache[@coll]?[idOrSpec]
       @doc = @db.coll(@coll).read(idOrSpec)
     else
       @doc = @db.coll(@coll).create(idOrSpec)
+      @_loaded = true
 
-    @id = @doc._id
+    @id = @doc.id
     @copy = clone(@doc.doc)
-    @constructor[@coll][@id] = this
+    (cache[@coll] ||= {})[@id] = this
 
+    @_onload = []
     @_attach()
     @_outlets = {}
-    @_pushers = {}
+    @_pushers = []
     @_ops = []
     @_updater = new Outlet =>
       return unless (ops = @_ops).length
@@ -36,21 +42,36 @@ class Model
       @doc.update ops
       return
 
+  onload: (cb) ->
+    if @_loaded
+      cb()
+    else
+      @_onload.push cb
+    return
+
   _attach: ->
     @doc ||= @db.coll(@coll).read(@id)
-    @listenOn doc, 'update', @serverUpdate
+    @listenOn @doc, 'update', @serverUpdate
     # 'reject'
     # 'conflict'
     # 'delete'
     # 'undelete'
 
   serverUpdate: (ops) ->
+    debug "serverUpdate for #{@}"
     @copy = diff.patch @copy, ops
     Cascade.Block =>
       patchOutlets ops, @_outlets, @copy
 
+    unless @_loaded
+      @_loaded = true
+      cb() for cb in @_onload
+      delete @_onload
+
+    return
+
   _configureOutlet: (path, outlet) ->
-    @_pushers.push pusher = new Oultet (=>
+    @_pushers.push pusher = new Outlet (=>
       ops = diff @doc, outlet._value, path: path
       @doc = diff.patch @doc, ops
       @_ops.push ops...
@@ -60,17 +81,20 @@ class Model
     pusher.outflows.add @_updater
     outlet
 
+  # returns the value at a point
   get: (path, key) ->
     return this unless path
-
-    path = path.concat(key) if key?
+    path = Snapshots.getPath path,key
     o = @_outlets
     o = o[p] ||= {} for p in path
-    return o._ if o._
+    return o._.get() if o._
 
     d = @copy
     `for (var i = 0, e = path.length-1; i < e; ++i) d = d[path[i]] || (d[path[i]] = {});`
-    @configureOutlet(path, o._ = new Outlet(clone(d[path.length-1]),silent:true))
+    @_configureOutlet(path, o._ = new Outlet(clone(d[path[path.length-1]]),silent:true)).get()
+
+  toString: ->
+    "#{@constructor.name} [#{@id}]"
 
 
 module.exports = Model

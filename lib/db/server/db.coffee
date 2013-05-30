@@ -12,10 +12,20 @@ Emitter = require '../../events/emitter'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID
-    cb(['rej', "Must provide id"])
+    cb(['rej', "Invalid id"])
     false
   else
     true
+
+replaceId = (id, cb) ->
+  if typeof id is 'string'
+    try
+      id = new mongodb.ObjectID id
+    catch _error
+      cb(['rej','Invalid id'])
+  else unless checkId id,cb
+    return false
+  id
 
 checkErr = (err, cb) ->
   if err
@@ -23,7 +33,6 @@ checkErr = (err, cb) ->
     false
   else
     true
-
 
 class Db
   include Db, Emitter
@@ -42,7 +51,7 @@ class Db
       @emit channel, data[0], data[1], data[2]
       return
 
-  channel: (coll, id) -> "#{coll}:#{id}"
+  @channel = (coll, id) -> "#{coll}:#{id}"
 
   create: (origin, coll, doc, cb) ->
     return unless checkId(doc._id, cb)
@@ -55,51 +64,57 @@ class Db
     return
 
   read: (origin, coll, id, version, cb) ->
-    return unless checkId(id, cb)
+    return unless id = replaceId(id, cb)
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) ->
       return unless checkErr(err, cb)
       return cb(['no']) unless doc
+      doc._v ||= 1
       return cb() unless doc._v > version
       cb(['doc', doc])
       return
     return
 
   update: (origin, coll, id, version, ops, cb) ->
-    return unless checkId(id, cb)
+    return unless id = replaceId(id, cb)
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
       return unless checkErr(err, cb)
       return cb(['no']) unless doc
-      return cb(['ver',"v.#{doc._v} is current"]) unless version is doc._v
+      return cb(['ver',"v.#{doc._v} is current"]) unless version is (doc._v ? 1)
 
       to = diff.patch(doc, ops)
       spec = dtom ops, to
 
       # increment version
-      (spec['$inc'] ||= {})['_v'] = 1
+      if doc._v?
+        (spec['$inc'] ||= {})['_v'] = 1
+      else
+        (spec['$set'] ||= {})['_v'] = 2
 
-      @mongo.run 'update', {_id: id, _v: version}, spec, (err, updated) =>
+      @mongo.run 'update', {_id: id, _v: doc._v}, spec, (err, updated) =>
         return unless checkErr(err, cb)
         return cb(['ver']) unless updated
         cb()
-        @pub.publish channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
+        @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
         return
       return
     return
 
   delete: (origin, coll, id, cb) ->
-    return unless checkId(id, cb)
+    return unless id = replaceId(id, cb)
 
     @mongo.run 'remove', {_id: id}, (err) ->
       return unless checkErr(err, cb)
       cb()
-      @pub.publish channel(coll,id), OJSON.stringify(['delete',origin])
+      @pub.publish Db.channel(coll,id), OJSON.stringify(['delete',origin])
       return
     return
 
   subscribe: (origin, coll, id, version, cb) ->
-    c = channel(coll, id)
+    return unless id = replaceId(id, cb)
+
+    c = Db.channel(coll, id)
     unless @subscriptions[c]
       @sub.subscribe c
       @subscriptions[c] = true
@@ -111,14 +126,16 @@ class Db
         delete @subscriptions[c]
         cb(['no'])
         return
-      return cb(['doc', doc]) if doc._v != version
+      return cb(['doc', doc]) if (doc._v ||= 1) != version
       cb()
       return
     return
 
 
   unsubscribe: (origin, coll, id, cb) ->
-    c = channel(coll, id)
+    return unless id = replaceId(id, cb)
+
+    c = Db.channel(coll, id)
 
     unless @subscriptions[c]
       @sub.unsubscribe c

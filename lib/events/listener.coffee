@@ -11,13 +11,15 @@ module.exports = Listener =
     emitter.on event, fn, this
 
   listenOff: (emitter, event, fn) ->
+    return unless @_listener
+
     if not emitter?
       for cid, [emitter] of @_listener
         @listenOff(emitter, event, fn)
       delete @_listener[emitter] unless event? or fn?
       return
 
-    return if not emitter.cid?
+    return unless emitter.cid?
 
     if not event?
       [emitter,events] = @_listener[emitter.cid]

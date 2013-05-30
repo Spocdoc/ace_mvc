@@ -120,7 +120,7 @@ class Doc
     --doc._v
 
     incoming = []
-    incoming[@doc._v] = {'o': 1, 'v': doc}
+    incoming[@doc._v] = [{'o': 1, 'v': doc}]
 
     for k of @incoming when k > doc._v
       incoming[k] = @incoming[v]

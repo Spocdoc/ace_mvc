@@ -4,6 +4,7 @@ redis = require 'redis'
 RedisStore = require 'socket.io/lib/stores/redis'
 {extend} = require '../../mixin'
 Listener = require '../../events/listener'
+Db = require './db'
 
 # called with this = sock
 onevent = (event, origin, ojSpec) ->
@@ -56,14 +57,14 @@ module.exports = (db, redisInfo, server) ->
       c = data['c']
       i = data['i']
 
-      sock.listenOn db, db.channel(c,i), onevent
+      sock.listenOn db, Db.channel(c,i), onevent
       db.subscribe sock.id, c, i, data['e'], cb
 
     sock.on 'unsubscribe', (data, cb) ->
       c = data['c']
       i = data['i']
 
-      sock.listenOff db, db.channel(c,i)
+      sock.listenOff db, Db.channel(c,i)
       db.unsubscribe sock.id, c, i, cb
 
   io

@@ -59,6 +59,11 @@
   - It's currently grossly inefficient for outlets that refer to documents or arrays: the referenced part of the document is (deep) cloned any time a piece of it changes.
 
     this can be optimized by adding a `changed` method to outlets
+
+  - the model (wrapping the doc) will always have the wrong version number
+
+    this is confusing but doesn't cause errors because the client never sends version updates to the server and the model client has no transparency into the versioning
+
 # Server-side rendering
 
   - currently doesn't wait for async outlets to finish

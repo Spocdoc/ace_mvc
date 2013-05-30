@@ -47,7 +47,9 @@ class Cascade
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true
       @pending = false
-    Cascade.run outflow, this for outflow in @outflows
+    for outflow in @outflows when outflow.pending in [undefined, true]
+      outflow._mustRun = true # explicitly requested a cascade so must run even if there's a loop later
+      Cascade.run outflow, this
     return
 
   setPending: (tf) ->
@@ -82,7 +84,7 @@ class Cascade
 
     (source) ->
       unless @pending
-        debug "not running #{@} because not pending"
+        debug "not running #{@} because not pending mustrun: [#{@_mustRun}]"
         return
 
       @changes.push source if source

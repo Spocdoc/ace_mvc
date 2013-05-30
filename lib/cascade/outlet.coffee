@@ -104,6 +104,7 @@ class Outlet extends Cascade
       done() if callDone
       return
 
+    options.init = true
     @set init, options
 
   cascade: ->
@@ -118,7 +119,7 @@ class Outlet extends Cascade
     if len = arguments.length
       if @_multiGet
         @_multiGet.get(arguments...)
-      else if len is 1 and typeof @_value is 'object'
+      else if len is 1 and typeof @_value is 'object' and @_value isnt null
         @_value[arguments[0]]
       else
         @_value
@@ -151,14 +152,20 @@ class Outlet extends Cascade
       else if value.outflows
         value.outflows.add this
 
-      outflow = true
+      outflow = typeof value._run is 'function'
 
     else
       @_version = 0
       @_value = value
 
     unless options.silent
-      if value is @_value then @cascade() else @run value
+      if value is @_value
+        @cascade() unless options.init
+      else if options.init
+        @pending = true
+        @_run value
+      else
+        @run value
 
     @outflows.add value if outflow
     return
@@ -181,7 +188,7 @@ class Outlet extends Cascade
       delete @_eqOutlets[value.cid]
       @_resetMultiget() if @_multiGet is value
       @outflows.remove value
-      value.unset this
+      value.unset? this
 
     else unless value?
       @_multiGet = undefined

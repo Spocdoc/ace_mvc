@@ -30,16 +30,18 @@ class Db
   coll: (coll) ->
     @colls[coll] ||= new Coll this, coll
 
-  subscribe: (doc) ->
+  subscribe: (doc, cb) ->
     @sock.emit 'subscribe',
       'c': doc.coll.name
       'i': doc.id
       'e': doc.doc._v
+      cb
 
-  unsubscribe: (doc) ->
+  unsubscribe: (doc, cb) ->
     @sock.emit 'unsubscribe',
       'c': doc.coll.name
       'i': doc.id
+      cb
 
   create: (doc, cb) ->
     @sock.emit 'create', {'c': doc.coll.name, 'v': OJSON.toOJSON doc.doc}, cb

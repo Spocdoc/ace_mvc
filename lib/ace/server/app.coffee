@@ -97,7 +97,7 @@ class App
     $body.append $("""
     <script type="text/javascript">
     (function () {
-      var historyOutlets = #{OJSON.stringify ace.historyOutlets};
+      var historyOutlets = window.wrongPage ? null : #{OJSON.stringify ace.historyOutlets};
       window.Ace.newClient(historyOutlets, require('routes'), $('body'));
     }());
     </script>

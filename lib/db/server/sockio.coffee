@@ -21,18 +21,21 @@ module.exports = (db, redisInfo, server) ->
     redisClient: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
 
   io.set 'browser client', false
-  io.set 'transports', [
-    'websocket'
-    'flashsocket'
-    'htmlfile'
-    'xhr-polling'
-  ]
 
   io.configure 'development', ->
     io.set 'log level', 2
+    io.set 'transports', [
+      'websocket'
+    ]
 
   io.configure 'production', ->
     io.set 'log level', 1
+    io.set 'transports', [
+      'websocket'
+      'flashsocket'
+      'htmlfile'
+      'xhr-polling'
+    ]
 
   io.on 'connection', (sock) ->
     extend sock, Listener # no name clashes

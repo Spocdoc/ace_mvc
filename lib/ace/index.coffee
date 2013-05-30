@@ -63,7 +63,7 @@ class Ace
   include @, publicMethods
 
   @newClient: (historyOutletsOJSON, routesObj, $container) ->
-    global['ace'] = new Ace(OJSON.fromOJSON(historyOutletsOJSON))
+    global['ace'] = new Ace(historyOutletsOJSON && OJSON.fromOJSON(historyOutletsOJSON))
     ace.routing.enable routesObj
     navigator = ace.routing.enableNavigator()
     ace.routing.router.route navigator.url

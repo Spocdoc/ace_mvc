@@ -2,11 +2,16 @@ global.mongo = require 'mongodb' # for ObjectID & other types
 SockioEmulator = require './sockio_emulator'
 sockio = require './sockio'
 Db = require './db'
+clone = require '../../clone'
+ObjectID = require('mongodb').ObjectID
 
 db = undefined
 s = undefined
 
 module.exports = (app, config) ->
+
+  clone.register ObjectID, (other) -> new ObjectID(other.toString())
+
   db = new Db(config, config.redis)
 
   # for server-side rendering
@@ -15,4 +20,6 @@ module.exports = (app, config) ->
       new SockioEmulator(db)
 
   s = sockio(db, config.redis, app.settings.server)
+
+
 

@@ -9,6 +9,7 @@ diff = require '../../diff'
 OJSON = require '../../ojson'
 Emitter = require '../../events/emitter'
 {include} = require '../../mixin'
+debug = global.debug 'ace:server:db'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID
@@ -54,6 +55,8 @@ class Db
   @channel = (coll, id) -> "#{coll}:#{id}"
 
   create: (origin, coll, doc, cb) ->
+    debug "Got create request with",arguments...
+
     return unless checkId(doc._id, cb)
     return cb(['rej', "Version must be 1"]) unless doc._v is 1
 
@@ -64,6 +67,7 @@ class Db
     return
 
   read: (origin, coll, id, version, cb) ->
+    debug "Got read request with",arguments...
     return unless id = replaceId(id, cb)
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) ->
@@ -76,6 +80,7 @@ class Db
     return
 
   update: (origin, coll, id, version, ops, cb) ->
+    debug "Got update request with",arguments...
     return unless id = replaceId(id, cb)
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
@@ -102,6 +107,7 @@ class Db
     return
 
   delete: (origin, coll, id, cb) ->
+    debug "Got delete request with",arguments...
     return unless id = replaceId(id, cb)
 
     @mongo.run 'remove', {_id: id}, (err) ->
@@ -112,6 +118,7 @@ class Db
     return
 
   subscribe: (origin, coll, id, version, cb) ->
+    debug "Got subscribe request with",arguments...
     return unless id = replaceId(id, cb)
 
     c = Db.channel(coll, id)
@@ -133,6 +140,7 @@ class Db
 
 
   unsubscribe: (origin, coll, id, cb) ->
+    debug "Got unsubscribe request with",arguments...
     return unless id = replaceId(id, cb)
 
     c = Db.channel(coll, id)

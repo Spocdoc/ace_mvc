@@ -1,4 +1,3 @@
-require '../polyfill'
 
 class Registry
   constructor: ->

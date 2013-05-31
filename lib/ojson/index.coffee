@@ -1,4 +1,3 @@
-require '../polyfill'
 {include, extend} = require '../mixin'
 
 # "Object"-based JSON 

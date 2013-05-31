@@ -4,7 +4,6 @@ Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
 Template = require './template'
 {defaults} = require '../mixin'
-require '../polyfill'
 debugDom = global.debug 'ace:dom'
 
 class View extends ControllerBase

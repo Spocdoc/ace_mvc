@@ -1,7 +1,6 @@
 # derived from node.js with substantial modification
 
 {defaults: udefaults} = require '../mixin'
-require '../polyfill'
 querystring = require './querystring'
 
 protocolPattern = /^([a-z0-9.+-]+:)/i

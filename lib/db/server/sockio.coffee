@@ -26,6 +26,9 @@ module.exports = (db, redisInfo, server) ->
     io.set 'log level', 2
     io.set 'transports', [
       'websocket'
+      'flashsocket'
+      'htmlfile'
+      'xhr-polling'
     ]
 
   io.configure 'production', ->

@@ -1,4 +1,3 @@
-require '../polyfill'
 
 class Snapshots extends Array
   @Compound = ->

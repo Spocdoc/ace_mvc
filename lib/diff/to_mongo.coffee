@@ -1,4 +1,3 @@
-require '../polyfill'
 
 set = (res, k, v) ->
   (res['$set'] ||= {})[k] = v

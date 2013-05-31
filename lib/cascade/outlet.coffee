@@ -1,6 +1,5 @@
 Cascade = require './cascade'
 makeId = require '../id'
-require '../polyfill'
 debug = global.debug 'ace:cascade'
 debugError = global.debug 'ace:error'
 

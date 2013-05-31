@@ -46,7 +46,7 @@ class App
     (function () {
     var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
     window.wrongPage = window.location.hash.match(/^#\\d+(.*)/);
-    a && (window.wrongPage && b) && (document.location.href = hashPath[1]);
+    a && (window.wrongPage && b) && (document.location.href = window.wrongPage[1]);
     })();
     </script>
     </head>

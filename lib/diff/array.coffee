@@ -3,7 +3,6 @@
 // @js_externs module.exports
 // ==/ClosureCompiler==
 `
-require '../polyfill'
 clone = require '../clone'
 
 makeValueMap = (hashes, compare) ->

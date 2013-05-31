@@ -7,7 +7,6 @@
 
 Emitter = require '../events/emitter'
 diff = require '../diff'
-require '../polyfill'
 
 SUB_LATER   = 1 << 0
 SUB_NOW     = 3 << 0

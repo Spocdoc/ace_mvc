@@ -4,10 +4,10 @@ OJSON = require '../ojson'
 debug = global.debug 'ace:db'
 
 class Db
-  constructor: (path='/') ->
+  constructor: ->
     @colls = {}
 
-    @sock = io.connect path
+    @sock = io.connect '/'
 
     @sock.on 'create', (data) =>
       coll = data['c']
@@ -63,3 +63,6 @@ class Db
     @sock.emit 'delete', {'c': doc.coll.name, 'i': doc.id}, cb
 
 module.exports = Db
+
+# add OJSON serialization functions
+require('./db_ojson')(Db)

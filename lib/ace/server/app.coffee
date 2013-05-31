@@ -38,16 +38,19 @@ class App
     @_routeConfig = require(@settings['routes'])
     @_routes = Routing.buildRoutes @_routeConfig
 
+    ### original wrongPage code
+    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
+    window['wrongPage'] = window.location.hash.match(/^#\\d+(.*)/);
+    if (window['wrongPage'] && window['wrongPage'][1] === window.location.pathname) window['wrongPage'] = false;
+    a && (window['wrongPage'] && b) && (document.location.href = window['wrongPage'][1]);
+    ###
+
     @$html = $("""
     <html>
     <head>
     <title></title>
     <script type="text/javascript">
-    (function () {
-    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
-    window.wrongPage = window.location.hash.match(/^#\\d+(.*)/);
-    a && (window.wrongPage && b) && (document.location.href = window.wrongPage[1]);
-    })();
+    (function () {var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1);window.wrongPage=window.location.hash.match(/^#\\d+(.*)/);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);})();
     </script>
     </head>
     <body></body>
@@ -93,12 +96,11 @@ class App
     for uri in uris.css
       $head.prepend $("""<link href="#{uri}" rel="stylesheet" type="text/css"/>""")
 
-    # TODO: also restore the models
     $body.append $("""
     <script type="text/javascript">
     (function () {
-      var historyOutlets = window.wrongPage ? null : #{OJSON.stringify ace.historyOutlets};
-      window.Ace.newClient(historyOutlets, require('routes'), $('body'));
+      var restore = window.wrongPage ? null : #{OJSON.stringify ace};
+      window.Ace.newClient(restore, require('routes'), $('body'));
     }());
     </script>
     """)

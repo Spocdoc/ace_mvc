@@ -12,6 +12,10 @@
 
     instead, it should calculate if an inflow is also an outflow and it has priority by looking at an index number that's set sequentially for each cascade when the outflows are set to pending. this would require doing a breadth-first traversal...
 
+  - OutletMethod has some inefficiency when it sets itself to another outlet when the function returns an outlet: it causes the outlet it's set to to re-run (setting all of its outflows to pending) then stop propagation (setting them back to not pending) unnecessarily
+
+    this isn't easily avoided. after running the function, cascade() is called, which sets the outflows to pending
+
 # Outlet
 
   - optimization: should cache the change to function mapping instead of looping through all the functions (map from change cid to function)

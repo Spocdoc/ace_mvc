@@ -1,8 +1,8 @@
 Cascade = require './cascade'
-Outlet = require './outlet'
+Auto = require './auto'
 debug = global.debug 'ace:cascade'
 
-class OutletMethod extends Outlet
+class OutletMethod extends Auto
   @name = 'OutletMethod'
 
   getArgNames = do ->
@@ -20,10 +20,27 @@ class OutletMethod extends Outlet
         []
 
   constructor: (func, outlets, options={}) ->
+    @_omSet = undefined
     @_omFunc = =>
+      num = @_runNumber
+
       args = []
       args.push a.get() for a in @_argOutlets
-      func.apply(options.context, args)
+      result = func.apply(options.context, args)
+
+      return if num != @_runNumber
+
+      if result instanceof Cascade
+        rv = result.get() # fetch the result first, so if it's pending, the calculation will abort before setting
+        if result isnt @_omSet
+          @pending = false # this hackery is because outlet's set alters the run state to invalidate running functions, which isn't wanted here
+          @unset @_omSet if @_omSet
+          @set @_omSet = result, silent: true
+          @pending = @running = true
+        @_runNumber = num
+        rv
+      else
+        result
 
     # prevent super constructor from calling `run` immediately
     @run = ->
@@ -50,6 +67,7 @@ class OutletMethod extends Outlet
     ret = super
     @_argOutlets = []
     @set @_omFunc, silent: true
+    @set @_omSet if @_omSet
     ret
 
   toJSON: -> undefined

@@ -278,3 +278,79 @@ describe 'OutletMethod', ->
 
     expect(count).eq 2
     expect(bar).calledOnce
+
+  describe 'when func returns another outlet', ->
+    it 'should have a value equal to the other outlet', ->
+      a = new Outlet 42
+      b = new Outlet 43
+      tf = new Outlet true
+
+      om = new OutletMethod (->
+        if tf.get()
+          a
+        else
+          b),{}
+
+      expect(om.get()).eq 42
+
+    it 'should cascade when the other outlet changes', ->
+      a = new Outlet 42
+      b = new Outlet 43
+      tf = new Outlet true
+
+      om = new OutletMethod (->
+        if tf.get()
+          a
+        else
+          b),{}
+
+      q = new Outlet om
+
+      expect(om.get()).eq 42
+      expect(q.get()).eq 42
+      a.set(43)
+      expect(om.get()).eq 43
+      expect(q.get()).eq 43
+
+    it 'should unset from the previous outlet when the function result changes', ->
+      a = new Outlet 42
+      b = new Outlet 44
+      tf = new Outlet true
+
+      om = new OutletMethod (->
+        if tf.get()
+          a
+        else
+          b),{}
+
+      q = new Outlet om
+
+      expect(om.get()).eq 42
+      expect(q.get()).eq 42
+      a.set(43)
+      expect(om.get()).eq 43
+      expect(q.get()).eq 43
+
+      tf.set(false)
+      expect(om.get()).eq 44
+      expect(q.get()).eq 44
+      a.set(999)
+      expect(om.get()).eq 44
+      expect(q.get()).eq 44
+      b.set(45)
+      expect(om.get()).eq 45
+      expect(q.get()).eq 45
+
+    it 'should not calculate if set to an outlet that\'s currently pending, then update when that outlet is no longer pending', ->
+      a = new Outlet 42
+      b = new Outlet a
+      om = undefined
+      c = new Outlet
+
+      Cascade.Block =>
+        a.set 43
+        om = new OutletMethod (-> b),{}
+        c.set om
+      expect(om.get()).eq 43
+      expect(c.get()).eq 43
+

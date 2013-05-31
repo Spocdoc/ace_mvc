@@ -1,6 +1,7 @@
 $ = global.$
 Outlet = require '../cascade/outlet'
 debugMVC = global.debug 'ace:mvc'
+utils = require './utils'
 
 class TemplateBase
   constructor: (@dom, @name) ->
@@ -22,7 +23,6 @@ class TemplateBase
 
     (dom) -> helper [], dom
 
-
 class Template
   @add: (name, domString) ->
     throw new Error("Template: already added #{name}") if @[name]?
@@ -43,7 +43,7 @@ class Template
 
     # api
     @['$root'] = @$root
-    @$root.addClass @parent.type.replace('/','-')
+    @$root.addClass utils.makeClassName(@parent.type)
     debugMVC "done building #{@}"
     Outlet.auto = prev
 

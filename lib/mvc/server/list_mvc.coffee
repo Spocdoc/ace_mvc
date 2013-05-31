@@ -5,13 +5,6 @@ styleLoader = require './style_loader'
 async = require 'async'
 debug = global.debug 'ace:boot:mvc'
 
-validateName = do ->
-  regex = /^[a-zA-Z]+[_a-zA-Z0-9\/]*$/
-  (name) ->
-    unless !!regex.exec(name)
-      throw new Error("Invalid mvc component name: #{name}")
-    return
-
 getInode = async.memoize (filePath, cb) ->
   fs.stat filePath, (err, stat) ->
     return cb(err) if err?
@@ -21,14 +14,12 @@ formName = (name, base, stub) ->
   unless base is stub
     name += '/' if name
     name += "#{base}"
-  validateName name
   name
 
 formStyleName = (name, base, stub) ->
   unless base is stub
     name += '/' if name
     name += "#{base}"
-  validateName name if name # allow blank style names for the default style
   name
 
 listMvc = (mvc, arr, root, pending, done, type) ->

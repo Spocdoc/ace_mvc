@@ -1,5 +1,6 @@
 path = require 'path'
 async = require 'async'
+utils = require '../utils'
 
 # note: in principle this could be modularized so each style type is in a
 # separate file that's `require`'d as needed
@@ -18,7 +19,7 @@ styleLoaders =
     stylus = require 'stylus'
 
     (fullPath, name, content, cb) ->
-      name = name.replace '/', '-'
+      name = utils.makeClassName name
 
       async.parallel
         debug: (done) ->

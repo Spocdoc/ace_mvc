@@ -13,7 +13,17 @@ class ControllerBase
       outlets: []
       outletMethods: []
       extend: (obj) ->
-        extend @, obj
+        for k,v of obj
+          unless (current = @[k])?
+            @[k] = v
+          else
+            current = [current] unless Array.isArray current
+            if Array.isArray v
+              Array.prototype.push.apply(current, v)
+            else
+              current.push v
+        return
+
 
     constructor: (@name, config) ->
       if typeof config is 'function'
@@ -106,7 +116,9 @@ class ControllerBase
       @_buildMixins elem for elem in mixins
     else
       for name,args of mixins
-        @_build @constructor.Config[name].get(this, args)
+        mixin = @constructor.Config[name]
+        throw new Error("No such mixin: [#{name}]") unless mixin
+        @_build mixin.get(this, args)
 
     @_buildMixins mixins2 if mixins2
 

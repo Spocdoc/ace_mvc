@@ -89,8 +89,7 @@ class Outlet extends Cascade
             else
               @_setValue found()
           catch _error
-            if _error
-              debugError "Caught error: #{_error}"
+            debugError _error.stack if _error
           finally
             Outlet.auto = prev
             if @auto

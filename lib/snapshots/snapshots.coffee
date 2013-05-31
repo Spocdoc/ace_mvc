@@ -1,5 +1,5 @@
 
-class Snapshots extends Array
+class Snapshots
   @Compound = ->
 
   @getPath = (path, key) ->
@@ -19,10 +19,10 @@ class Snapshots extends Array
 
     syncTarget = (src, dst) ->
       # sync nested keys first then yours
-      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
+      for k, v of src when k.charAt(0) != '_' and !src.constructor.prototype[k]? and dst[k]?
         continue unless v instanceof Snapshots.Compound
         syncTarget src[k], dst[k]
-      for k, v of src when k[0] != '_' and !src.constructor.prototype[k]? and dst[k]?
+      for k, v of src when k.charAt(0) != '_' and !src.constructor.prototype[k]? and dst[k]?
         continue if v instanceof Snapshots.Compound
         dst[k].sync(v)
       return
@@ -53,7 +53,7 @@ class Snapshots extends Array
       return o
 
     @each: (o,fn) ->
-      for k, v of o when k[0] != '_' and !o.constructor.prototype[k]?
+      for k, v of o when k.charAt(0) != '_' and !o.constructor.prototype[k]?
         if v instanceof Snapshots.Compound
           @each v, fn
         else
@@ -83,19 +83,25 @@ class Snapshots extends Array
 
   snapshotFactory: -> new Snapshots.Snapshot
 
-  constructor: ->
-    @push()
+  constructor: (arg) ->
+    if arg?
+      @array = arg
+    else
+      @array = []
+      @push()
 
-  push: ->
-    return super if arguments.length
-    len = @length
-    if len
-      parent = @[len-1]
+  splice: ->
+    @array.splice.apply(@array, arguments)
+
+  push: (arg) ->
+    return @array.push(arg) if arguments.length
+    if len = @array.length
+      parent = @array[len-1]
       next = parent._inherit()
       next['_parent'] = parent
-      super next
+      @array.push next
     else
-      super new @snapshotFactory
+      @array.push new @snapshotFactory
 
 module.exports = Snapshots
 

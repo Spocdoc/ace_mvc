@@ -23,7 +23,7 @@ module.exports = (db, redisInfo, server) ->
   io.set 'browser client', false
 
   io.configure 'development', ->
-    io.set 'log level', 2
+    io.set 'log level', 3
     io.set 'transports', [
       'websocket'
       'flashsocket'

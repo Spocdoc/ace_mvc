@@ -233,10 +233,10 @@ describe 'Outlet hot', ->
       expect(x.outflows[y.cid]).to.exist
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(y.outflows.length).eq 0
+      expect(y.outflows.array.length).eq 0
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(x.outflows.length).eq 1
+      expect(x.outflows.array.length).eq 1
 
     it 'should assign inflows only to the direct -- not indirect -- inflows', ->
       x = new Auto(1)
@@ -256,13 +256,13 @@ describe 'Outlet hot', ->
       expect(z.inflows[y.cid]).to.exist
 
       expect(Object.keys(x.inflows).length).eq 0
-      expect(x.outflows.length).eq 1
+      expect(x.outflows.array.length).eq 1
 
       expect(Object.keys(y.inflows).length).eq 1
-      expect(y.outflows.length).eq 1
+      expect(y.outflows.array.length).eq 1
 
       expect(Object.keys(z.inflows).length).eq 1
-      expect(z.outflows.length).eq 0
+      expect(z.outflows.array.length).eq 0
 
     it 'should remove auto inflows that no longer apply', ->
       b = new Auto 0
@@ -358,22 +358,22 @@ describe 'Outlet habanero', ->
     # outflows always 1 greater than actual number
 
     expect(Object.keys(@f.inflows).length).eq(0)
-    expect(@f.outflows.length).eq(3)
+    expect(@f.outflows.array.length).eq(3)
 
     expect(Object.keys(@a.inflows).length).eq(1)
-    expect(@a.outflows.length).eq(2)
+    expect(@a.outflows.array.length).eq(2)
 
     expect(Object.keys(@d.inflows).length).eq(1)
-    expect(@d.outflows.length).eq(1)
+    expect(@d.outflows.array.length).eq(1)
 
     expect(Object.keys(@c.inflows).length).eq(3)
-    expect(@c.outflows.length).eq(1)
+    expect(@c.outflows.array.length).eq(1)
 
     expect(Object.keys(@b.inflows).length).eq(1)
-    expect(@b.outflows.length).eq(0)
+    expect(@b.outflows.array.length).eq(0)
 
     expect(Object.keys(@e.inflows).length).eq(1)
-    expect(@e.outflows.length).eq(0)
+    expect(@e.outflows.array.length).eq(0)
 
 
   it 'should have run the calculation functions exactly once with complex dependencies', ->
@@ -661,18 +661,18 @@ describe 'Outlet with objects', ->
       outlet = new Auto obj
 
       expect(foo).not.called
-      expect(bar).calledOnce
+      expect(bar).not.called
       expect(outlet.get()).eq obj
       expect(foo).not.called
-      expect(bar).calledOnce
+      expect(bar).not.called
 
       expect(outlet.get(123)).eq 'yay'
       expect(foo).calledOnce
-      expect(bar).calledTwice
+      expect(bar).calledOnce
 
       expect(outlet.get()).eq obj
       expect(foo).calledOnce
-      expect(bar).calledTwice
+      expect(bar).calledOnce
 
 describe 'Outlet #modified', ->
   it 'should run all the outflows even if the object is the same', ->

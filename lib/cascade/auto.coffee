@@ -3,6 +3,7 @@ Outlet = require './outlet'
 autos = []
 
 class Auto extends Outlet
+  @name = 'Auto'
   constructor: (init, options={}) ->
     options.auto = true
     unless this instanceof Auto

@@ -112,22 +112,22 @@ describe 'Cascade hot', ->
     expect(@e.inflows[@c.cid]).to.exist
 
     expect(Object.keys(@f.inflows).length).eq(0)
-    expect(@f.outflows.length).eq(3)
+    expect(@f.outflows.array.length).eq(3)
 
     expect(Object.keys(@a.inflows).length).eq(1)
-    expect(@a.outflows.length).eq(2)
+    expect(@a.outflows.array.length).eq(2)
 
     expect(Object.keys(@d.inflows).length).eq(1)
-    expect(@d.outflows.length).eq(1)
+    expect(@d.outflows.array.length).eq(1)
 
     expect(Object.keys(@c.inflows).length).eq(3)
-    expect(@c.outflows.length).eq(1)
+    expect(@c.outflows.array.length).eq(1)
 
     expect(Object.keys(@b.inflows).length).eq(1)
-    expect(@b.outflows.length).eq(0)
+    expect(@b.outflows.array.length).eq(0)
 
     expect(Object.keys(@e.inflows).length).eq(1)
-    expect(@e.outflows.length).eq(0)
+    expect(@e.outflows.array.length).eq(0)
 
 
   it 'should only calculate outflows when all inflows are up to date', ->
@@ -162,22 +162,22 @@ describe 'Cascade hot', ->
     # outflows always 1 greater than actual number
 
     expect(Object.keys(@f.inflows).length).eq(0)
-    expect(@f.outflows.length).eq(2)
+    expect(@f.outflows.array.length).eq(2)
 
     expect(Object.keys(@a.inflows).length).eq(1)
-    expect(@a.outflows.length).eq(2)
+    expect(@a.outflows.array.length).eq(2)
 
     expect(Object.keys(@d.inflows).length).eq(1)
-    expect(@d.outflows.length).eq(0)
+    expect(@d.outflows.array.length).eq(0)
 
     expect(Object.keys(@c.inflows).length).eq(1)
-    expect(@c.outflows.length).eq(1)
+    expect(@c.outflows.array.length).eq(1)
 
     expect(Object.keys(@b.inflows).length).eq(1)
-    expect(@b.outflows.length).eq(0)
+    expect(@b.outflows.array.length).eq(0)
 
     expect(Object.keys(@e.inflows).length).eq(1)
-    expect(@e.outflows.length).eq(0)
+    expect(@e.outflows.array.length).eq(0)
 
 describe '#detach', ->
   beforeEach ->

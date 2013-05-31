@@ -21,4 +21,5 @@ module.exports = (Snapshots) ->
   Snapshots.Compound.fromJSON = restore
   Snapshots.Snapshot.fromJSON = restore
 
-
+  Snapshots.prototype.toJSON = -> OJSON.toOJSON @array
+  Snapshots.fromJSON = (obj) -> new Snapshots obj

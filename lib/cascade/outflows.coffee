@@ -2,12 +2,13 @@
 makeId = require '../id'
 debug = global.debug 'ace:cascade:outflows'
 
-class Outflows extends Array
+class Outflows
   constructor: (@cascade) ->
     # uses an array for faster iteration
     # uses itself as a dictionary for uniqueness
     # addition is O(1), iteration is fast, deletion is O(n), but searches
     # from the end so repeated add/delete is likely to be fast
+    @array = []
 
   add: (outflow) ->
     if (current = @[outflow.cid])?
@@ -18,14 +19,14 @@ class Outflows extends Array
 
       debug "adding outflow #{outflow} to #{@cascade}"
 
-      @push(outflow)
+      @array.push(outflow)
       outflow.inflows?[@cascade.cid] = @cascade
       outflow.setPending? true if @cascade.pending
 
     return
 
   setPending: (tf) ->
-    outflow.setPending? tf for outflow in this
+    outflow.setPending? tf for outflow in @array
     return
 
   remove: (outflow) ->
@@ -36,9 +37,9 @@ class Outflows extends Array
 
       delete @[outflow.cid]
 
-      `for (var i = this.length; i >= 0; --i) {
-        if (this[i] === outflow) {
-          this.splice(i,1);
+      `for (var i = this.array.length; i >= 0; --i) {
+        if (this.array[i] === outflow) {
+          this.array.splice(i,1);
           break;
         }
       }`
@@ -57,7 +58,7 @@ class Outflows extends Array
   # removes all the outflows (and removes this cascade from the inflows of
   # each). These can be restored with #attach
   detach: ->
-    ret = @splice(0)
+    ret = @array.splice(0)
     for outflow in ret
       delete outflow.inflows?[@cascade.cid]
       delete @[outflow.cid]

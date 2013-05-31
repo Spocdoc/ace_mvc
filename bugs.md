@@ -50,6 +50,12 @@
 
     will sometimes drop large numbers of initial messages when the connection is established
 
+  - XHR polling doesn't work at all in IE6
+
+  - htmlfile doesn't allow client response or client-instigated requests, just server emit
+
+    it receives a huge block periodically instead of getting a stream of data from the client:
+
 
 
 # Model
@@ -143,4 +149,9 @@
 # Statelets
 
   - if the value is the same from one page to another, the dom won't be updated (because the cascade leading to the statelet sees an identical value and stops propagating updates)
+
+# Browser compatibility
+
+  - want conditional loading. there's at least 3k of code that's completely unnecessary on modern browsers there to support IE<8
+
 

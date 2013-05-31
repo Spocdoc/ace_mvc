@@ -7,6 +7,7 @@ debugError = global.debug 'ace:error'
 #     silent    don't run the function immediately
 #     value     initialize the value (eg, if the value parameter is a function; used with silent)
 class Outlet extends Cascade
+  @name = 'Outlet'
   @auto = undefined
 
   enterContext: (@_autoContext) ->
@@ -231,6 +232,7 @@ class Outlet extends Cascade
     if @_autoInflow[inflow.cid]?
       @_autoInflow[inflow.cid] = 1
     else
+      @_autoInflow[inflow.cid] = 1
       inflow.outflows.add this
       if inflow.pending and !@outflows[inflow.cid]
         # then shouldn't run -- keep this pending but set @running to false

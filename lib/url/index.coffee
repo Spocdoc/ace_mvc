@@ -3,6 +3,11 @@
 {defaults: udefaults} = require '../mixin'
 querystring = require './querystring'
 
+
+RegExp['escape'] ?= do ->
+  regex = /[-\/\\^$*+?.()|[\]{}]/g
+  (str) -> return str.replace(regex, '\\$&')
+
 protocolPattern = /^([a-z0-9.+-]+:)/i
 portPattern = /:[0-9]*$/
 
@@ -109,7 +114,7 @@ class Url
   _setPath: (path) ->
     if ~(q = path.indexOf('?'))
       @search = path.substr(q)
-      @query = querystring.parse(@search[1..])
+      @query = querystring.parse(@search.substr(1))
       @_setPathname path.substr(0, q)
     else
       @search = ''
@@ -124,7 +129,7 @@ class Url
 
   _setSearch: (@search) ->
     @path = @pathname + @search
-    @query = querystring.parse(@search[1..])
+    @query = querystring.parse(@search.substr(1))
     return
 
   _setQuery: (@query) ->

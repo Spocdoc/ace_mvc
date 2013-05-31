@@ -3,6 +3,8 @@ Outlet = require './outlet'
 debug = global.debug 'ace:cascade:statelet'
 
 class StateletRunner extends Cascade
+  @name = 'StateletRunner'
+
   constructor: (@getset, options) ->
 
     @enableGet = new Outlet options.enableGet ? true
@@ -40,6 +42,8 @@ class StateletRunner extends Cascade
   toString: -> "#{@constructor.name} [#{@cid}] value [#{@_value}] g/s: [#{@enableGet.get()}/#{@enableSet.get()}]"
 
 class Statelet extends Outlet
+  @name = 'Statelet'
+
   constructor: (getset, options={}) ->
     @runner = new StateletRunner getset, options
     super @runner, options

@@ -55,7 +55,7 @@ class Cascade
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true
       @pending = false
-    for outflow in @outflows when outflow.pending in [undefined, true]
+    for outflow in @outflows.array when outflow.pending in [undefined, true]
       outflow._mustRun = true # explicitly requested a cascade so must run even if there's a loop later
       Cascade.run outflow, this
     return

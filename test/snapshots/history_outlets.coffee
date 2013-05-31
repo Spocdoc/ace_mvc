@@ -16,14 +16,14 @@ describe 'HistoryOutlets', ->
       @a = new HistoryOutlets
 
     it 'should have an index', ->
-      expect(@a[0]['index']).eq 0
+      expect(@a.array[0]['index']).eq 0
 
     it 'should have an index 1 after another push', ->
       @a.push()
-      expect(@a[1]['index']).eq 1
+      expect(@a.array[1]['index']).eq 1
 
     it 'should have \'to\' set to the the first index', ->
-      expect(@a.to).eq @a[0]
+      expect(@a.to).eq @a.array[0]
 
     it 'should have \'from\' index set to -1', ->
       expect(@a.from['index']).eq -1
@@ -73,7 +73,7 @@ describe 'HistoryOutlets', ->
       @a = new HistoryOutlets
 
     it 'should set \'to\' to the next index and \'from\' to the previous \'to\'', ->
-      expect(@a.to).eq @a[0]
+      expect(@a.to).eq @a.array[0]
       expect(@a.from['index']).eq -1
       @a.navigate()
       expect(@a.to['index']).eq 1
@@ -119,7 +119,7 @@ describe 'HistoryOutlets', ->
       expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate()
       expect(@a.to['index']).eq 1
-      expect(@a.length).eq 2
+      expect(@a.array.length).eq 2
       expect(out.get()).eq 42
       expect(@a.to['controller']['delegate'].get()).eq 42
       @a.navigate(0)

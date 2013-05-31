@@ -4,6 +4,7 @@ Model = require './model'
 {defaults} = require '../mixin'
 
 class Controller extends ControllerBase
+  @name = 'Controller'
   @_super = @__super__.constructor
 
   class @Config extends @_super.Config
@@ -40,10 +41,10 @@ class Controller extends ControllerBase
     outlet.set = ->
 
   _buildMethod: (k, m) ->
-    if k[0] is '$'
+    if k.charAt(0) is '$'
       if typeof m is 'function'
         @outletMethods.push m = @newOutletMethod(m, k)
-      @view[k[1..]].set m
+      @view[k.substr(1)].set m
     else if @outlets[k]
       if m.length
         @_outletDefaults[k] = (done) => m.call(this,done)

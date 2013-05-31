@@ -5,6 +5,7 @@ Navigator = require '../navigator'
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 debugCascade = global.debug 'ace:cascade'
+debug = global.debug 'ace:routing'
 
 class Routing
   constructor: (@ace, @_doNavigate, Variable) ->
@@ -15,7 +16,9 @@ class Routing
       variable
 
   @buildRoutes: (config, routes = []) ->
+    debug "buildRoutes"
     config['routes'] (uri, qs, outletHash) =>
+      debug "adding route #{uri}"
       [outletHash,qs] = [qs, undefined] if not outletHash and typeof qs isnt 'string'
       routes.push new Route(uri, qs, outletHash)
     routes

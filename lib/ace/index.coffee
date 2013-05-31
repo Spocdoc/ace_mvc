@@ -10,6 +10,7 @@ Statelet = require '../cascade/statelet'
 {include,extend} = require '../mixin'
 debugCascade = global.debug 'ace:cascade'
 debugBoot = global.debug 'ace:boot:mvc'
+debugModel = global.debug 'ace:mvc:model'
 
 publicMethods =
   newOutlet: (name) ->
@@ -42,7 +43,9 @@ publicMethods =
     debugCascade "creating new model",type,idOrSpec
 
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-      return exists if exists = @ace.modelCache[type]?[idOrSpec]
+      if exists = @ace.modelCache[type]?[idOrSpec]
+        debugModel "reusing existing model"
+        return exists
 
     model = new Ace.Model(@ace, type, idOrSpec)
     (@ace.modelCache[type] ||= {})[model.id] = model

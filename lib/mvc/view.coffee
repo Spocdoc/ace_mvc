@@ -5,8 +5,10 @@ OutletMethod = require '../cascade/outlet_method'
 Template = require './template'
 {defaults} = require '../mixin'
 debugDom = global.debug 'ace:dom'
+debugMvc = global.debug 'ace:mvc'
 
 class View extends ControllerBase
+  @name = 'View'
   @_super = @__super__.constructor
 
   class @Config extends @_super.Config
@@ -98,9 +100,9 @@ class View extends ControllerBase
       return
 
     (k,m) ->
-      s = if k[0] is '$' then k[1..] else k
+      s = if k.charAt(0) is '$' then k.substr(1) else k
 
-      if k[0] is '$' and typeof m is 'object'
+      if k.charAt(0) is '$' and typeof m is 'object'
         setDom(this, s, m)
 
       else if (outlet = @outlets[s])?
@@ -126,7 +128,7 @@ class View extends ControllerBase
     @template.view = this
     @domCache = {}
     @$ = @template.$
-    @[k] = v for k,v of @template when k[0] is '$'
+    @[k] = v for k,v of @template when k.charAt(0) is '$'
     @$root = @template.$root # closure mangling
 
     # disallow changing the template
@@ -146,6 +148,7 @@ class View extends ControllerBase
       o = v
     else if typeof v is 'string'
       name = "#{name}-#{v}"
+      debugMvc "setting statelet #{name} to k [#{k}] v [#{v}]"
       @_stateletDefaults[name] = (arg) =>
         if arg?
           @[k][v](arg)

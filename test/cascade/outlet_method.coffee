@@ -36,11 +36,11 @@ describe 'OutletMethod mild', ->
     expect(@m.inflows[@x.cid]).to.exist
 
     expect(Object.keys(@m.inflows).length).eq 1
-    expect(@m.outflows.length).eq 0
+    expect(@m.outflows.array.length).eq 0
 
     expect(@x.outflows[@m.cid]).to.exist
     expect(Object.keys(@x.inflows).length).eq 0
-    expect(@x.outflows.length).eq 1
+    expect(@x.outflows.array.length).eq 1
 
     expect(@m.get()).eq (2*@x.get())
     expect(@callCounts[@foo.cid]).eq 1
@@ -110,15 +110,15 @@ describe 'OutletMethod medium', ->
     expect(@m.inflows[@y.cid]).to.exist
 
     expect(Object.keys(@m.inflows).length).eq 2
-    expect(@m.outflows.length).eq 0
+    expect(@m.outflows.array.length).eq 0
 
     expect(@x.outflows[@m.cid]).to.exist
     expect(Object.keys(@x.inflows).length).eq 0
-    expect(@x.outflows.length).eq 1
+    expect(@x.outflows.array.length).eq 1
 
     expect(@y.outflows[@m.cid]).to.exist
     expect(Object.keys(@y.inflows).length).eq 0
-    expect(@y.outflows.length).eq 1
+    expect(@y.outflows.array.length).eq 1
 
     expect(@m.get()).eq (2*@x.get() + 3*@y.get())
     expect(@callCounts[@foo.cid]).eq 1

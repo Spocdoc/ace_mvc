@@ -10,8 +10,8 @@ describe 'HistoryOutlets_OJSON', ->
     @a = new HistoryOutlets
     @a.navigate()
     @a = thruJSON @a
-    expect(@a.length).eq 2
-    expect(@a.dataStore.length).eq 2
+    expect(@a.array.length).eq 2
+    expect(@a.dataStore.array.length).eq 2
 
   it 'should restore at the 0 index', ->
     @a = new HistoryOutlets

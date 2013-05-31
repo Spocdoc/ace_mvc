@@ -3,6 +3,8 @@ Outlet = require './outlet'
 debug = global.debug 'ace:cascade'
 
 class OutletMethod extends Outlet
+  @name = 'OutletMethod'
+
   getArgNames = do ->
     regexComments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg
     regexFunction = /^function\s*[^\(]*\(([^\)]*)\)\s*\{([\s\S]*)\}$/m

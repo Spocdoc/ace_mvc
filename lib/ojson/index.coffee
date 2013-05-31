@@ -92,7 +92,7 @@ module.exports = OJSON =
       keys.sort(numSort)
       for k in keys
         v = fromOJSON obj[k]
-        if k[0] is '$'
+        if k.charAt(0) is '$'
           if (constructor = registry[k.substr(1)])?
             if constructor.fromJSON?
               res = constructor.fromJSON obj=v

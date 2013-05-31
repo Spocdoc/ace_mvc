@@ -3,9 +3,13 @@ Cascade = require '../cascade/cascade'
 Route = require './route'
 debug = global.debug 'ace:routing'
 
-class Router extends Array
+class Router
   constructor: (@outlets) ->
-    super
+    @length = 0
+
+  push: (arg) ->
+    @[@length++] = arg
+    return
 
   # invokes parameter callbacks and callbacks for the route if matched
   # @param url [String]

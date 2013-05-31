@@ -5,6 +5,7 @@
 // ==/ClosureCompiler==
 `
 
+debug = global.debug 'ace:db:doc'
 Emitter = require '../events/emitter'
 diff = require '../diff'
 
@@ -22,6 +23,8 @@ CREATE_LATER = 1 << 10
 CREATE_NOW   = 3 << 10
 
 class Doc
+  @name = 'Doc'
+
   constructor: (@coll, @id, @doc = {}) ->
     @db = @coll.db
     @doc._v ||= 0
@@ -138,23 +141,31 @@ class Doc
     @_delete()
     return
 
+  toString: -> "#{@constructor.name} id [#{@id}] v [#{@doc._v}]"
+
 ## private methods
 
   _subscribe: ->
-    return if @live
+    if @live
+      debug "#{@} wont subscribe because already live"
+      return
     if @conflicted or @rejected?
       @pending |= SUB_LATER
+      debug "#{@} wont subscribe because conflicted or rejected"
       return
     if @pending
       if (@pending & USUB_NOW) is USUB_LATER
         @pending &= ~USUB_NOW
       else
         @pending |= SUB_LATER
+      debug "#{@} wont subscribe because pending"
       return
     @pending |= SUB_NOW
       
     @ref()
+    debug "#{@} sending db.subscribe..."
     @db.subscribe this, (err) =>
+      debug "#{@} got db.subscribe response",err
       @pending &= ~SUB_NOW
       @live = true
       @_handleRead(err)

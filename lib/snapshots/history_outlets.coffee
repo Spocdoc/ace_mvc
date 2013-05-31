@@ -7,15 +7,17 @@ debugCascade = global.debug 'ace:cascade'
 
 class HistoryOutlets extends Snapshots
   include HistoryOutlets, Emitter
+  @name = 'HistoryOutlets'
 
   class SyncingOutlet extends Outlet
+    @name = 'SyncingOutlet'
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
 
       @outflows.add @_out = =>
         if @_value != @_syncValue
           @_syncValue = @_value
-          dataStore = snapshots.dataStore[snapshots.to['index']]
+          dataStore = snapshots.dataStore.array[snapshots.to['index']]
           dataStore.localPath(path)[key] = @_value
 
     sync: (value) ->
@@ -23,6 +25,7 @@ class HistoryOutlets extends Snapshots
       @set value
 
   class SlidingOutlet extends SyncingOutlet
+    @name = 'SlidingOutlet'
     slide: (outlet) ->
       return unless outlet != @_toOutlet
       @unset @_toOutlet if @_toOutlet
@@ -30,6 +33,7 @@ class HistoryOutlets extends Snapshots
       return
 
   class ToHistoryOutlet extends Outlet
+    @name = 'ToHistoryOutlet'
     constructor: (@_slidingOutlet) ->
       @_slidingOutlet._toOutlet = this
       super @_slidingOutlet._value
@@ -48,6 +52,7 @@ class HistoryOutlets extends Snapshots
       return
 
   class FromHistoryOutlet extends Outlet
+    @name = 'FromHistoryOutlet'
     constructor: ->
       super
       @_set = @set
@@ -66,7 +71,7 @@ class HistoryOutlets extends Snapshots
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
       return current if (current = (base = @ensurePath(path))[key])?
-      outlet = base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore[@['index']].get(path)?[key])
+      outlet = base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore.array[@['index']].get(path)?[key])
       debugCascade "created #{outlet} at #{path.concat(key).join('/')}"
       outlet
 
@@ -75,7 +80,7 @@ class HistoryOutlets extends Snapshots
 
       recurse = (o,to) ->
         to ||= empty
-        for k, v of o when k[0] != '_' and k isnt 'index' and !o.constructor.prototype[k]?
+        for k, v of o when k.charAt(0) != '_' and k isnt 'index' and !o.constructor.prototype[k]?
           if v instanceof Snapshots.Compound
             recurse v, to[k]
           else
@@ -95,7 +100,7 @@ class HistoryOutlets extends Snapshots
 
     get: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
-      @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@['index'] then @['_snapshots'].dataStore[@['index']].get(path)?[key] else undefined)
+      @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@['index'] then @['_snapshots'].dataStore.array[@['index']].get(path)?[key] else undefined)
 
   class ToHistorySnapshot extends Snapshots.Snapshot
     constructor: (snapshots) ->
@@ -120,7 +125,7 @@ class HistoryOutlets extends Snapshots
     # sets the path to null (NOT undefined) if it isn't own property
     noInherit: (path, key) ->
       [path, key] = Snapshots.getPathKey path, key
-      @['_snapshots'].dataStore[@['index']].noInherit path, key
+      @['_snapshots'].dataStore.array[@['index']].noInherit path, key
       return unless prev = super path,key
       if prev instanceof Snapshots.Compound
         Snapshots.Snapshot.each prev, (outlet) -> outlet.localizeChanges()
@@ -131,14 +136,14 @@ class HistoryOutlets extends Snapshots
   constructor: (@dataStore = new Snapshots) ->
     # when constructing, don't want to push to dataStore again
     @push = push = => HistoryOutlets.__super__.push.apply(this, arguments)
-    super
+    super()
     delete @push
 
-    @to = @[0]
+    @to = @array[0]
     @from = new FromHistorySnapshot this
     @sliding = new SlidingSnapshot this
 
-    `var len = this.dataStore.length, i;
+    `var len = this.dataStore.array.length, i;
     for (i=1; i < len; ++i) push();`
 
     # proxy all the methods of .to to avoid common bugs
@@ -163,15 +168,15 @@ class HistoryOutlets extends Snapshots
 
     Cascade.Block =>
       @from['index'] = @to['index']
-      @dataStore[@to['index']].syncTarget @from
+      @dataStore.array[@to['index']].syncTarget @from
 
       if not index?
         @splice(@to['index']+1)
-        @to = @[@push()-1]
+        @to = @array[@push()-1]
       else
-        @to = @[index]
+        @to = @array[index]
         @sliding.slide index
-        @dataStore[index].syncTarget @sliding
+        @dataStore.array[index].syncTarget @sliding
       return
 
     @emit 'didNavigate'

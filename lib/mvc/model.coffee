@@ -14,6 +14,7 @@ debug = global.debug 'ace:mvc:model'
 class Model
   include Model, Emitter
   include Model, Listener
+  @name = 'Model'
 
   @add: (coll) -> return this
 
@@ -40,6 +41,7 @@ class Model
       return
 
   onload: (cb) ->
+    debug "added onload cb. _loaded: [#{@_loaded}]"
     if @_loaded
       cb @doc.rejected
     else
@@ -56,6 +58,7 @@ class Model
     @listenOn @doc, 'update', @serverUpdate
 
   serverReject: (err) ->
+    debug "serverReject for #{@}"
     unless @_loaded
       @_loaded = true
       cb(err) for cb in @_onload

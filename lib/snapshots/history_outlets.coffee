@@ -21,6 +21,7 @@ class HistoryOutlets extends Snapshots
           dataStore.localPath(path)[key] = @_value
 
     sync: (value) ->
+      return if @pending
       @_syncValue = value
       @set value
 

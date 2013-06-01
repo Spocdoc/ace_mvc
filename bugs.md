@@ -16,6 +16,10 @@
 
     this isn't easily avoided. after running the function, cascade() is called, which sets the outflows to pending
 
+  - in principle if a set of outlets are all equal to each other and one is set to a function that's going to be recalculated, you shouldn't be able to explicitly set any of the outlets that flow to the outlet with the function because that function will run and override the value. Currently, it'll only override the value for *some* of its outflows, not including the ones that were explicitly set later. This means there's an inconsistent state: a set of outlets that are supposed to be equal to each other are now not equal.
+
+    This is because it isn't just an individual outlet that can only logically have 1 function, it's the entire equivalence set. Whenever an outlet is `set()`, if it's currently pending and is pending because it's the outflow of a function that will be calculated (because either it's been run or one of its auto inflows has changed), setting that outlet shouldn't be permitted (but should it raise an error?)
+
 # Outlet
 
   - optimization: should cache the change to function mapping instead of looping through all the functions (map from change cid to function)

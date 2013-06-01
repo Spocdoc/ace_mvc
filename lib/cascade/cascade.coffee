@@ -92,6 +92,8 @@ class Cascade
       prev = Cascade._emitter
       Cascade._emitter = cascade._cc
 
+      cascade.changes = []
+
       if cascade._stopPropagation
         debug "#{cascade} called stopPropagation"
         cascade._stopPropagation = false
@@ -99,8 +101,8 @@ class Cascade
       else
         cascade.setThisPending false
         cascade.cascade()
+
       cascade.running = false
-      cascade.changes = []
 
       Cascade._emitter = prev
       return

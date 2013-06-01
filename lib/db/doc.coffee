@@ -25,7 +25,9 @@ CREATE_NOW   = 3 << 10
 class Doc
   @name = 'Doc'
 
-  constructor: (@coll, @id, @doc = {}) ->
+  constructor: (@coll, @id, doc) ->
+    @loaded = !!doc
+    @doc = doc || {}
     @db = @coll.db
     @doc._v ||= 0
     @outgoing = [] # outgoing ops when pending
@@ -79,7 +81,7 @@ class Doc
       @_doPending()
 
   update: (ops) ->
-    @outgoing.push ops if ops
+    @outgoing.push ops... if ops
     return if @conflicted or @rejected?
     if @pending & ~UP_NOW
       @pending |= UP_LATER
@@ -207,9 +209,10 @@ class Doc
     if err
       switch err[0]
         when 'doc'
-          doc = err[1]
-          @serverCreate doc
+          @loaded = true
+          @serverCreate err[1]
         when 'no'
+          @loaded = true
           @live = false
           @serverDelete()
         when 'rej'
@@ -225,13 +228,11 @@ class Doc
       @_doPending()
       return
 
-    (flat = []).push(outgoing...)
-
     version = @doc._v
 
-    @db.update this, flat, (err) =>
+    @db.update this, outgoing, (err) =>
       if err
-        outgoing.push.apply(outgoing, @outgoing)
+        outgoing.push @outgoing...
         @outgoing = outgoing
         @pending &= ~UP_NOW
         switch err[0]
@@ -241,7 +242,7 @@ class Doc
         @_doPending()
       else
         ++@doc._v
-        diff.patch(@doc, ops) for ops in outgoing
+        diff.patch(@doc, outgoing)
         @_doUpdate()
     return
 

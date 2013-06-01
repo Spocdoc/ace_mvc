@@ -97,7 +97,7 @@ class Db
       else
         (spec['$set'] ||= {})['_v'] = 2
 
-      @mongo.run 'update', {_id: id, _v: doc._v}, spec, (err, updated) =>
+      @mongo.run 'update', coll, {_id: id, _v: doc._v}, spec, (err, updated) =>
         return unless checkErr(err, cb)
         return cb(['ver']) unless updated
         cb()

@@ -86,12 +86,15 @@ module.exports = exports = (from, to, options = {}) ->
   if options['path']
     # to represents only part of the from object.
     for p,i in options['path']
-      if from[p]
-        from = from[p]
-      else
+      if !from[p]? && to[p]?
         return [{'o': 1, 'k': options['path'][0..i].join('.'), 'v': stub(options['path'][(i+1)..],to)}]
+      else
+        from = from[p]
 
-    return [diff from, to, options, options['path'].join('.')]
+    if result = diff from, to, options, options['path'].join('.')
+      return [result]
+    else
+      return false
 
   diff(from, to, options)
 

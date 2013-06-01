@@ -19,8 +19,8 @@ module.exports = (Db) ->
 
     for name, c of obj
       coll = db.colls[name] = new Coll db, name
-      for id, odoc of c
-        coll.docs[id] = new Doc coll, id, OJSON.fromOJSON odoc
+      for id, doc of c
+        coll.docs[id] = new Doc coll, id, doc
 
     db
 

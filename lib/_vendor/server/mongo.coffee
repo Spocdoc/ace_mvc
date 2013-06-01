@@ -1,0 +1,1 @@
+global.mongo = require 'mongodb'

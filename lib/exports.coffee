@@ -38,6 +38,7 @@ api Ace.View.prototype,
   local: 'local'
   from: 'from'
   to: 'to'
+  diff: 'diff'
 
 api Ace.Controller.prototype,
   newController: 'newController'
@@ -50,4 +51,5 @@ api Ace.Controller.prototype,
   local: 'local'
   from: 'from'
   to: 'to'
+  diff: 'diff'
 

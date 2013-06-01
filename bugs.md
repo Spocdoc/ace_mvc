@@ -163,3 +163,8 @@
   - want conditional loading. there's at least 3k of code that's completely unnecessary on modern browsers there to support IE<8
 
 
+# Optimization
+
+  - may want to reduce the number of outlets/outlet methods
+
+    instead of creating new outlet methods in the controllers/views, could assign the functions directly to the ToHistoryOutlet

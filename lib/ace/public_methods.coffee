@@ -2,7 +2,7 @@ debugModel = global.debug 'ace:mvc:model'
 debugCascade = global.debug 'ace:cascade'
 Statelet = require '../cascade/statelet'
 Outlet = require '../cascade/outlet'
-
+diff = require '../diff'
 
 module.exports = (Ace) ->
 
@@ -15,6 +15,8 @@ module.exports = (Ace) ->
         path = []
     path.push name
     path
+
+  diff: diff
     
   newOutlet: (name) ->
     outlet = @ace.historyOutlets.to.get path = makeOutletPath(this, name)

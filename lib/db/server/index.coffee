@@ -1,9 +1,8 @@
-global.mongo = require 'mongodb' # for ObjectID & other types
 SockioEmulator = require './sockio_emulator'
 sockio = require './sockio'
 Db = require './db'
 clone = require '../../clone'
-ObjectID = require('mongodb').ObjectID
+ObjectID = global.mongo.ObjectID
 OJSON = require '../../ojson'
 
 db = undefined

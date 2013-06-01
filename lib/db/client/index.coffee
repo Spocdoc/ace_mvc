@@ -1,2 +1,3 @@
-# require './socket.io'
-require './mongo'
+OJSON = require '../../ojson'
+OJSON.register 'ObjectID': global.mongo.ObjectID
+

@@ -8,10 +8,8 @@ class ObjectID
       @hex = id.join('')
 
   toString: -> @hex
-  toJSON: -> @hex
+  'toJSON': -> @hex
 
-module.exports = ObjectID
-
-# add OJSON serialization functions
-require('./object_id_ojson')(ObjectID)
+window['mongo'] =
+  'ObjectID': ObjectID
 

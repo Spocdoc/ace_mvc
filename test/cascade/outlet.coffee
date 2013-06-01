@@ -154,6 +154,7 @@ describe 'Outlet hot', ->
     x = new Auto foo
     bar = sinon.spy ->
     x.outflows.add bar
+    x.unset foo
     x.set foo
     expect(bar).not.called
 
@@ -164,6 +165,7 @@ describe 'Outlet hot', ->
     out = sinon.spy ->
     x.outflows.add out
 
+    x.unset foo
     x.set bar
     expect(out).not.called
 
@@ -692,26 +694,40 @@ describe 'Outlet #modified', ->
     expect(foo).calledOnce
 
 describe 'Outlet set to multiple functions', ->
-  it 'should run the function based on inflows', ->
+  it 'should not permit being set to multiple functions', ->
     x = new Auto 1
     y = new Auto 2
 
     a = new Auto
     a.set -> 2*x.get()
-    a.set -> 3*y.get()
+    thrown = undefined
 
-    b = new Auto a
+    try
+      a.set -> 3*y.get()
+    catch thrown
 
-    expect(a.get()).eq 6
-    expect(b.get()).eq a.get()
+    expect(thrown).exist
 
-    x.set(42)
-    expect(a.get()).eq 84
-    expect(b.get()).eq a.get()
-
-    y.set(42)
-    expect(a.get()).eq 126
-    expect(b.get()).eq a.get()
+#   it 'should run the function based on inflows', ->
+#     x = new Auto 1
+#     y = new Auto 2
+# 
+#     a = new Auto
+#     a.set -> 2*x.get()
+#     a.set -> 3*y.get()
+# 
+#     b = new Auto a
+# 
+#     expect(a.get()).eq 6
+#     expect(b.get()).eq a.get()
+# 
+#     x.set(42)
+#     expect(a.get()).eq 84
+#     expect(b.get()).eq a.get()
+# 
+#     y.set(42)
+#     expect(a.get()).eq 126
+#     expect(b.get()).eq a.get()
 
 describe 'Outlet unrun cascade', ->
   it 'should allow setting several times in a block and run once with the right final value', ->

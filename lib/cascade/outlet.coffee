@@ -10,18 +10,6 @@ class Outlet extends Cascade
   @name = 'Outlet'
   @auto = undefined
 
-  enterContext: (@_autoContext) ->
-    return
-
-  exitContext: ->
-    Outlet.auto = @_auto
-    if @auto
-      list = @_autoInflows[@_autoContext.cid] ||= {}
-      for k,v of list when !v
-        @inflows[k].outflows.remove this
-        delete list[k]
-    return
-
   _setValue: (value, version) ->
     debug "_setValue #{@} to #{value}"
     if @_value is value and (!version? or @_version is version)
@@ -31,25 +19,9 @@ class Outlet extends Cascade
       @_value = value
     return
 
-  _findFuncByChanges: ->
-    for cid,fn of @_eqFuncs
-      for change in @changes
-        return fn if @_autoInflows[fn.cid][change.cid]?
-
-  _pickSource: ->
-    len = 0
-    (break if ++len > 1) for k of @_eqFuncs
-    switch len
-      when 0
-        for cid,outlet of @_eqOutlets
-          return outlet
-      when 1
-        @_eqFuncs[k]
-      else
-        @_findFuncByChanges()
-
   constructor: (init, options={}) ->
-    @_eqFuncs = {}
+    @_eqFunc = undefined
+    @_eqDefault = undefined
     @_eqOutlets = {}
     @_autoInflows = {}
     @_version = 0
@@ -62,9 +34,12 @@ class Outlet extends Cascade
       returned = false
 
       for change in @changes
-        (break) if found = @_eqOutlets[change.cid] || @_eqFuncs[change.cid]
+        if change is @_eqFunc or @_autoInflows[change.cid]
+          found = @_eqFunc
+          break
+        found = @_eqOutlets[change.cid]
 
-      found ||= @_pickSource()
+      found ||= @_eqDefault
 
       if typeof found is 'function'
         Cascade.Block =>
@@ -72,8 +47,7 @@ class Outlet extends Cascade
           prev = Outlet.auto
           if @auto
             Outlet.auto = this
-            for k of (@_autoInflow = @_autoInflows[found.cid] ||= {})
-              @_autoInflow[k] = 0
+            @_autoInflows[k] = 0 for k of @_autoInflows
           else
             Outlet.auto = null
 
@@ -93,9 +67,9 @@ class Outlet extends Cascade
           finally
             Outlet.auto = prev
             if @auto
-              for k,v of @_autoInflow when !v
+              for k,v of @_autoInflows when !v
                 @inflows[k].outflows.remove this
-                delete @_autoInflow[k]
+                delete @_autoInflows[k]
                 debug "Removing auto inflow #{k} from #{@}"
 
       else if found
@@ -137,10 +111,9 @@ class Outlet extends Cascade
     outflow = false
 
     if typeof value is 'function'
+      throw new Error("Can't set an outlet to more than one function at a time") if @_eqFunc
       value.cid ||= makeId()
-      return if @_eqFuncs[value.cid]
-
-      @_eqFuncs[value.cid] = value
+      @_eqDefault = @_eqFunc = value
 
     else if value instanceof Cascade
       value.cid ||= makeId()
@@ -181,32 +154,42 @@ class Outlet extends Cascade
 
   unset: (value) ->
     if typeof value is 'function'
-      delete @_eqFuncs[value.cid]
-      delete @_autoInflows[value.cid]
+      return unless @_eqFunc is value
+      @inflows[cid].outflows.remove this for cid of @_autoInflows
+      @_autoInflows = {}
+      @_eqFunc = undefined
+      @_resetDefault()
 
-    else if typeof value?.get is 'function'
+    else if value instanceof Cascade
       return unless @_eqOutlets[value.cid]
       delete @_eqOutlets[value.cid]
+      @_resetDefault()
       @outflows.remove value
       value.unset? this
 
     else unless value?
-      @_eqFuncs = {}
-      @unset value for cid,value of @_eqOutlets
+      eqOutlets = @_eqOutlets
+      @_eqOutlets = {}
+
+      @inflows[cid].outflows.remove this for cid of @_autoInflows
+      for cid,value of eqOutlets
+        @outflows.remove value
+        value.unset? this
+
+      @_autoInflows = {}
+      @_eqDefault = @_eqFunc = undefined
 
     return
 
   detach: (inflow) ->
     unless inflow?
-      @_eqFuncs = {}
+      @_eqDefault = @_eqFunc = undefined
       @_eqOutlets = {}
       @_autoInflows = {}
-    else if inflow.cid
-      delete @_autoInflows[inflow.cid]
-      if typeof inflow is 'function'
-        delete @_eqFuncs[inflow.cid]
-      else if typeof inflow?.get is 'function'
-        delete @_eqOutlets[inflow.cid]
+    else if inflow is @_eqFunc
+      @unset inflow
+    else
+      delete @_eqOutlets[inflow.cid]
     super
 
   toJSON: -> @_value
@@ -228,10 +211,10 @@ class Outlet extends Cascade
 
   _addAuto: (inflow) ->
     debug "Adding auto inflow #{inflow} to #{@}"
-    if @_autoInflow[inflow.cid]?
-      @_autoInflow[inflow.cid] = 1
+    if @_autoInflows[inflow.cid]?
+      @_autoInflows[inflow.cid] = 1
     else
-      @_autoInflow[inflow.cid] = 1
+      @_autoInflows[inflow.cid] = 1
       inflow.outflows.add this
       if inflow.pending and !@outflows[inflow.cid]
         # then shouldn't run -- keep this pending but set @running to false
@@ -239,5 +222,9 @@ class Outlet extends Cascade
         @running = false
         throw 0
     return
+
+  _resetDefault: ->
+    (break) for cid,outlet of @_eqOutlets
+    @_eqDefault = outlet
 
 module.exports = Outlet

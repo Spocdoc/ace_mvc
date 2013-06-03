@@ -5,6 +5,7 @@ Controller = require '../mvc/controller'
 Template = require '../mvc/template'
 Db = require '../db/db'
 Model = require '../mvc/model'
+Cookies = require '../cookies'
 OJSON = require '../ojson'
 {include,extend} = require '../mixin'
 debugBoot = global.debug 'ace:boot:mvc'
@@ -16,6 +17,7 @@ class Ace
 
   @newClient: (ojson, routesObj, $container) ->
     global['ace'] = (ojson && OJSON.fromOJSON ojson) || new Ace
+    ace.cookies = new Cookies
     ace.routing.enable routesObj
     navigator = ace.routing.enableNavigator()
     ace.routing.router.route navigator.url
@@ -47,7 +49,8 @@ class Ace
   class @View extends View
     include @, publicMethods
 
-    constructor: (@ace, others...) -> super others...
+    constructor: (@ace, others...) ->
+      super others...
 
   class @Model extends Model
     @prototype.newModel = publicMethods.newModel

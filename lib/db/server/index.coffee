@@ -13,7 +13,7 @@ Mediator = require './mediator'
 db = undefined
 s = undefined
 
-module.exports = (app, config) ->
+module.exports = (config, app) ->
 
   clone.register ObjectID, (other) -> new ObjectID(other.toString())
   OJSON.register 'ObjectID': ObjectID

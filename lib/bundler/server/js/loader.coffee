@@ -22,7 +22,14 @@ module.exports = makeLoader = (mvc, globals, options, cb) ->
 
       script = []
       script.push "require(#{quote(path.resolve(lib,'exports'))});"
-      script.push("require(#{quote(path.resolve(lib,p))});") for p in dirs
+      script.push "var r;"
+      for p in dirs
+        name = p.substr(2).replace(/\/.*$/,'')
+        script.push """
+        if (typeof (r = require(#{quote(path.resolve(lib,p))})) === 'function') {
+          r(#{options[name] && JSON.stringify(options[name]) || ''});
+        };
+        """
 
       # global entry points
       for n,p of globals

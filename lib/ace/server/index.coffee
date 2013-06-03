@@ -27,7 +27,7 @@ class Main
       (filePaths, next) =>
         filePaths.map (filePath) =>
           name = path.basename path.resolve filePath, '..'
-          fn(this, @settings[name]) if typeof (fn = require filePath) is 'function'
+          fn(@settings[name], this) if typeof (fn = require filePath) is 'function'
         next()
     ], cb
 

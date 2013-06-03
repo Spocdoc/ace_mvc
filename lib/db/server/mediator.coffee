@@ -25,7 +25,7 @@ class Mediator
     @db.create @origin, coll, doc, cb
 
   read: (coll, id, version, cb) ->
-    @db.read @origin, coll, id, verison, cb
+    @db.read @origin, coll, id, version, cb
 
   update: (coll, id, version, ops, cb) ->
     @db.update @origin, coll, id, version, ops, cb

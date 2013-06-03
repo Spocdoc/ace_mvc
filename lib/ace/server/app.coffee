@@ -6,6 +6,7 @@ Url = require '../../url'
 OJSON = require '../../ojson'
 Bundler = require '../../bundler/server'
 Cascade = undefined
+Cookies = undefined
 
 quote = do ->
   regexQuotes = /(['\\])/g
@@ -27,6 +28,7 @@ class App
     Template = require '../../mvc/template'
     View = require '../../mvc/view'
     Controller = require '../../mvc/controller'
+    Cookies = require '../../cookies'
 
     mvc = @settings.mvc
 
@@ -115,6 +117,7 @@ class App
     Template = require '../../mvc/template'
 
     ace = new Ace
+    ace.cookies = new Cookies req, res
     ace.routing.enable @_routeConfig, @_routes
 
     $html = @$html.clone()

@@ -19,10 +19,16 @@ ace = new Ace
   routes: path.resolve('./routes')
   server: server
   root: path.resolve('./app')
+  cookies:
+    domain: '.supamac.local'
+    secure: false
   bundler:
     closure:
       jar: path.resolve './resources/compiler.jar'
       externs: path.resolve './resources/externs.js'
+    cookies:
+      domain: '.supamac.local'
+      secure: false
 
 ace.configure 'development', ->
   ace.set 'debug', true

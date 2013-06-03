@@ -4,6 +4,7 @@ redis = require 'redis'
 RedisStore = require 'socket.io/lib/stores/redis'
 {extend} = require '../../mixin'
 Db = require './db'
+Callback = require './callback'
 
 # called with this = sock
 
@@ -43,21 +44,21 @@ module.exports = (db, redisInfo, server, Mediator) ->
       sock.mediator.disconnect()
 
     sock.on 'create', (data, cb) ->
-      sock.mediator.create data['c'], OJSON.fromOJSON(data['v']), cb
+      sock.mediator.create data['c'], OJSON.fromOJSON(data['v']), new Callback cb
 
     sock.on 'read', (data, cb) ->
-      sock.mediator.read data['c'], data['i'], data['e'], cb
+      sock.mediator.read data['c'], data['i'], data['e'], new Callback cb
 
     sock.on 'update', (data, cb) ->
-      sock.mediator.update data['c'], data['i'], data['e'], OJSON.fromOJSON(data['d']), cb
+      sock.mediator.update data['c'], data['i'], data['e'], OJSON.fromOJSON(data['d']), new Callback cb
 
     sock.on 'delete', (data, cb) ->
-      sock.mediator.delete data['c'], data['i'], cb
+      sock.mediator.delete data['c'], data['i'], new Callback cb
 
     sock.on 'subscribe', (data, cb) ->
-      sock.mediator.subscribe data['c'], data['i'], data['e'], cb
+      sock.mediator.subscribe data['c'], data['i'], data['e'], new Callback cb
 
     sock.on 'unsubscribe', (data, cb) ->
-      sock.mediator.unsubscribe data['c'], data['i'], cb
+      sock.mediator.unsubscribe data['c'], data['i'], new Callback cb
 
   io

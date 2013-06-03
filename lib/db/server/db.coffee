@@ -23,14 +23,14 @@ replaceId = (id, cb) ->
     try
       id = new mongodb.ObjectID id
     catch _error
-      cb(['rej','Invalid id'])
+      cb.reject 'Invalid id'
   else unless checkId id,cb
     return false
   id
 
 checkErr = (err, cb) ->
   if err
-    cb(['rej',err.message])
+    cb.reject err.message
     false
   else
     true
@@ -58,11 +58,11 @@ class Db
     debug "Got create request with",arguments...
 
     return unless checkId(doc._id, cb)
-    return cb(['rej', "Version must be 1"]) unless doc._v is 1
+    return cb.reject "Version must be 1" unless doc._v is 1
 
     @mongo.run 'insert', coll, doc, (err) ->
       return unless checkErr(err, cb)
-      cb()
+      cb.ok()
       return
     return
 
@@ -72,10 +72,10 @@ class Db
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) ->
       return unless checkErr(err, cb)
-      return cb(['no']) unless doc
+      return cb.noDoc() unless doc
       doc._v ||= 1
-      return cb() unless doc._v > version
-      cb(['doc', doc])
+      return cb.ok() unless doc._v > version
+      cb.doc doc
       return
     return
 
@@ -85,8 +85,8 @@ class Db
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
       return unless checkErr(err, cb)
-      return cb(['no']) unless doc
-      return cb(['ver',"v.#{doc._v} is current"]) unless version is (doc._v ? 1)
+      return cb.noDoc() unless doc
+      return cb.badVer doc._v unless version is (doc._v ? 1)
 
       to = diff.patch(doc, ops)
       spec = dtom ops, to
@@ -99,8 +99,8 @@ class Db
 
       @mongo.run 'update', coll, {_id: id, _v: doc._v}, spec, (err, updated) =>
         return unless checkErr(err, cb)
-        return cb(['ver']) unless updated
-        cb()
+        return cb.badVer() unless updated
+        cb.ok()
         @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
         return
       return
@@ -112,7 +112,7 @@ class Db
 
     @mongo.run 'remove', {_id: id}, (err) ->
       return unless checkErr(err, cb)
-      cb()
+      cb.ok()
       @pub.publish Db.channel(coll,id), OJSON.stringify(['delete',origin])
       return
     return
@@ -131,10 +131,10 @@ class Db
       unless doc
         @sub.unsubscribe c
         delete @subscriptions[c]
-        cb(['no'])
+        cb.noDoc()
         return
-      return cb(['doc', doc]) if (doc._v ||= 1) != version
-      cb()
+      return cb.doc doc if (doc._v ||= 1) != version
+      cb.ok()
       return
     return
 
@@ -149,7 +149,7 @@ class Db
       @sub.unsubscribe c
       delete @subscriptions[c]
 
-    cb()
+    cb.ok()
     return
 
 

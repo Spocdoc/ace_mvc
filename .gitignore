@@ -8,3 +8,4 @@ bench
 test/**/*.js
 test/**/*.log
 *.jar
+node_modules

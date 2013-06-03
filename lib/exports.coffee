@@ -53,3 +53,6 @@ api Ace.Controller.prototype,
   to: 'to'
   diff: 'diff'
 
+api Ace.Model.prototype,
+  newModel: 'newModel'
+

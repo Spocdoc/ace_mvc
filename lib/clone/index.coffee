@@ -2,15 +2,16 @@ Registry = require '../registry'
 
 registry = new Registry
 
-copyKeys = (obj) ->
-  dst = new obj.constructor
-  dst[k] = clone(v) for k,v of obj
-  dst
-
 clone = (obj) ->
   return obj if typeof obj isnt 'object' or obj == null
   return r.clone(obj) if r = registry.find obj
   new obj.constructor(obj)
+
+clone.copyKeys = (obj) ->
+  dst = new obj.constructor
+  dst[k] = clone(v) for k,v of obj
+  dst
+
 
 clone.register = register = (constructor, fn) ->
   registry.add constructor,
@@ -21,5 +22,5 @@ module.exports = clone
 
 ## Register standard types
 
-register Object, copyKeys
-register Array, copyKeys
+register Object, clone.copyKeys
+register Array, clone.copyKeys

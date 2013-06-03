@@ -10,6 +10,12 @@ class ObjectID
   toString: -> @hex
   'toJSON': -> @hex
 
+class DBRef
+  @name = 'DBRef'
+  constructor: (@namespace, @oid) ->
+  toString: -> "#{@constructor.name} [#{@namespace}]:[#{@oid}]"
+
 window['mongo'] =
   'ObjectID': ObjectID
+  'DBRef': DBRef
 

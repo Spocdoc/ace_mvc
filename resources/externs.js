@@ -18,7 +18,11 @@ window.io = {
 };
 
 window.mongo = {
-  "ObjectID": function () {}
+  "ObjectID": function () {},
+  "DBRef": {
+    "namespace": {},
+    "oid": {}
+  }
 };
 
 window.console = {

@@ -3,15 +3,11 @@ sockio = require("socket.io")
 redis = require 'redis'
 RedisStore = require 'socket.io/lib/stores/redis'
 {extend} = require '../../mixin'
-Listener = require '../../events/listener'
 Db = require './db'
 
 # called with this = sock
-onevent = (event, origin, ojSpec) ->
-  return if origin == @id
-  @emit event, ojSpec
 
-module.exports = (db, redisInfo, server) ->
+module.exports = (db, redisInfo, server, Mediator) ->
 
   io = sockio.listen(server)
   io.set 'store', new RedisStore
@@ -41,36 +37,27 @@ module.exports = (db, redisInfo, server) ->
     ]
 
   io.on 'connection', (sock) ->
-    extend sock, Listener # no name clashes
+    sock.mediator = new Mediator db, sock
 
     sock.on 'disconnect', ->
-      sock.listenOff db
-      return
+      sock.mediator.disconnect()
 
     sock.on 'create', (data, cb) ->
-      db.create sock.id, data['c'], OJSON.fromOJSON(data['v']), cb
+      sock.mediator.create data['c'], OJSON.fromOJSON(data['v']), cb
 
     sock.on 'read', (data, cb) ->
-      db.read sock.id, data['c'], data['i'], data['e'], cb
+      sock.mediator.read data['c'], data['i'], data['e'], cb
 
     sock.on 'update', (data, cb) ->
-      db.update sock.id, data['c'], data['i'], data['e'], OJSON.fromOJSON(data['d']), cb
+      sock.mediator.update data['c'], data['i'], data['e'], OJSON.fromOJSON(data['d']), cb
 
     sock.on 'delete', (data, cb) ->
-      db.delete sock.id, data['c'], data['i'], cb
+      sock.mediator.delete data['c'], data['i'], cb
 
     sock.on 'subscribe', (data, cb) ->
-      c = data['c']
-      i = data['i']
-
-      sock.listenOn db, Db.channel(c,i), onevent
-      db.subscribe sock.id, c, i, data['e'], cb
+      sock.mediator.subscribe data['c'], data['i'], data['e'], cb
 
     sock.on 'unsubscribe', (data, cb) ->
-      c = data['c']
-      i = data['i']
-
-      sock.listenOff db, Db.channel(c,i)
-      db.unsubscribe sock.id, c, i, cb
+      sock.mediator.unsubscribe data['c'], data['i'], cb
 
   io

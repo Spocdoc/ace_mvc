@@ -2,11 +2,12 @@ uglify-js
 express
 glob
 async
-browserify
+browserify (my fork)
 mold-source-map
 coffeeify
 mongodb
 redis
+hiredis
 socket.io
 cheerio
 stylus

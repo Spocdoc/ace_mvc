@@ -10,6 +10,7 @@ clone = require '../clone'
 diff = require '../diff'
 patchOutlets = require '../diff/to_outlets'
 debug = global.debug 'ace:mvc:model'
+DBRef = global.mongo.DBRef
 
 class Model
   include Model, Emitter
@@ -17,6 +18,9 @@ class Model
   @name = 'Model'
 
   @add: (coll) -> return this
+
+  @get: (coll, id) ->
+    #TODO
 
   constructor: (@coll, @db, idOrSpec) ->
     if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
@@ -37,6 +41,8 @@ class Model
       @_ops = []
       @doc.update ops
       return
+
+  newModel: (coll, idOrSpec) -> new @constructor coll, @db, idOrSpec
 
   onload: (cb) ->
     debug "added onload cb. loaded: [#{@doc.loaded}]"
@@ -104,14 +110,29 @@ class Model
     path = Snapshots.getPath path,key
     o = @_outlets
     o = o[p] ||= {} for p in path
-    return o._ if o._
 
-    d = @copy
-    `for (var i = 0, e = path.length-1; i < e; ++i) d = d[path[i]] || (d[path[i]] = {});`
-    @_configureOutlet(path, o._ = new Outlet(clone(d[path[path.length-1]]),silent:true))
+    unless o._
+      d = @copy
+      `for (var i = 0, e = path.length-1; i < e; ++i) d = d[path[i]] || (d[path[i]] = {});`
+      d = d[path[path.length-1]]
+
+      if d instanceof DBRef
+        d = @newModel d.namespace, d.oid
+      else
+        d = clone d
+
+      o._ = new Outlet d, silent: true
+      @_configureOutlet path, o._
+
+    o._
 
   toString: ->
     "#{@constructor.name} [#{@id}]"
 
-
 module.exports = Model
+
+# patch uses clone to patch the @copy. If any field contains another model, it
+# should instead clone it as a DBRef. diff for objects also uses clone. so the
+# ops from @_pushers will never contain a model instance, only DBRefs
+clone.register Model, (model) -> new DBRef model.coll.name, model.id
+

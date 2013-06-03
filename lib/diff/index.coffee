@@ -23,7 +23,10 @@ patchNumber = (obj, diff, options) ->
     when 'o' then obj |= +diff.substr(1)
 
 diff = (from, to, options = {}, key) ->
-  if typeof from isnt typeof to
+  return false if from is to
+
+  # cumbersome because typeof null is "object"
+  if typeof from isnt typeof to or from is null or to is null
     spec = {}
     if key?
       spec['k'] = key

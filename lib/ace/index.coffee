@@ -50,6 +50,8 @@ class Ace
     constructor: (@ace, others...) -> super others...
 
   class @Model extends Model
+    @prototype.newModel = publicMethods.newModel
+
     constructor: (@ace, coll, idOrSpec) ->
       super coll, @ace.db, idOrSpec
 

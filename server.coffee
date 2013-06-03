@@ -27,6 +27,7 @@ ace = new Ace
 ace.configure 'development', ->
   ace.set 'debug', true
   ace.set 'db',
+    mediator: path.resolve './app/mediator'
     host: '/tmp/mongodb-27017.sock'
     db: 'test'
     redis:
@@ -38,6 +39,7 @@ ace.configure 'development', ->
 ace.configure 'production', ->
   ace.set 'debug', false
   ace.set 'db',
+    mediator: path.resolve './app/mediator'
     host: '/tmp/mongodb-27017.sock'
     db: 'test'
     redis:
@@ -49,7 +51,9 @@ ace.configure 'production', ->
 app.use ace
 
 ace.boot (err) ->
-  throw err if err?
+  if err?
+    console.error err.stack
+    throw err
 
   server.listen port = 1337, ->
     console.log "listening on #{port}..."

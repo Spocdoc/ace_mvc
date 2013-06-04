@@ -48,6 +48,12 @@ class Cascade
     Cascade.run this, source unless sp
     return
 
+  allOutflows: (hash) ->
+    for outflow in @outflows.array when !hash[outflow.cid]
+      hash[outflow.cid] = outflow
+      outflow.allOutflows? hash
+    hash
+
   cascade: ->
     debug "called cascade on #{@}"
     unless @running

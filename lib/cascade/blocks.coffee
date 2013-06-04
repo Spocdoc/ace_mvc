@@ -19,9 +19,20 @@ module.exports = (Cascade) ->
       roots = Cascade.roots
       Cascade.roots = null
 
+      skip = {}
+
       `for (var i = roots.length-2; i >= 0; i = i - 2) {
-          debug("Running block "+i);
+        if (skip[roots[i].cid]) {
+          debug("skipping block "+i+" (" + roots[i].cid + ")");
+        } else {
+          debug("Running block "+i+" (" + roots[i].cid + ")");
           Cascade.run(roots[i], roots[i+1]);
+          if (roots[i].pending) {
+            // then async or was aborted
+            skip[roots[i].cid] = 1
+            roots[i].allOutflows(skip);
+          }
+        }
       }`
 
       debug "Running post block"

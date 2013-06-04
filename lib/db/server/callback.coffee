@@ -1,3 +1,5 @@
+OJSON = require '../../ojson'
+
 class Callback
   constructor: (@cb) ->
 
@@ -7,7 +9,12 @@ class Callback
     return
 
   doc: (doc) ->
-    @cb(['doc',doc])
+    @cb(['doc',OJSON.toOJSON doc])
+    delete this
+    return
+
+  update: (version, ops) ->
+    @cb(['up',version,OJSON.toOJSON ops])
     delete this
     return
 

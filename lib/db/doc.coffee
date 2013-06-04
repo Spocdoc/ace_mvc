@@ -8,27 +8,41 @@
 debug = global.debug 'ace:db:doc'
 Emitter = require '../events/emitter'
 diff = require '../diff'
+OJSON = require '../ojson'
+
+NOW         = 0
 
 SUB_LATER   = 1 << 0
+NOW        += 2 << 0
 SUB_NOW     = 3 << 0
+
 USUB_LATER  = 1 << 2
+NOW        += 2 << 2
 USUB_NOW    = 3 << 2
+
 UP_LATER    = 1 << 4
+NOW        += 2 << 4
 UP_NOW      = 3 << 4
+
 READ_LATER  = 1 << 6
+NOW        += 2 << 6
 READ_NOW    = 3 << 6
+
 DEL_LATER   = 1 << 8
+NOW        += 2 << 8
 DEL_NOW     = 3 << 8
+
 CREATE_LATER = 1 << 10
+NOW         += 2 << 10
 CREATE_NOW   = 3 << 10
 
 class Doc
   @name = 'Doc'
 
   constructor: (@coll, @id, doc) ->
-    @loaded = !!doc
     @doc = doc || {}
     @db = @coll.db
+    @doc._id = @id
     @doc._v ||= 0
     @outgoing = [] # outgoing ops when pending
     @incoming = [] # incoming ops when pending
@@ -56,23 +70,18 @@ class Doc
     this
 
   create: ->
-    if @pending & ~CREATE_NOW
-      @pending |= CREATE_LATER
-      return
+    return @pending |= CREATE_LATER if @pending & NOW
     @pending |= CREATE_NOW
     @doc._v ||= 1
     @db.create this, (err) =>
       @pending &= ~CREATE_NOW
-      if err
-        @_reject err[1]
+      @_handleCreate(err)
       @_doPending()
     return
 
   read: ->
     return if @live
-    if @pending & ~READ_NOW
-      @pending |= READ_LATER
-      return
+    return @pending |= READ_LATER if @pending & NOW
     @pending |= READ_NOW
 
     @db.read this, (err) =>
@@ -83,20 +92,17 @@ class Doc
   update: (ops) ->
     @outgoing.push ops... if ops
     return if @conflicted or @rejected?
-    if @pending & ~UP_NOW
-      @pending |= UP_LATER
-      return
+    return @pending |= UP_LATER if @pending & NOW
     @pending |= UP_NOW
     @_doUpdate()
 
   delete: ->
-    if @pending & ~DEL_NOW
-      @pending |= DEL_LATER
-      return
+    return @pending |= DEL_LATER if @pending & NOW
     @pending |= DEL_NOW
     @db.delete this, (err) =>
       if err
         @emit 'undelete', err[1]
+        @_doPending()
       else
         @serverDelete()
     return
@@ -155,7 +161,7 @@ class Doc
       @pending |= SUB_LATER
       debug "#{@} wont subscribe because conflicted or rejected"
       return
-    if @pending
+    if @pending & NOW
       if (@pending & USUB_NOW) is USUB_LATER
         @pending &= ~USUB_NOW
       else
@@ -174,7 +180,7 @@ class Doc
       @_doPending()
 
   _unsubscribe: ->
-    if @pending
+    if @pending & NOW
       if (@pending & SUB_NOW) is SUB_LATER
         @pending &= ~SUB_NOW
       else
@@ -188,7 +194,13 @@ class Doc
       @_doPending()
 
   _doPending: ->
-    if @pending & CREATE_LATER
+    if !@pending
+      @emit 'idle'
+      return
+
+    if @pending & DEL_LATER
+      @delete()
+    else if @pending & CREATE_LATER
       @create()
     else if @pending & READ_LATER
       @read()
@@ -205,14 +217,24 @@ class Doc
 
   emit: Emitter.emit
 
+  _handleCreate: (err) ->
+    if err
+      switch err[0]
+        when 'rej'
+          @_reject err[1]
+        when 'up'
+          @serverUpdate err[1], OJSON.fromOJSON err[2]
+        when 'doc'
+          @serverCreate OJSON.fromOJSON err[1]
+    return
+
+
   _handleRead: (err) ->
     if err
       switch err[0]
         when 'doc'
-          @loaded = true
-          @serverCreate err[1]
+          @serverCreate OJSON.fromOJSON err[1]
         when 'no'
-          @loaded = true
           @live = false
           @serverDelete()
         when 'rej'

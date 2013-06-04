@@ -16,7 +16,7 @@ app.configure 'development', ->
   app.use connect.logger 'dev'
 
 ace = new Ace
-  routes: path.resolve('./routes')
+  routes: path.resolve('./app/routes')
   server: server
   root: path.resolve('./app')
   cookies:

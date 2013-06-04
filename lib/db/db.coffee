@@ -19,7 +19,7 @@ class Db
       coll = data['c']
       id = data['i']
       version = data['e']
-      ops = data['d']
+      ops = OJSON.fromOJSON data['d']
       @coll(coll).read(id).serverUpdate(version, ops)
       return
 

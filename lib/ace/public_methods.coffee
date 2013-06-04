@@ -18,41 +18,43 @@ module.exports = (Ace) ->
 
   diff: diff
     
-  newOutlet: (name) ->
-    outlet = @ace.historyOutlets.to.get path = makeOutletPath(this, name)
-    outlet.auto = true
-    debugCascade "created #{outlet} at",path.join('/')
-    outlet
-
-  newSlidingOutlet: (name) ->
-    outlet = @ace.historyOutlets.sliding.get path = makeOutletPath(this, name)
-    outlet.auto = true
-    debugCascade "created #{outlet} at",path.join('/')
-    outlet
-
-  newFromOutlet: (name) ->
-    outlet = @ace.historyOutlets.from.get path = makeOutletPath(this, name)
-    outlet.auto = true
-    debugCascade "created #{outlet} at",path.join('/')
-    outlet
-
   local: (path) -> @ace.historyOutlets.noInherit(path)
-  to: (path) -> @ace.historyOutlets.sliding.get(path).get()
-  from: (path) -> @ace.historyOutlets.from.get(path).get()
+
+  to: (path) ->
+    path = makeOutletPath(this, path) unless ~path.indexOf '/'
+    outlet = @ace.historyOutlets.to.get(path)
+    outlet.auto = true
+    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+    outlet
+
+  from: (path) ->
+    path = makeOutletPath(this, path) unless ~path.indexOf '/'
+    outlet = @ace.historyOutlets.from.get(path)
+    outlet.auto = true
+    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+    outlet
+
+  sliding: (path) ->
+    path = makeOutletPath(this, path) unless ~path.indexOf '/'
+    outlet = @ace.historyOutlets.sliding.get(path)
+    outlet.auto = true
+    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+    outlet
 
   newController: (type, name, settings) -> debugCascade "creating new controller",type,name; new Ace.Controller(@ace,type, this, name, settings)
   newView: (type, name, settings) -> debugCascade "creating new view",type,name; new Ace.View(@ace, type, this, name, settings)
   newTemplate: (type) -> debugCascade "creating new template",type; new Ace.Template(@ace, type, this)
 
-  newModel: (type, idOrSpec) ->
-    debugCascade "creating new model",type,idOrSpec
+  # spec and id are optional
+  newModel: (type, id, spec) ->
+    debugCascade "creating new model",type,id,spec
+    [id,spec] = [undefined, id] unless spec or id instanceof global.mongo.ObjectID or typeof id is 'string'
 
-    if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
-      if exists = @ace.modelCache[type]?[idOrSpec]
-        debugModel "reusing existing model"
-        return exists
+    if exists = @ace.modelCache[type]?[id]
+      debugModel "reusing existing model"
+      return exists
 
-    model = new Ace.Model(@ace, type, idOrSpec)
+    model = new Ace.Model(@ace, type, id, spec)
     (@ace.modelCache[type] ||= {})[model.id] = model
 
   navigate: -> @ace.routing.navigate()

@@ -48,39 +48,51 @@ class Ace
 
   class @View extends View
     include @, publicMethods
+    newOutlet: publicMethods.to
 
     constructor: (@ace, others...) ->
       super others...
 
   class @Model extends Model
     @prototype.newModel = publicMethods.newModel
+    newOutlet: publicMethods.to
 
-    constructor: (@ace, coll, idOrSpec) ->
-      super coll, @ace.db, idOrSpec
+    constructor: (@ace, coll, id, spec) ->
+      super @ace.db, coll, id, spec
 
   class @Controller extends Controller
     include @, publicMethods
+    newOutlet: publicMethods.to
 
     constructor: (@ace, others...) -> super others...
+
+  class @RouteContext
+    include @, publicMethods
+    constructor: (@ace) ->
+      @path = ['routing']
 
   constructor: (@historyOutlets = new HistoryOutlets, @db = new Db, @name='') ->
     @path = [@name]
     @ace = this
     @modelCache = {}
 
-    @root = @newOutlet('root')
-    @rootType = @newOutlet('rootType')
+    @root = @to('root')
+    @rootType = @to('rootType')
     @rootType.set('body') unless @rootType.get()
 
     @rootType.outflows.add => @_setRoot()
 
-    @routing = new Routing this,
-      (arg) => @historyOutlets.navigate(arg),
-      (path, fn) =>
-        outlet = @historyOutlets.sliding.get path
-        outlet.auto = true
-        outlet.set fn
-        outlet
+    @routing = new Routing this, new Ace.RouteContext(this),
+      (arg) => @historyOutlets.navigate(arg)
+
+  newRouteContext: ->
+    new Ace.RouteContext this
+
+  deleteModel: (model) ->
+    if @modelCache[model.id]
+      delete @modelCache[model.id]
+      model._delete()
+    return
 
   toString: -> "Ace [#{@name}]"
 

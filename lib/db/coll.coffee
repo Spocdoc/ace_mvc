@@ -5,11 +5,13 @@ class Coll
   constructor: (@db, @name) ->
     @docs = {}
 
-  create: (spec) ->
-    doc = read(null, spec)
+  # id is optional
+  create: (spec, id) ->
+    doc = @read(id, spec)
     doc.create()
     doc
 
+  # spec is optional
   read: (id = new ObjectID, spec) ->
     if typeof id is 'string'
       try

@@ -20,6 +20,8 @@
 
     This is because it isn't just an individual outlet that can only logically have 1 function, it's the entire equivalence set. Whenever an outlet is `set()`, if it's currently pending and is pending because it's the outflow of a function that will be calculated (because either it's been run or one of its auto inflows has changed), setting that outlet shouldn't be permitted (but should it raise an error?)
 
+  - OutletMethods that both retrieve a value and set it always run twice...
+
 # Outlet
 
   - optimization: should cache the change to function mapping instead of looping through all the functions (map from change cid to function)
@@ -168,3 +170,10 @@
   - may want to reduce the number of outlets/outlet methods
 
     instead of creating new outlet methods in the controllers/views, could assign the functions directly to the ToHistoryOutlet
+
+# Error handling
+
+  - there should be better error handling on the client side
+
+    e.g., when there's an error creating a session.
+

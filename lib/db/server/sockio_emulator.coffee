@@ -1,5 +1,6 @@
 mongodb = require 'mongodb'
 Callback = require './callback'
+OJSON = require '../../ojson'
 
 # emulates the *client's* sock.io access
 class SockioEmulator

@@ -7,10 +7,10 @@ utils = require '../utils'
 
 styleLoaders =
   'styl': do ->
-    wrapInClass = (styl, name) ->
-      if name
+    wrapInClass = (styl, type) ->
+      if type
         lines = []
-        lines.push ".#{name}"
+        lines.push ".#{type}"
         lines.push "  #{line}" for line in styl.split '\n'
         lines.join '\n'
       else
@@ -18,20 +18,20 @@ styleLoaders =
 
     stylus = require 'stylus'
 
-    (fullPath, name, content, cb) ->
-      name = utils.makeClassName name
+    (fullPath, type, content, cb) ->
+      type = utils.makeClassName type
 
       async.parallel
         debug: (done) ->
-          stylus.render wrapInClass(content,name), filename: fullPath, compress: false, linenos:true, done
+          stylus.render wrapInClass(content,type), filename: fullPath, compress: false, linenos:true, done
         release: (done) ->
-          stylus.render wrapInClass(content,name), filename: fullPath, compress: true, linenos: false, done
+          stylus.render wrapInClass(content,type), filename: fullPath, compress: true, linenos: false, done
         cb
 
 module.exports =
   handles: (ext) -> styleLoaders[ext]?
 
-  compile: (fullPath, name, content, cb) ->
+  compile: (fullPath, type, content, cb) ->
     ext = path.extname(fullPath)[1..]
-    styleLoaders[ext](fullPath, name, content, cb)
+    styleLoaders[ext](fullPath, type, content, cb)
 

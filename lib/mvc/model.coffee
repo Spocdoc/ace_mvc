@@ -21,18 +21,6 @@ class Model
     #TODO
 
   constructor: (@db, @coll, id, spec) ->
-    unless spec
-      @doc = @db.coll(@coll).read(id)
-      @_builders = [] unless @doc.doc._v > 0
-    else
-      @doc = @db.coll(@coll).create(spec, id)
-      @_builders = []
-      @doc.on 'idle', @_notifyBuilders, this
-
-    @id = @doc.id
-    @copy = clone(@doc.doc)
-
-    @_attach()
     @_outlets = {}
     @_pushers = []
     @_ops = []
@@ -41,6 +29,30 @@ class Model
       @_ops = []
       @doc.update ops
       return
+
+    @doc = @db.coll(@coll).read id, spec
+
+    @listenOn @doc, 'reject', @serverReject
+    @listenOn @doc, 'delete', @serverDelete
+
+    if spec
+      @_builders = []
+      @doc.on 'idle', @_notifyBuilders, this
+      @doc.create()
+
+    else unless @doc.doc._v > 0
+      @_builders = []
+      @doc.read()
+
+    @id = @doc.id
+    @copy = clone(@doc.doc)
+
+    @listenOn @doc, 'update', @serverUpdate
+
+    # 'reject'
+    # 'conflict'
+    # 'delete'
+    # 'undelete'
 
   onbuilt: (cb) ->
     debug "added onbuilt cb"
@@ -82,16 +94,6 @@ class Model
     "#{@constructor.name} [#{@id}]"
 
   _delete: -> @doc.delete()
-
-  _attach: ->
-    @doc ||= @db.coll(@coll).read(@id)
-    @listenOn @doc, 'reject', @serverReject
-    @listenOn @doc, 'delete', @serverDelete
-    # 'reject'
-    # 'conflict'
-    # 'delete'
-    # 'undelete'
-    @listenOn @doc, 'update', @serverUpdate
 
   serverDelete: ->
     debug "serverDelete for #{@}"

@@ -3,8 +3,8 @@ Outlet = require '../cascade/outlet'
 debugMVC = global.debug 'ace:mvc'
 utils = require './utils'
 
-class TemplateBase
-  constructor: (@dom, @name) ->
+class Config
+  constructor: (@dom, @_type) ->
 
   lazy: ->
     return if @$root
@@ -24,41 +24,41 @@ class TemplateBase
     (dom) -> helper [], dom
 
 class Template
-  @add: (name, domString) ->
-    throw new Error("Template: already added #{name}") if @[name]?
-    TemplateBase[name] = new TemplateBase(domString, name)
+  @add: (type, domString) ->
+    throw new Error("Template: already added #{type}") if Config[type]?
+    Config[type] = new Config(domString, type)
     return this
 
-  constructor: (@type, @parent, @name) ->
+  constructor: (@_type, @_parent, @_name) ->
     prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
-    @path = @parent.path
-    @path = @path.concat(@name) if @name
-    @prefix = @path.join('-') || "ace"
-    @prefix = "ace#{@prefix}" if @prefix.charAt(0) is '-'
+    @_path = @_parent._path
+    @_path = @_path.concat(@_name) if @_name
+    @_prefix = @_path.join('-') || "ace"
+    @_prefix = "ace#{@_prefix}" if @_prefix.charAt(0) is '-'
     @$ = {}
-    base = TemplateBase[@type]
+    base = Config[@_type]
     base.lazy()
     @_build(base)
 
     # api
     @['$root'] = @$root
-    @$root.addClass utils.makeClassName(@parent.type)
+    @$root.addClass utils.makeClassName(@_parent._type)
     debugMVC "done building #{@}"
     Outlet.auto = prev
 
   toString: ->
-    "#{@constructor.name} [#{@type}] name [#{@name}]"
+    "#{@constructor.name} [#{@_type}] name [#{@_name}]"
 
 
   _build: (base) ->
     @$root = base.$root.clone()
-    @$root.attr('id',@prefix)
+    @$root.attr('id',@_prefix)
     @$['root'] = @$root
 
     for id in base.ids
       (@["$#{id}"] = @$[id] = @$root.find("##{id}"))
-      .attr('id', "#{@prefix}-#{id}")
+      .attr('id', "#{@_prefix}-#{id}")
       .template = this
     return
 

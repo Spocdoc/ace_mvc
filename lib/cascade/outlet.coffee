@@ -104,7 +104,7 @@ class Outlet extends Cascade
   set: (value, options={}) ->
     return if @_value is value
 
-    debug "set #{@constructor.name} [#{@cid}] to [#{value}]"
+    debug "set #{options.silent && "(silently)" || ""} #{@constructor.name} [#{@cid}] to [#{value}]"
 
     ++@_runNumber
     @running = false
@@ -217,6 +217,7 @@ class Outlet extends Cascade
       @_autoInflows[inflow.cid] = 1
       inflow.outflows.add this
       if inflow.pending and !@outflows[inflow.cid]
+        debug "Aborting #{@} because new pending inflow"
         # then shouldn't run -- keep this pending but set @running to false
         ++@_runNumber
         @running = false

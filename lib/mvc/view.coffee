@@ -206,7 +206,7 @@ class View extends ControllerBase
     @_buildOutletMethods config.outletMethods
 
     unless @_mixing
-      @_buildTemplate settings?.template || config.template || base.name
+      @_buildTemplate settings?.template || config.template || base.type
 
     @_buildMethods config
     @_buildMethods config['methods']

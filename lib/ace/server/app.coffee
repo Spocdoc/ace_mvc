@@ -127,10 +127,9 @@ class App
 
     if cc.pending
       Cascade.on 'done', =>
-        process.nextTick =>
-          @_finish ace, $html, res, next
+        process.nextTick => @_finish ace, $html, res, next
     else
-      @_finish ace, $html, res, next
+      process.nextTick => @_finish ace, $html, res, next
 
     return
 

@@ -62,7 +62,7 @@ class Controller extends ControllerBase
     @_buildOutletMethods config.outletMethods
 
     unless @_mixing
-      @_buildView settings?.view || config.view || base.name, settings
+      @_buildView settings?.view || config.view || base.type, settings
 
     @_buildMethods config
     @_buildMethods config['methods']

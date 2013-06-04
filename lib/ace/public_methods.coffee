@@ -7,7 +7,7 @@ diff = require '../diff'
 module.exports = (Ace) ->
 
   makeOutletPath = (inst, name) ->
-    path = inst.path.concat()
+    path = inst._path.concat()
     switch inst.constructor
       when Ace.View then name = "$#{name}"
       when Ace

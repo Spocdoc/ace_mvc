@@ -10,19 +10,19 @@ getInode = async.memoize (filePath, cb) ->
     return cb(err) if err?
     cb null, ""+stat.ino
 
-formName = (name, base, stub) ->
+formType = (type, base, stub) ->
   unless base is stub
-    name += '/' if name
-    name += "#{base}"
-  name
+    type += '/' if type
+    type += "#{base}"
+  type
 
-formStyleName = (name, base, stub) ->
+formStyleType = (type, base, stub) ->
   unless base is stub
-    name += '/' if name
-    name += "#{base}"
-  name
+    type += '/' if type
+    type += "#{base}"
+  type
 
-listMvc = (mvc, arr, root, pending, done, type) ->
+listMvc = (mvc, arr, root, pending, done, className) ->
   for file in fs.readdirSync root
     fullPath = "#{root}/#{file}"
     stat = fs.statSync(fullPath)
@@ -37,7 +37,7 @@ listMvc = (mvc, arr, root, pending, done, type) ->
           listMvc mvc, arr, fullPath, pending, done
         else
           arr.push file
-          listMvc mvc, arr, fullPath, pending, done, type
+          listMvc mvc, arr, fullPath, pending, done, className
           arr.pop()
 
       continue
@@ -45,51 +45,51 @@ listMvc = (mvc, arr, root, pending, done, type) ->
     extname = path.extname(file)
     base = path.basename(file, extname)
     ext = extname[1..]
-    name = arr.join('/')
+    type = arr.join('/')
     reqPath = "#{root}/#{base}"
 
     continue unless base[0] isnt '.'
 
     if templateLoader.handles ext
-      name = formName name, base, 'template'
-      debug "loaded template   #{name}"
+      type = formType type, base, 'template'
+      debug "loaded template   #{type}"
 
       pending()
-      do (fullPath, name) ->
+      do (fullPath, type) ->
         async.waterfall [
           (next) -> fs.readFile fullPath, 'utf-8', next
-          (content, next) -> templateLoader.compile fullPath, name, content, next
+          (content, next) -> templateLoader.compile fullPath, type, content, next
           (parsed, next) ->
-            mvc['template'][name] = parsed
+            mvc['template'][type] = parsed
             next()
         ], done
 
     else if styleLoader.handles ext
-      name = formStyleName name, base, 'style'
-      debug "loaded style      #{name}"
+      type = formStyleType type, base, 'style'
+      debug "loaded style      #{type}"
 
       pending()
-      do (fullPath, name) ->
+      do (fullPath, type) ->
         async.waterfall [
           (next) -> fs.readFile fullPath, 'utf-8', next
-          (content, next) -> styleLoader.compile fullPath, name, content, next
+          (content, next) -> styleLoader.compile fullPath, type, content, next
           (parsed, next) ->
-            mvc['style'][name] = parsed
+            mvc['style'][type] = parsed
             next()
         ], done
 
-    else if type in ['view','controller']
-      name = formName name, base, 'index'
-      debug "loaded #{if type is 'view' then "view      " else "controller"} #{name}"
-      mvc[type][name] = reqPath
+    else if className in ['view','controller']
+      type = formType type, base, 'index'
+      debug "loaded #{if className is 'view' then "view      " else "controller"} #{type}"
+      mvc[className][type] = reqPath
 
     else if base is 'view'
-      debug "loaded view       #{name}"
-      mvc['view'][name] = reqPath
+      debug "loaded view       #{type}"
+      mvc['view'][type] = reqPath
 
     else if base is 'controller'
-      debug "loaded controller #{name}"
-      mvc['controller'][name] = reqPath
+      debug "loaded controller #{type}"
+      mvc['controller'][type] = reqPath
 
 module.exports = do ->
   cache = {}

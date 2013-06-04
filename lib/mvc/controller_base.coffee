@@ -25,7 +25,7 @@ class ControllerBase
         return
 
 
-    constructor: (@name, config) ->
+    constructor: (@type, config) ->
       if typeof config is 'function'
         @func = config
       else
@@ -34,31 +34,31 @@ class ControllerBase
 
     get: (controllerBase, args=[]) ->
       return this unless @func
-      vb = new @constructor @name
+      vb = new @constructor @type
       @func.apply(controllerBase, [vb.config].concat(args))
       vb
 
-  @add: (name, fnOrHash) ->
-    throw new Error("#{@name}: already added #{name}") if @[name]?
-    @Config[name] = new @Config name, fnOrHash
+  @add: (type, fnOrHash) ->
+    throw new Error("#{@name}: already added #{type}") if @Config[type]?
+    @Config[type] = new @Config type, fnOrHash
     return this
 
   @defaultOutlets = []
 
-  constructor: (@type, @parent, @name, settings) ->
+  constructor: (@_type, @_parent, @_name, settings) ->
     prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
-    @path = @parent.path
-    @path = @path.concat(@name) if @name
+    @_path = @_parent._path
+    @_path = @_path.concat(@_name) if @_name
     @outlets = {}
     @outletMethods = []
     Cascade.Block =>
-      @_build(@constructor.Config[@type], settings)
+      @_build(@constructor.Config[@_type], settings)
     debugMVC "done building #{@}"
     Outlet.auto = prev
 
   toString: ->
-    "#{@constructor.name} [#{@type}] name [#{@name}]"
+    "#{@constructor.name} [#{@_type}] name [#{@_name}]"
 
   _buildOutlet: (outlet) ->
     if typeof outlet isnt 'string'
@@ -115,9 +115,9 @@ class ControllerBase
     else if Array.isArray(mixins)
       @_buildMixins elem for elem in mixins
     else
-      for name,args of mixins
-        mixin = @constructor.Config[name]
-        throw new Error("No such mixin: [#{name}]") unless mixin
+      for type,args of mixins
+        mixin = @constructor.Config[type]
+        throw new Error("No such mixin: [#{type}]") unless mixin
         @_build mixin.get(this, args)
 
     @_buildMixins mixins2 if mixins2
@@ -125,7 +125,7 @@ class ControllerBase
     --@_mixing
     return
 
-  newOutlet: (name) -> new Outlet undefined, auto: true
+  newOutlet: (_name) -> new Outlet undefined, auto: true
   newOutletMethod: (func, debug) ->
     om = new OutletMethod func, @outlets, silent: !!func.length, context: this, auto: true
     debugCascade "created outlet method for #{debug}: #{om}"

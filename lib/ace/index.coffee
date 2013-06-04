@@ -32,17 +32,17 @@ class Ace
 
     _build: (base) ->
       boot = @constructor._bootstrapped
-      prev = boot[@prefix]
-      boot[@prefix] = true
+      prev = boot[@_prefix]
+      boot[@_prefix] = true
 
-      unless !prev && (@$root = @ace.$container?.find("##{@prefix}")).length
-        debugBoot "Not bootstrapping template with prefix #{@prefix}"
+      unless !prev && (@$root = @ace.$container?.find("##{@_prefix}")).length
+        debugBoot "Not bootstrapping template with prefix #{@_prefix}"
         return super
 
-      debugBoot "Bootstrapping template with prefix #{@prefix}"
+      debugBoot "Bootstrapping template with prefix #{@_prefix}"
       @$['root'] = @$root
       for id in base.ids
-        (@["$#{id}"] = @$[id] = @$root.find("##{@prefix}-#{id}"))
+        (@["$#{id}"] = @$[id] = @$root.find("##{@_prefix}-#{id}"))
           .template = this
       return
 
@@ -69,10 +69,10 @@ class Ace
   class @RouteContext
     include @, publicMethods
     constructor: (@ace) ->
-      @path = ['routing']
+      @_path = ['routing']
 
-  constructor: (@historyOutlets = new HistoryOutlets, @db = new Db, @name='') ->
-    @path = [@name]
+  constructor: (@historyOutlets = new HistoryOutlets, @db = new Db, @_name='') ->
+    @_path = [@_name]
     @ace = this
     @modelCache = {}
 
@@ -94,12 +94,12 @@ class Ace
       model._delete()
     return
 
-  toString: -> "Ace [#{@name}]"
+  toString: -> "Ace [#{@_name}]"
 
   _setRoot: ->
     type = @rootType.get()
     return if (root = @root.get())?.type == type
-    @historyOutlets.noInherit(@path)
+    @historyOutlets.noInherit(@_path)
     root?.remove()
     @root.set(@newController(type))
     @appendTo(@$container) if @$container

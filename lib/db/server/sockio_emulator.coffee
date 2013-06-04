@@ -13,9 +13,7 @@ class SockioEmulator
       when 'create'
         @mediator.create data['c'], OJSON.fromOJSON(data['v']), new Callback cb
 
-      # when the server is rendering, there's no subscription. full documents
-      # are always returned
-      when 'subscribe', 'read'
+      when 'read'
         @mediator.read data['c'], data['i'], data['e'], new Callback cb
 
       when 'update'
@@ -23,6 +21,9 @@ class SockioEmulator
 
       when 'delete'
         @mediator.delete data['c'], data['i'], new Callback cb
+
+      when 'subscribe', 'unsubscribe'
+        cb()
 
   on: (event, fn) -> # noop
 

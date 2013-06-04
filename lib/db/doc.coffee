@@ -283,7 +283,8 @@ class Doc
     return
 
   _doServerUpdate: ->
-    return if @pending || @rejected?
+    return if @rejected?
+    return if @pending & ~(SUB_LATER | USUB_LATER)
 
     if @conflicted
       @_conflict()

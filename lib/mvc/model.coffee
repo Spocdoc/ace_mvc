@@ -113,8 +113,6 @@ class Model
     @_notifyBuilders() if @_builders
     return
 
-  newModel: (coll, id, spec) -> new @constructor @db, coll, id, spec
-
   _configureOutlet: (path, outlet) ->
     @_pushers.push pusher = new Outlet (=>
       if ops = diff(@copy, outlet._value, path: path)

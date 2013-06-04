@@ -28,7 +28,7 @@ class Routing
       @router.push route
       for spec in route.specs
         unless @uriOutlets[spec.key]
-          context[spec.key] = @uriOutlets[spec.key] = new Outlet
+          context[spec.key] = @uriOutlets[spec.key] = @ace.sliding "routing/#{spec.key}"
           debugCascade "created uri outlet #{@uriOutlets[spec.key]}"
 
     config['vars'].call context

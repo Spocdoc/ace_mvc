@@ -61,9 +61,14 @@ class Cascade
       # this is to stop recursion if this is an outflow of one of its outflows
       @outflows.setPending @pending = true
       @pending = false
-    for outflow in @outflows.array when outflow.pending in [undefined, true]
-      outflow._mustRun = true # explicitly requested a cascade so must run even if there's a loop later
-      Cascade.run outflow, this
+    # explicit looping because the array length could change while looping it
+    `for (var i = 0, arr = this.outflows.array; i < arr.length; ++i) {
+      outflow = arr[i];
+      if (outflow.pending || outflow.pending === (void 0)) {
+        outflow._mustRun = true;
+        Cascade.run(outflow, this);
+      }
+    }`
     return
 
   setThisPending: (tf) ->

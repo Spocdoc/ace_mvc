@@ -118,7 +118,7 @@ class View extends ControllerBase
       return
 
   _buildTemplate: (arg) ->
-    outlet = @outlets['template'] ||= @newOutlet('template')
+    outlet = @outlets['template'] ||= @to('template')
 
     if arg instanceof Template
       outlet.set @template = arg
@@ -216,7 +216,5 @@ class View extends ControllerBase
       @_setStatelets settings
 
     base
-
-  newTemplate: (type) -> new Template(type, this)
 
 module.exports = View

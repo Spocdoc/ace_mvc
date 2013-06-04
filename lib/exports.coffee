@@ -33,6 +33,8 @@ api Ace.View.prototype,
   to: 'to'
   sliding: 'sliding'
   diff: 'diff'
+  newOutlet: 'newOutlet'
+  newAuto: 'newAuto'
 
 api Ace.Controller.prototype,
   newController: 'newController'
@@ -44,6 +46,8 @@ api Ace.Controller.prototype,
   to: 'to'
   sliding: 'sliding'
   diff: 'diff'
+  newOutlet: 'newOutlet'
+  newAuto: 'newAuto'
 
 api Ace.Model.prototype,
   onbuilt: 'onbuilt'

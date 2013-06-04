@@ -15,8 +15,8 @@ s = undefined
 
 module.exports = (config, app) ->
 
-  clone.register ObjectID, (other) -> new ObjectID(other.toString())
   OJSON.register 'ObjectID': ObjectID
+  clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
   OJSON.register 'DBRef': DBRef
   extend DBRef, OJSON.copyKeys

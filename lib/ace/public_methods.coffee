@@ -2,6 +2,8 @@ debugModel = global.debug 'ace:mvc:model'
 debugCascade = global.debug 'ace:cascade'
 Statelet = require '../cascade/statelet'
 Outlet = require '../cascade/outlet'
+OutletMethod = require '../cascade/outlet_method'
+Auto = require '../cascade/auto'
 diff = require '../diff'
 
 module.exports = (Ace) ->
@@ -41,9 +43,17 @@ module.exports = (Ace) ->
     debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
     outlet
 
+  newAuto: (init, options) -> new Auto init, options
+  newOutlet: (init, options) -> new Outlet init, options
+
   newController: (type, name, settings) -> debugCascade "creating new controller",type,name; new Ace.Controller(@ace,type, this, name, settings)
   newView: (type, name, settings) -> debugCascade "creating new view",type,name; new Ace.View(@ace, type, this, name, settings)
   newTemplate: (type) -> debugCascade "creating new template",type; new Ace.Template(@ace, type, this)
+
+  newOutletMethod: (func, debug) ->
+    om = new OutletMethod func, @outlets, silent: !!func.length, context: this, auto: true
+    debugCascade "created outlet method for #{debug}: #{om}"
+    om
 
   # spec and id are optional
   newModel: (type, id, spec) ->

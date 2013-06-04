@@ -22,7 +22,7 @@ class Controller extends ControllerBase
   remove: -> @view.remove()
 
   _buildView: (arg, settings) ->
-    outlet = @outlets['view'] ||= @newOutlet('view')
+    outlet = @outlets['view'] ||= @to('view')
 
     if arg instanceof View
       outlet.set @view = arg
@@ -71,9 +71,5 @@ class Controller extends ControllerBase
       @_setOutlets settings
 
     base
-
-  newView: (type, name, settings) -> new View(type, this, name, settings)
-  newModel: (type, idOrSpec) -> new Model(type, idOrSpec)
-  newController: (type, name, settings) -> new Controller(type, this, name, settings)
 
 module.exports = Controller

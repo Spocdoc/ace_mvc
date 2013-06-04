@@ -5,7 +5,9 @@ clone = require '../../clone'
 {'diff': diffObj, 'patch': patchObj} = require('../../diff/object')
 
 
-OJSON.register 'ObjectID': global.mongo.ObjectID
+ObjectID = global.mongo.ObjectID
+OJSON.register 'ObjectID': ObjectID
+clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
 DBRef = global.mongo.DBRef
 OJSON.register 'DBRef': DBRef

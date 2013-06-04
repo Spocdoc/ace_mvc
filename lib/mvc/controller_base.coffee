@@ -1,6 +1,5 @@
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
-OutletMethod = require '../cascade/outlet_method'
 {extend} = require '../mixin'
 clone = require '../clone'
 debugCascade = global.debug 'ace:cascade'
@@ -67,17 +66,17 @@ class ControllerBase
           o = v
         else
           @_outletDefaults[k] = v
-          o = @newOutlet k
+          o = @to k
         @[k] = @outlets[k] = o
     else
-      @[outlet] = @outlets[outlet] = @newOutlet(outlet) unless @[outlet]
+      @[outlet] = @outlets[outlet] = @to(outlet) unless @[outlet]
     return
 
   _buildOutlets: (outlets) ->
     return unless outlets
     @_outletDefaults = {}
 
-    @[k] ?= @outlets[k] = @newOutlet(k) for k in @constructor.defaultOutlets
+    @[k] ?= @outlets[k] = @to(k) for k in @constructor.defaultOutlets
 
     if Array.isArray outlets
       @_buildOutlet k for k in outlets
@@ -124,12 +123,6 @@ class ControllerBase
 
     --@_mixing
     return
-
-  newOutlet: (_name) -> new Outlet undefined, auto: true
-  newOutletMethod: (func, debug) ->
-    om = new OutletMethod func, @outlets, silent: !!func.length, context: this, auto: true
-    debugCascade "created outlet method for #{debug}: #{om}"
-    om
 
 module.exports = ControllerBase
 

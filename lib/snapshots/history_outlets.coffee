@@ -9,8 +9,15 @@ class HistoryOutlets extends Snapshots
   include HistoryOutlets, Emitter
   @name = 'HistoryOutlets'
 
-  class SyncingOutlet extends Outlet
-    @name = 'SyncingOutlet'
+  class SyncOutlet extends Outlet
+    set: (value, options) ->
+      if typeof value is 'function' or (value instanceof Cascade and not (value instanceof SyncOutlet))
+        @_noSync = true
+      super
+
+  class SlidingOutlet extends SyncOutlet
+    @name = 'SlidingOutlet'
+
     constructor: (snapshots, path, key, @_syncValue) ->
       super @_syncValue
 
@@ -21,26 +28,26 @@ class HistoryOutlets extends Snapshots
           dataStore.localPath(path)[key] = @_value
 
     sync: (value) ->
-      return if @pending
+      return if @pending or @_noSync or @_toOutlet?._noSync
       @_syncValue = value
       @set value
 
-  class SlidingOutlet extends SyncingOutlet
-    @name = 'SlidingOutlet'
     slide: (outlet) ->
       return unless outlet != @_toOutlet
       @unset @_toOutlet if @_toOutlet
       @set outlet, silent: true if @_toOutlet = outlet
       return
 
-  class ToHistoryOutlet extends Outlet
+  class ToHistoryOutlet extends SyncOutlet
     @name = 'ToHistoryOutlet'
+
     constructor: (@_slidingOutlet) ->
       @_slidingOutlet._toOutlet = this
       super @_slidingOutlet._value
       @_slidingOutlet.set this, silent: true
 
     localizeChanges: ->
+      return if @_noSync
       syncValue = @_slidingOutlet._syncValue
       @_slidingOutlet.slide()
 
@@ -51,6 +58,7 @@ class HistoryOutlets extends Snapshots
 
       @set syncValue
       return
+
 
   class FromHistoryOutlet extends Outlet
     @name = 'FromHistoryOutlet'

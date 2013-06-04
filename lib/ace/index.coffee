@@ -48,21 +48,18 @@ class Ace
 
   class @View extends View
     include @, publicMethods
-    newOutlet: publicMethods.to
 
     constructor: (@ace, others...) ->
       super others...
 
   class @Model extends Model
     @prototype.newModel = publicMethods.newModel
-    newOutlet: publicMethods.to
 
     constructor: (@ace, coll, id, spec) ->
       super @ace.db, coll, id, spec
 
   class @Controller extends Controller
     include @, publicMethods
-    newOutlet: publicMethods.to
 
     constructor: (@ace, others...) -> super others...
 

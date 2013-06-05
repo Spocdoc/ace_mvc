@@ -30,3 +30,4 @@ diff.register DBRef,
     ),
   patchObj
 
+module.exports = undefined

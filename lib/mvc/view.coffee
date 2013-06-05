@@ -81,8 +81,8 @@ class View extends ControllerBase
 
         when 'text','html'
           outflows.add ->
-            if view.domCache[name] isnt (v = outlet.get())
-              view.domCache[name] = ''+v
+            if view['domCache'][name] isnt (v = outlet.get())
+              view['domCache'][name] = ''+v
               debugDom "calling #{str} in dom on #{name} with #{v}"
               e[str].call(e, ''+v)
 
@@ -126,7 +126,7 @@ class View extends ControllerBase
       outlet.set @template = @newTemplate arg
 
     @template.view = this
-    @domCache = {}
+    @['domCache'] = {}
     @$ = @template.$
     @[k] = v for k,v of @template when k.charAt(0) is '$'
     @$root = @template.$root # closure mangling

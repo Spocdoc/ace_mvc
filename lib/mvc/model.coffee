@@ -40,7 +40,7 @@ class Model
       @doc.on 'idle', @_notifyBuilders, this
       @doc.create()
 
-    else unless @doc.doc._v > 0
+    else unless @doc.doc['_v'] > 0
       @_builders = []
       @doc.read()
 
@@ -55,10 +55,11 @@ class Model
     # 'undelete'
 
   onbuilt: (cb) ->
-    debug "added onbuilt cb"
     if @_builders
+      debug "added waiting onbuilt cb"
       @_builders.push cb
     else
+      debug "onbuilt returns immediately"
       if @doc._deleted
         cb 'delete'
       else if @doc.rejected?
@@ -75,7 +76,7 @@ class Model
     o = @_outlets
     o = o[p] ||= {} for p in path
 
-    unless o._
+    unless o['_']
       d = @copy
       `for (var i = 0, e = path.length-1; i < e; ++i) d = d[path[i]] || (d[path[i]] = {});`
       d = d[path[path.length-1]]
@@ -85,10 +86,10 @@ class Model
       else
         d = clone d
 
-      o._ = new Outlet d, silent: true
-      @_configureOutlet path, o._
+      o['_'] = new Outlet d, silent: true
+      @_configureOutlet path, o['_']
 
-    o._
+    o['_']
 
   toString: ->
     "#{@constructor.name} [#{@id}]"
@@ -126,6 +127,7 @@ class Model
     outlet
 
   _notifyBuilders: (msg) ->
+    debug "#{@} notifying builders"
     @doc.off 'idle', @_notifyBuilders, this
     builders = @_builders
     delete @_builders

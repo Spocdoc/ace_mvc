@@ -7,7 +7,10 @@ var mvc = {
   "statelets": {},
   "mixins": {},
   "outlets": {},
-  "outletMethods": {}
+  "outletMethods": {},
+  "ace": {},
+  "_type": {},
+  "_name": {}
 };
 
 window.io = {

@@ -14,7 +14,6 @@
     "mold-source-map": "0.x",
     "redis": "0.x",
     "glob": "3.x",
-    "coffeeify": "0.x",
     "stylus": "0.x",
     "cheerio": "0.x",
     "uglify-js": "git://github.com/mikerobe/UglifyJS2.git",
@@ -22,7 +21,6 @@
     "express": "3.x",
     "jade": "0.x",
     "mongodb": "1.x",
-    "browserify": "git://github.com/mikerobe/node-browserify.git",
     "socket.io": "0.x"
   }
 }

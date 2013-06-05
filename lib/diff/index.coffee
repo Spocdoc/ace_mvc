@@ -102,11 +102,11 @@ module.exports = exports = (from, to, options = {}) ->
 
   diff(from, to, options)
 
-exports['patch'] = (obj, ops, options = {}) ->
+exports.patch = exports['patch'] = (obj, ops, options = {}) ->
   options['deep'] = patch
   patch(obj, ops, options)
 
-exports['register'] = register
+exports.register = exports['register'] = register
 
 ## Register standard types
 

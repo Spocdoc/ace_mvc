@@ -42,8 +42,8 @@ class Doc
   constructor: (@coll, @id, doc) ->
     @doc = doc || {}
     @db = @coll.db
-    @doc._id = @id
-    @doc._v ||= 0
+    @doc['_id'] = @id
+    @doc['_v'] ||= 0
     @outgoing = [] # outgoing ops when pending
     @incoming = [] # incoming ops when pending
     @refs = 0
@@ -72,7 +72,7 @@ class Doc
   create: ->
     return @pending |= CREATE_LATER if @pending & NOW
     @pending |= CREATE_NOW
-    @doc._v ||= 1
+    @doc['_v'] ||= 1
     @db.create this, (err) =>
       @pending &= ~CREATE_NOW
       @_handleCreate(err)
@@ -84,8 +84,10 @@ class Doc
     return @pending |= READ_LATER if @pending & NOW
     @pending |= READ_NOW
 
+    debug "#{@} sending db.read..."
     @db.read this, (err) =>
       @pending &= ~READ_NOW
+      debug "#{@} got db.read",err,"pending: ",@pending
       @_handleRead(err)
       @_doPending()
 
@@ -109,7 +111,7 @@ class Doc
 
   # resolve conflicted state
   resolveConflict: (version) ->
-    return unless version == @doc._v
+    return unless version == @doc['_v']
     delete @conflicted
     @update()
     return
@@ -117,22 +119,22 @@ class Doc
   # resolve rejected state
   resolveReject: ->
     delete @rejected
-    if @incoming[@doc._v]
+    if @incoming[@doc['_v']]
       @_conflict()
-    else if @doc._v
+    else if @doc['_v']
       @update()
     else
       @create()
     return
 
   serverCreate: (doc) ->
-    return unless doc._v > @doc._v
-    --doc._v
+    return unless doc['_v'] > @doc['_v']
+    --doc['_v']
 
     incoming = []
-    incoming[@doc._v] = [{'o': 1, 'v': doc}]
+    incoming[@doc['_v']] = [{'o': 1, 'v': doc}]
 
-    for k of @incoming when k > doc._v
+    for k of @incoming when k > doc['_v']
       incoming[k] = @incoming[v]
 
     @incoming = incoming
@@ -140,7 +142,7 @@ class Doc
     return
 
   serverUpdate: (version, ops) ->
-    return if version < @doc._v
+    return if version < @doc['_v']
     @incoming[version] = ops
     @_doServerUpdate()
 
@@ -149,7 +151,7 @@ class Doc
     @_delete()
     return
 
-  toString: -> "#{@constructor.name} id [#{@id}] v [#{@doc._v}]"
+  toString: -> "#{@constructor.name} id [#{@id}] v [#{@doc['_v']}]"
 
 ## private methods
 
@@ -250,7 +252,7 @@ class Doc
       @_doPending()
       return
 
-    version = @doc._v
+    version = @doc['_v']
 
     @db.update this, outgoing, (err) =>
       if err
@@ -263,7 +265,7 @@ class Doc
           when 'no' then @serverDelete()
         @_doPending()
       else
-        ++@doc._v
+        ++@doc['_v']
         diff.patch(@doc, outgoing)
         @_doUpdate()
     return
@@ -276,10 +278,10 @@ class Doc
   _conflict: (data) ->
     @conflicted ||= data || true
     return if @rejected?
-    return if !@incoming[@doc._v] and @live
+    return if !@incoming[@doc['_v']] and @live
     @_patchIncoming()
     [outgoing, @outgoing] = [@outgoing, []]
-    @emit 'conflict', @doc._v, outgoing
+    @emit 'conflict', @doc['_v'], outgoing
     return
 
   _doServerUpdate: ->
@@ -294,11 +296,11 @@ class Doc
 
   _patchIncoming: ->
     a = []
-    while ops = @incoming[@doc._v]
+    while ops = @incoming[@doc['_v']]
       a.push ops...
-      delete @incoming[@doc._v]
+      delete @incoming[@doc['_v']]
       @doc = diff.patch @doc, ops
-      ++@doc._v
+      ++@doc['_v']
     return a
 
   _delete: ->

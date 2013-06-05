@@ -17,7 +17,7 @@ class Ace
 
   @newClient: (ojson, routesObj, $container) ->
     global['ace'] = (ojson && OJSON.fromOJSON ojson) || new Ace
-    ace.cookies = new Cookies
+    ace['cookies'] = new Cookies
     ace.routing.enable routesObj
     navigator = ace.routing.enableNavigator()
     ace.routing.router.route navigator.url

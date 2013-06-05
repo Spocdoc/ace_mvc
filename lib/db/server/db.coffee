@@ -58,7 +58,7 @@ class Db
     debug "Got create request with",arguments...
 
     return unless checkId(doc._id, cb)
-    return cb.reject "Version must be 1" unless doc._v is 1
+    return cb.reject "Version must be 1" unless doc['_v'] is 1
 
     @mongo.run 'insert', coll, doc, (err) ->
       return unless checkErr(err, cb)
@@ -73,8 +73,8 @@ class Db
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) ->
       return unless checkErr(err, cb)
       return cb.noDoc() unless doc
-      doc._v ||= 1
-      return cb.ok() unless doc._v > version
+      doc['_v'] ||= 1
+      return cb.ok() unless doc['_v'] > version
       cb.doc doc
       return
     return
@@ -86,18 +86,18 @@ class Db
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
       return unless checkErr(err, cb)
       return cb.noDoc() unless doc
-      return cb.badVer doc._v unless version is (doc._v ? 1)
+      return cb.badVer doc['_v'] unless version is (doc['_v'] ? 1)
 
       to = diff.patch(doc, ops)
       spec = dtom ops, to
 
       # increment version
-      if doc._v?
+      if doc['_v']?
         (spec['$inc'] ||= {})['_v'] = 1
       else
         (spec['$set'] ||= {})['_v'] = 2
 
-      @mongo.run 'update', coll, {_id: id, _v: doc._v}, spec, (err, updated) =>
+      @mongo.run 'update', coll, {_id: id, _v: doc['_v']}, spec, (err, updated) =>
         return unless checkErr(err, cb)
         return cb.badVer() unless updated
         cb.ok()
@@ -133,7 +133,7 @@ class Db
         delete @subscriptions[c]
         cb.noDoc()
         return
-      return cb.doc doc if (doc._v ||= 1) != version
+      return cb.doc doc if (doc['_v'] ||= 1) != version
       cb.ok()
       return
     return

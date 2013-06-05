@@ -12,7 +12,7 @@ class Db
     @sock.on 'create', (data) =>
       coll = data['c']
       doc = OJSON.fromOJSON data['v']
-      @coll(coll).read(doc._id).serverCreate(doc)
+      @coll(coll).read(doc['_id']).serverCreate(doc)
       return
 
     @sock.on 'update', (data) =>
@@ -32,11 +32,11 @@ class Db
     @colls[coll] ||= new Coll this, coll
 
   subscribe: (doc, cb) ->
-    debug "DB emitting subscribe request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc._v}"
+    debug "DB emitting subscribe request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc['_v']}"
     @sock.emit 'subscribe',
       'c': doc.coll.name
       'i': doc.id
-      'e': doc.doc._v
+      'e': doc.doc['_v']
       cb
 
   unsubscribe: (doc, cb) ->
@@ -51,15 +51,15 @@ class Db
     @sock.emit 'create', {'c': doc.coll.name, 'v': OJSON.toOJSON doc.doc}, cb
 
   read: (doc, cb) ->
-    debug "DB emitting read request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc._v}"
-    @sock.emit 'read', {'c': doc.coll.name, 'i': doc.id, 'e': doc.doc._v}, cb
+    debug "DB emitting read request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc['_v']}"
+    @sock.emit 'read', {'c': doc.coll.name, 'i': doc.id, 'e': doc.doc['_v']}, cb
 
   update: (doc, ops, cb) ->
-    debug "DB emitting update request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc._v}", OJSON.toOJSON ops
-    @sock.emit 'update', {'c': doc.coll.name, 'i': doc.id, 'e': doc.doc._v, 'd': OJSON.toOJSON ops}, cb
+    debug "DB emitting update request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc['_v']}", OJSON.toOJSON ops
+    @sock.emit 'update', {'c': doc.coll.name, 'i': doc.id, 'e': doc.doc['_v'], 'd': OJSON.toOJSON ops}, cb
 
   delete: (doc, cb) ->
-    debug "DB emitting delete request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc._v}"
+    debug "DB emitting delete request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc['_v']}"
     @sock.emit 'delete', {'c': doc.coll.name, 'i': doc.id}, cb
 
 module.exports = Db

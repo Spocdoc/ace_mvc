@@ -34,8 +34,7 @@ class Controller extends ControllerBase
 
     @$ = {}
     for k, v of @view.outlets
-      @$[k] = v
-      @["$#{k}"] = v
+      @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v
 
     # view outlet is immutable
     outlet.set = ->
@@ -59,11 +58,11 @@ class Controller extends ControllerBase
 
     @_buildMixins config.mixins, settings?.mixins
     @_buildOutlets config.outlets
-    @_buildOutletMethods config.outletMethods
 
     unless @_mixing
       @_buildView settings?.view || config.view || base.type, settings
 
+    @_buildOutletMethods config.outletMethods
     @_buildMethods config
     @_buildMethods config['methods']
 

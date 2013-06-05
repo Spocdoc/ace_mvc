@@ -42,7 +42,7 @@ class ControllerBase
     @Config[type] = new @Config type, fnOrHash
     return this
 
-  @defaultOutlets = []
+  @defaultOutlets = [ 'delegate' ]
 
   constructor: (@_type, @_parent, @_name, settings) ->
     prev = Outlet.auto; Outlet.auto = null
@@ -55,6 +55,13 @@ class ControllerBase
       @_build(@constructor.Config[@_type], settings)
     debugMVC "done building #{@}"
     Outlet.auto = prev
+
+  'delegate': (method, args...) ->
+    return unless delegate = @outlets['delegate'].get()
+    if fn = delegate[method]
+      fn.apply(delegate, args)
+    else if fn = delegate['delegate']
+      fn.apply(delegate, arguments)
 
   toString: ->
     "#{@constructor.name} [#{@_type}] name [#{@_name}]"
@@ -76,7 +83,7 @@ class ControllerBase
     return unless outlets
     @_outletDefaults = {}
 
-    @[k] ?= @outlets[k] = @to(k) for k in @constructor.defaultOutlets
+    @outlets[k] ?= @[k] = @to(k) for k in @constructor.defaultOutlets
 
     if Array.isArray outlets
       @_buildOutlet k for k in outlets
@@ -91,6 +98,10 @@ class ControllerBase
 
     for k,v of @_outletDefaults
       @outlets[k].set(v) if @outlets[k].get() is undefined
+
+    # special case of "delegate" outlet defaulting to _parent
+    @outlets['delegate'].set(@_parent) unless @outlets['delegate'].get() or @_parent._nodelegate
+    delete @['delegate']
 
   _buildMethods: (config) ->
     for k,m of config when !@constructor.Config.defaultConfig[k]?

@@ -68,7 +68,7 @@ class Ace
     constructor: (@ace) ->
       @_path = ['routing']
 
-  constructor: (@historyOutlets = new HistoryOutlets, @db = new Db, @_name='') ->
+  constructor: (@db = new Db, @historyOutlets = new HistoryOutlets, @_name='') ->
     @_path = [@_name]
     @ace = this
     @modelCache = {}
@@ -101,6 +101,8 @@ class Ace
     @root.set(@newController(type))
     @appendTo(@$container) if @$container
     return
+
+  _nodelegate: true
 
   appendTo: (@$container) ->
     unless @root.get()

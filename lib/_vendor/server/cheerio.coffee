@@ -14,4 +14,20 @@ extend global.$('').constructor.prototype,
   scrollLeft: ->
   scrollTop: ->
 
+  css: (prop, value) ->
+    if undefined isnt style = @attr 'style'
+      existing = style.split(/;\s*/)
+    else
+      existing = []
+
+    found = existing.length
+
+    for name,i in existing
+      if name.substr(0,name.indexOf(':')) is prop
+        found = i
+        break
+
+    existing[found] = "#{prop}: #{value}"
+    @attr 'style', existing.join("; ")
+
 

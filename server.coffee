@@ -20,14 +20,14 @@ ace = new Ace
   server: server
   root: path.resolve('./app')
   cookies:
-    domain: '.supamac.local'
+    domain: '.this.local'
     secure: false
   bundler:
     closure:
       jar: path.resolve './resources/compiler.jar'
       externs: path.resolve './resources/externs.js'
     cookies:
-      domain: '.supamac.local'
+      domain: '.this.local'
       secure: false
 
 ace.configure 'development', ->

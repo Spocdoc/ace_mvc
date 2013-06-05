@@ -90,6 +90,10 @@
 
     this can also address the missing controller problem -- where the view or template is specified but the controller isn't.
 
+  - cheerio doesn't have the css function
+
+    the simple workaround I added doesn't accommodate values with semicolons
+
 # Client-side rendering
 
   - when requesting a URL with a hash, the server won't see the hash and will send a different page. the client does nothing about this discrepancy

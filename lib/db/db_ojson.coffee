@@ -6,6 +6,9 @@ OJSON = require '../ojson'
 module.exports = (Db) ->
   OJSON.register 'Db': Db
 
+  Db.prototype['_ojson'] = true
+  Doc.prototype['_ojson'] = true
+
   Db.prototype.toJSON = ->
     colls = {}
     for name, coll of @colls

@@ -44,7 +44,7 @@ class Controller extends ControllerBase
     if k.charAt(0) is '$'
       if typeof m is 'function'
         @outletMethods.push m = @newOutletMethod(m, k)
-      @view[k.substr(1)].set m
+      @view.outlets[k.substr(1)].set m
     else if @outlets[k]
       if m.length
         @_outletDefaults[k] = (done) => m.call(this,done)

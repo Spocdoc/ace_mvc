@@ -19,7 +19,12 @@ module.exports = (config, app) ->
   clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
   OJSON.register 'DBRef': DBRef
-  extend DBRef, OJSON.copyKeys
+  # override mongodb's implementation because their "$id" value isn't a JSON element -- it's an ObjectID!
+  DBRef.prototype.toJSON = ->
+    "$ref": @namespace
+    "$id": OJSON.toOJSON @oid
+  DBRef.fromJSON = (obj) ->
+    new DBRef obj['$ref'], obj['$id']
   diff.register DBRef, diffObj, patchObj
   clone.register DBRef, (other) -> new DBRef(other.namespace, other.oid)
 

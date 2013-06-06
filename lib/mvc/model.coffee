@@ -2,7 +2,6 @@ Doc = require '../db/doc'
 Cascade = require '../cascade/cascade'
 Outlet = require '../cascade/outlet'
 ObjectID = global.mongo.ObjectID
-Snapshots = require '../snapshots/snapshots'
 Listener = require '../events/listener'
 {include,extend} = require '../mixin'
 clone = require '../clone'
@@ -70,24 +69,29 @@ class Model
         cb()
     return
 
-  get: (path, key) ->
-    return this unless path
-    path = Snapshots.getPath path,key
+  get: (key) ->
+    [path...,key] = key.split '.'
     o = @_outlets
-    o = o[p] ||= {} for p in path
+    d = @copy
+
+    for p,i in path
+      d = d[p]
+      if d instanceof DBRef
+        model = @newModel d.namespace, d.oid
+        return model.get path[(i+1)..].concat(key).join('.')
+      o = o[p] ||= {}
+
+    o = o[key] ||= {}
+    d = d[key]
 
     unless o['_']
-      d = @copy
-      `for (var i = 0, e = path.length-1; i < e; ++i) d = d[path[i]] || (d[path[i]] = {});`
-      d = d[path[path.length-1]]
-
       if d instanceof DBRef
         d = @newModel d.namespace, d.oid
       else
         d = clone d
 
       o['_'] = new Outlet d, silent: true
-      @_configureOutlet path, o['_']
+      @_configureOutlet path.concat(key), o['_']
 
     o['_']
 
@@ -140,5 +144,5 @@ module.exports = Model
 # patch uses clone to patch the @copy. If any field contains another model, it
 # should instead clone it as a DBRef. diff for objects also uses clone. so the
 # ops from @_pushers will never contain a model instance, only DBRefs
-clone.register Model, (model) -> new DBRef model.coll.name, model.id
+clone.register Model, (model) -> new DBRef model.coll, model.id
 

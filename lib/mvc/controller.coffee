@@ -1,4 +1,5 @@
 ControllerBase = require './controller_base'
+Cascade = require '../cascade/cascade'
 View = require './view'
 Model = require './model'
 {defaults} = require '../mixin'
@@ -50,7 +51,9 @@ class Controller extends ControllerBase
       else
         @_outletDefaults[k] = => m.call(this)
     else
-      @[k] = m
+      @[k] = (args...) =>
+        Cascade.Block =>
+          m.apply this, args
 
   _build: (base, settings) ->
     base = base.get(this)

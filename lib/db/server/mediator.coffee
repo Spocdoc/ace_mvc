@@ -1,4 +1,5 @@
 Db = require './db'
+OJSON = require '../../ojson'
 Listener = require '../../events/listener'
 {include, extend} = require '../../mixin'
 
@@ -20,6 +21,11 @@ class Mediator
   onevent: (event, origin, ojSpec) ->
     return if origin == @origin
     @sock.emit event, ojSpec
+
+  clientCreate: (coll, doc) ->
+    @sock.emit 'create',
+      'c': coll
+      'v': OJSON.toOJSON doc
 
   create: (coll, doc, cb) ->
     @db.create @origin, coll, doc, cb

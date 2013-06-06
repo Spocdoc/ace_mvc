@@ -113,7 +113,9 @@ class View extends ControllerBase
             @outletMethods.push om = @newOutletMethod(m,k)
             outlet.set om
       else
-        @[s] = m
+        @[s] = (args...) =>
+          Cascade.Block =>
+            m.apply this, args
 
       return
 

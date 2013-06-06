@@ -1,12 +1,20 @@
 mongodb = require 'mongodb'
 Callback = require './callback'
 OJSON = require '../../ojson'
+{include} = require '../../mixin'
+
+class Emitter
+  include @, require '../../events/emitter'
 
 # emulates the *client's* sock.io access
 class SockioEmulator
   constructor: (@db, Mediator) ->
+    @emitter = new Emitter
     @mediator = new Mediator @db,
       id: 0
+      emit: (event, data) =>
+        @emitter.emit event, data
+
 
   emit: (verb, data, cb) ->
     switch verb
@@ -25,6 +33,7 @@ class SockioEmulator
       when 'subscribe', 'unsubscribe'
         cb()
 
-  on: (event, fn) -> # noop
+  on: (event, fn) ->
+    @emitter.on event, fn
 
 module.exports = SockioEmulator

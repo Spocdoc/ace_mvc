@@ -97,7 +97,7 @@ class ControllerBase
       @outlets[k]?.set(v)
 
     for k,v of @_outletDefaults
-      @outlets[k].set(v) if @outlets[k].get() is undefined
+      @outlets[k].set(v) if @outlets[k].get() is undefined or typeof v is 'function'
 
     # special case of "delegate" outlet defaulting to _parent
     @outlets['delegate'].set(@_parent) unless @outlets['delegate'].get() or @_parent._nodelegate

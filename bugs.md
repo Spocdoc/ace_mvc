@@ -22,6 +22,12 @@
 
   - OutletMethods that both retrieve a value and set it always run twice...
 
+  - this feature of aborting a calculation when a pending outlet is fetched would be useful to have on regular methods in the mvc, not just outlet methods. 
+
+    a function would have to temporarily add itself as an outflow of the pending outlet, then remove itself once it calculated
+
+    this could create problems if functions are run repeatedly and have side-effects before the abort
+
 # Outlet
 
   - optimization: should cache the change to function mapping instead of looping through all the functions (map from change cid to function)
@@ -79,6 +85,8 @@
   - the model (wrapping the doc) will always have the wrong version number
 
     this is confusing but doesn't cause errors because the client never sends version updates to the server and the model client has no transparency into the versioning
+
+  - there's no way to tell when/if a particular update has succeeded. you instead have to subscribe for the reject event then check if the doc is now inconsistent with the update you tried to apply. this is not great. the doc could have been rejected because of an earlier pending update
 
 # Server-side rendering
 
@@ -175,9 +183,40 @@
 
     instead of creating new outlet methods in the controllers/views, could assign the functions directly to the ToHistoryOutlet
 
+  - every method for view/controllers has to run in a cascade block
+
+    the implementation is inefficient:
+
+          @[k] = (args...) =>
+            Cascade.Block =>
+              m.apply this, args
+
+
 # Error handling
 
   - there should be better error handling on the client side
 
     e.g., when there's an error creating a session.
+
+# security
+
+  - the socket message parsing and diff parsing need to be robust to arbitrary messages
+
+  - the diff is not secure
+
+    it assumes the messages are consistent. doesn't check for operations > 1 and is inconsistent about checking for 'd' vs checking o['o'] is 0
+
+  - the person's password is sitting in a document the whole time they're logged in
+
+    also, when they log out, it should clear the whole database
+
+# diff
+
+  - extractField and hasField are for top level fields only -- they don't work for nested fields
+
+    (supporting array indices may be complex)
+
+  - it may be a good idea to remove the possibility of keyless diffs. this would tremendously simplify (and eliminate) some of the code
+
+    this may also be critical for security -- checking for fields could be hacked by sending a bunch of top level diffs
 

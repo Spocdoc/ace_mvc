@@ -5,17 +5,17 @@ class Callback
 
   reject: (reason) ->
     @cb(['rej',reason])
-    delete this
+    @cb = undefined
     return
 
   doc: (doc) ->
     @cb(['doc',OJSON.toOJSON doc])
-    delete this
+    @cb = undefined
     return
 
   update: (version, ops) ->
     @cb(['up',version,OJSON.toOJSON ops])
-    delete this
+    @cb = undefined
     return
 
   badVer: (current) ->
@@ -23,17 +23,17 @@ class Callback
       @cb(['ver',current])
     else
       @cb(['ver'])
-    delete this
+    @cb = undefined
     return
 
   noDoc: ->
     @cb(['no'])
-    delete this
+    @cb = undefined
     return
 
   ok: ->
     @cb()
-    delete this
+    @cb = undefined
     return
 
 module.exports = Callback

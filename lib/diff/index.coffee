@@ -91,7 +91,7 @@ module.exports = exports = (from, to, options = {}) ->
     for p,i in options['path']
       if !from[p]?
         return false if from[p] is (v = stub(options['path'][(i+1)..],to))
-        return [{'o': 1, 'k': options['path'][0..i].join('.'), 'v': v}]
+        return [{'o': 1, 'k': options['path'][0..i].join('.'), 'v': clone v}]
       else
         from = from[p]
 

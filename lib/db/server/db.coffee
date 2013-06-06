@@ -10,6 +10,7 @@ OJSON = require '../../ojson'
 Emitter = require '../../events/emitter'
 {include} = require '../../mixin'
 debug = global.debug 'ace:server:db'
+async = require 'async'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID
@@ -24,6 +25,7 @@ replaceId = (id, cb) ->
       id = new mongodb.ObjectID id
     catch _error
       cb.reject 'Invalid id'
+      return false
   else unless checkId id,cb
     return false
   id
@@ -70,40 +72,59 @@ class Db
     debug "Got read request with",arguments...
     return unless id = replaceId(id, cb)
 
-    @mongo.run 'findOne', coll, {_id: id}, (err, doc) ->
-      return unless checkErr(err, cb)
-      return cb.noDoc() unless doc
-      doc['_v'] ||= 1
-      return cb.ok() unless doc['_v'] > version
-      cb.doc doc
-      return
+    async.waterfall [
+      (next) => @mongo.run 'findOne', coll, {_id: id}, next
+      (doc, next) =>
+        return cb.noDoc() unless doc
+        doc['_v'] ||= 1
+        return cb.ok() unless doc['_v'] > version
+
+        if cb.validate?
+          cb.validate doc, (err) -> next err, doc
+        else
+          next null, doc
+
+      (doc, next) =>
+        cb.doc doc
+
+    ], (err) -> cb.reject err.message if err?
     return
 
   update: (origin, coll, id, version, ops, cb) ->
     debug "Got update request with",arguments...
     return unless id = replaceId(id, cb)
 
-    @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
-      return unless checkErr(err, cb)
-      return cb.noDoc() unless doc
-      return cb.badVer doc['_v'] unless version is (doc['_v'] ? 1)
+    async.waterfall [
+      (next) => @mongo.run 'findOne', coll, {_id: id}, next
 
-      to = diff.patch(doc, ops)
-      spec = dtom ops, to
+      (doc, next) =>
+        return cb.noDoc() unless doc
+        return cb.badVer doc['_v'] unless version is (doc['_v'] ? 1)
+        to = diff.patch(doc, ops)
 
-      # increment version
-      if doc['_v']?
-        (spec['$inc'] ||= {})['_v'] = 1
-      else
-        (spec['$set'] ||= {})['_v'] = 2
+        if cb.validate?
+          cb.validate ops, to, (err) -> next err, doc,to
+        else
+          next null, doc,to
 
-      @mongo.run 'update', coll, {_id: id, _v: doc['_v']}, spec, (err, updated) =>
-        return unless checkErr(err, cb)
+      (doc, to, next) =>
+        spec = dtom ops, to
+
+        # increment version
+        if doc['_v']?
+          (spec['$inc'] ||= {})['_v'] = 1
+        else
+          (spec['$set'] ||= {})['_v'] = 2
+
+        @mongo.run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
+
+      (updated, next) =>
         return cb.badVer() unless updated
         cb.ok()
         @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
-        return
-      return
+
+    ], (err) -> cb.reject err.message if err?
+
     return
 
   delete: (origin, coll, id, cb) ->

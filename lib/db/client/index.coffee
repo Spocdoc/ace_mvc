@@ -11,7 +11,13 @@ clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
 DBRef = global.mongo.DBRef
 OJSON.register 'DBRef': DBRef
-extend DBRef, OJSON.copyKeys
+# for consistency with mongodb's existing toJSON implementation
+DBRef.prototype.toJSON = ->
+  "$ref": @namespace
+  "$id": @oid
+DBRef.fromJSON = (obj) ->
+  new DBRef obj['$ref'], obj['$id']
+
 clone.register DBRef, (other) -> new DBRef(other.namespace, other.oid)
 
 hasOwn = {}.hasOwnProperty

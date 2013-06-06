@@ -10,13 +10,19 @@ module.exports = Listener =
     (@_listener ?= {})[emitter.cid ?= uniqueId()] = obj
     emitter.on event, fn, this
 
+  isListening: (emitter, event) ->
+    unless event?
+      @_listener?[emitter.cid]?
+    else
+      @_listener?[emitter.cid]?[1][event]
+
   listenOff: (emitter, event, fn) ->
     return unless @_listener
 
     if not emitter?
       for cid, [emitter] of @_listener
         @listenOff(emitter, event, fn)
-      delete @_listener[emitter] unless event? or fn?
+      delete @_listener unless event? or fn?
       return
 
     return unless emitter.cid?

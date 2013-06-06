@@ -3,22 +3,26 @@
 
 clone = require '../clone'
 
-setDescendants = (outlets, doc) ->
-  set v, doc?[k] for k,v of outlets when k isnt '_'
+translate = (doc, registry) ->
+  return r.translate doc if r = registry?.find doc
+  clone doc
+
+setDescendants = (outlets, doc, registry) ->
+  set v, doc?[k], registry for k,v of outlets when k isnt '_'
   return
 
-set = (outlets, doc) ->
-  outlets['_'].set(clone doc) if outlets['_']
-  set v, doc?[k] for k,v of outlets when k isnt '_'
+set = (outlets, doc, registry) ->
+  outlets['_'].set(translate doc, registry) if outlets['_']
+  set v, doc?[k], registry for k,v of outlets when k isnt '_'
   return
 
-patchArray = (outlets, ops, arr) ->
+patchArray = (outlets, ops, arr, registry) ->
   srcIndex = 0
   dstIndex = 0
 
   changed = arr.length
 
-  outlets['_'].set(clone arr) if outlets['_']
+  outlets['_'].set(translate arr, registry) if outlets['_']
 
   for op in ops
     if (index = op['i']) < 0
@@ -30,12 +34,12 @@ patchArray = (outlets, ops, arr) ->
     else
       while dstIndex < index
         if srcIndex != dstIndex
-          set ok, arr[dstIndex] if (ok = outlets[dstIndex])?
+          set ok, arr[dstIndex], registry if (ok = outlets[dstIndex])?
         ++srcIndex
         ++dstIndex
 
       unless op['o'] is -1
-        patch ok, op, arr[dstIndex] if (ok = outlets[dstIndex])?
+        patch ok, op, arr[dstIndex], registry if (ok = outlets[dstIndex])?
 
       switch op['o']
         when -1 then ++srcIndex
@@ -46,37 +50,36 @@ patchArray = (outlets, ops, arr) ->
 
   if srcIndex != dstIndex || (dstIndex = changed) < arr.length
     for i,ok of outlets when i >= dstIndex
-      set ok, arr[i]
+      set ok, arr[i], registry
 
   return
 
-patch = (ok, op, dk) ->
+patch = (ok, op, dk, registry) ->
   switch op['o']
     when -1, 1
-      set ok, dk
+      set ok, dk, registry
     else
       if !dk? or typeof dk in ['string','number']
-        set ok, dk
+        set ok, dk, registry
       else if Array.isArray dk
-        patchArray ok, op['d'], dk
+        patchArray ok, op['d'], dk, registry
       else
-        patchOutlets ok, op['d'], dk
+        patchOutlets ok, op['d'], dk, registry
   return
 
-
-module.exports = patchOutlets = (outlets, ops, doc) ->
+module.exports = patchOutlets = (outlets, ops, doc, registry) ->
   return unless ops and ops.length
-  outlets['_'].set(clone doc) if outlets['_']
+  outlets['_'].set(translate doc, registry) if outlets['_']
 
   for op in ops
     unless op['k']?
       switch op['o']
         when -1, 1
-          setDescendants outlets, doc
+          setDescendants outlets, doc, registry
         else
           # this will call outlets['_'].set again, but that's OK. this is
           # evaluated in a Cascade.Block
-          patchOutlets(outlets, op['d'], doc)
+          patchOutlets outlets, op['d'], doc, registry
     else
       o = outlets
       d = doc
@@ -84,12 +87,12 @@ module.exports = patchOutlets = (outlets, ops, doc) ->
       s = op['k'].split '.'
       `for (var j=0, je = s.length-1; j < je && o; ++j) {
         if (d != null) d = d[s[j]];
-        if (o = o[s[j]]) if (o['_']) o['_'].set(clone(d));
+        if (o = o[s[j]]) if (o['_']) o['_'].set(translate(d,registry));
       }`
       continue unless o
       k = s[je]
       dk = d?[k]
 
-      patch ok, op, dk if (ok = o[k])?
+      patch ok, op, dk, registry if (ok = o[k])?
   return
 

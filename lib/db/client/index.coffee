@@ -20,20 +20,15 @@ DBRef.fromJSON = (obj) ->
 
 clone.register DBRef, (other) -> new DBRef(other.namespace, other.oid)
 
-hasOwn = {}.hasOwnProperty
 diff.register DBRef,
   ((from, to, options) ->
-    if to instanceof DBRef
-      diffObj from, to, options
-    else if (coll = doc.coll)?
-      coll = coll.name unless typeof coll is 'string'
-      id = doc.id?.toString()
-      return false unless id and typeof coll is 'string'
-      to = {namespace: coll, oid: id}
-      diffObj from, to, options
-    else
-      false
-    ),
-  patchObj
+    unless to instanceof DBRef
+      coll = to.coll
+      id = to.id?.toString()
+      to = {namespace: coll, oid: id} if id and typeof coll is 'string'
+
+    return false if to.namespace is from.namespace and to.oid is from.oid
+    [{'o':1, 'v':to}]
+  ), ((obj, diff, options) -> obj['v'])
 
 module.exports = undefined

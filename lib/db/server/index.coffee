@@ -25,8 +25,18 @@ module.exports = (config, app) ->
     "$id": OJSON.toOJSON @oid
   DBRef.fromJSON = (obj) ->
     new DBRef obj['$ref'], obj['$id']
-  diff.register DBRef, diffObj, patchObj
   clone.register DBRef, (other) -> new DBRef(other.namespace, other.oid)
+
+  diff.register DBRef,
+    ((from, to, options) ->
+      unless to instanceof DBRef
+        coll = to.coll
+        id = to.id?.toString()
+        to = {namespace: coll, oid: id} if id and typeof coll is 'string'
+
+      return false if to.namespace is from.namespace and to.oid is from.oid
+      [{'o':1, 'v':to}]
+    ), ((obj, diff, options) -> obj['v'])
 
   db = new Db(config, config.redis)
 

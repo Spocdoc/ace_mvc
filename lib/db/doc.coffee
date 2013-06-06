@@ -255,7 +255,13 @@ class Doc
     version = @doc['_v']
 
     @db.update this, outgoing, (err) =>
-      if err
+      if err && err[0] is 'up'
+        ++@doc['_v']
+        diff.patch(@doc, outgoing)
+        @serverUpdate err[1], OJSON.fromOJSON err[2]
+        @_doUpdate()
+
+      else if err
         outgoing.push @outgoing...
         @outgoing = outgoing
         @pending &= ~UP_NOW

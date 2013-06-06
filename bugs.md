@@ -88,6 +88,23 @@
 
   - there's no way to tell when/if a particular update has succeeded. you instead have to subscribe for the reject event then check if the doc is now inconsistent with the update you tried to apply. this is not great. the doc could have been rejected because of an earlier pending update
 
+  - if an outlet is set to an object and another outlet is set to a part of that object, client-side updates to the outer object don't update the inner object
+
+    could be fixed by adding patchOutlets to the _pusher outflow...
+
+  - it would be nice to be able to make calls like
+
+        @ace.session.get('user.username')
+        @ace.session.get('user.priv.password')
+
+    instead of
+
+        @ace.session.get('user').get('username')
+        @ace.session.get('user').get('priv')?.get('password')
+
+    this introduces some complexity when patching outlets. the original model has to create its own outlets and set them to the other model's outlets, then when the DBRef changes, unset them and set again to the new model's outlets
+
+
 # Server-side rendering
 
   - currently doesn't wait for async outlets to finish
@@ -191,6 +208,15 @@
             Cascade.Block =>
               m.apply this, args
 
+  - because to_mongo doesn't work with a sequence of overlapping changes, the server has to recompute the diff for every update...
+
+  - should use cache control and etags for production script and inline the CSS
+
+  - currently the DOM gets set twice whenever a DOM-writing outlet is set to a non-HO outlet: once on the server render and then again by the client
+
+    this is because these outlets aren't being persisted and so their value isn't restored when the page is restored on the client
+
+    the best solution is to restore the DOM cache somehow in each view that whose template is bootstrapped from the page
 
 # Error handling
 
@@ -219,4 +245,6 @@
   - it may be a good idea to remove the possibility of keyless diffs. this would tremendously simplify (and eliminate) some of the code
 
     this may also be critical for security -- checking for fields could be hacked by sending a bunch of top level diffs
+# database
 
+  - to_mongo doesn't accommodate a set of updates that overlaps (e.g., an increment followed by a set or a set then unset)

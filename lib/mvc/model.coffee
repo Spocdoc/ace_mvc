@@ -9,6 +9,7 @@ diff = require '../diff'
 patchOutlets = require '../diff/to_outlets'
 debug = global.debug 'ace:mvc:model'
 DBRef = global.mongo.DBRef
+Registry = require '../registry'
 
 class Model
   include Model, Listener
@@ -28,6 +29,10 @@ class Model
       @_ops = []
       @doc.update ops
       return
+
+    @_patchRegistry = new Registry
+    @_patchRegistry.add DBRef,
+      translate: (d, o) => @newModel d.namespace, d.oid
 
     @doc = @db.coll(@coll).read id, spec
 
@@ -74,8 +79,9 @@ class Model
     o = @_outlets
     d = @copy
 
+    # TODO strictly speaking this behavior of navigating transparently through a DBRef is inconsistent
     for p,i in path
-      d = d[p]
+      d = d[p] ||= {}
       if d instanceof DBRef
         model = @newModel d.namespace, d.oid
         return model.get path[(i+1)..].concat(key).join('.')
@@ -114,7 +120,7 @@ class Model
     debug "serverUpdate for #{@}"
     @copy = diff.patch @copy, ops
     Cascade.Block =>
-      patchOutlets @_outlets, ops, @copy
+      patchOutlets @_outlets, ops, @copy, @_patchRegistry
     @_notifyBuilders() if @_builders
     return
 
@@ -122,6 +128,10 @@ class Model
     @_pushers.push pusher = new Outlet (=>
       if ops = diff(@copy, outlet._value, path: path)
         @copy = diff.patch @copy, ops
+
+        # update descendant outlets whose value may have changed because of this change
+        # patchOutlets @_outlets, ops, @copy
+
         @_ops.push ops...
         pusher.modified()
     ), silent: true

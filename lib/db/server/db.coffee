@@ -5,6 +5,7 @@ mongodb = require 'mongodb'
 redis = require 'redis'
 queue = require '../../queue'
 dtom = require '../../diff/to_mongo'
+clone = require '../../clone'
 diff = require '../../diff'
 OJSON = require '../../ojson'
 Emitter = require '../../events/emitter'
@@ -93,6 +94,7 @@ class Db
   update: (origin, coll, id, version, ops, cb) ->
     debug "Got update request with",arguments...
     return unless id = replaceId(id, cb)
+    moreOps = undefined
 
     async.waterfall [
       (next) => @mongo.run 'findOne', coll, {_id: id}, next
@@ -100,28 +102,40 @@ class Db
       (doc, next) =>
         return cb.noDoc() unless doc
         return cb.badVer doc['_v'] unless version is (doc['_v'] ? 1)
-        to = diff.patch(doc, ops)
+
+        # TODO this ridiculousness is entirely because dtom doesn't work with overlapping sequential updates
+        orig = clone doc
+        to = diff.patch(to = doc, ops)
+        doc = orig
 
         if cb.validate?
-          cb.validate ops, to, (err) -> next err, doc,to
+          cb.validate ops, to, (err, moreOps_) -> moreOps = moreOps_; next err, doc,to
         else
           next null, doc,to
 
       (doc, to, next) =>
+        # TODO also because of dtom restriction
+        ops = diff doc, to
         spec = dtom ops, to
 
         # increment version
         if doc['_v']?
-          (spec['$inc'] ||= {})['_v'] = 1
+          (spec['$inc'] ||= {})['_v'] = if moreOps then 2 else 1
         else
-          (spec['$set'] ||= {})['_v'] = 2
+          (spec['$set'] ||= {})['_v'] = if moreOps then 3 else 2
 
         @mongo.run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
 
       (updated, next) =>
         return cb.badVer() unless updated
-        cb.ok()
-        @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
+
+        if moreOps
+          cb.update version+1, moreOps
+          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': []}])
+          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version+1, 'd': ops}])
+        else
+          cb.ok()
+          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
 
     ], (err) -> cb.reject err.message if err?
 

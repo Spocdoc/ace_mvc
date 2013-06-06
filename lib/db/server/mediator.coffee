@@ -22,6 +22,8 @@ class Mediator
     return if origin == @origin
     @sock.emit event, ojSpec
 
+  isSubscribed: (coll, id) -> @isListening Db.channel coll, id
+
   clientCreate: (coll, doc) ->
     @sock.emit 'create',
       'c': coll

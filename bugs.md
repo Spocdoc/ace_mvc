@@ -218,6 +218,10 @@
 
     the best solution is to restore the DOM cache somehow in each view that whose template is bootstrapped from the page
 
+  - sessions don't currently expire out of the database. there will have to be a mechanism for removing them
+
+  - does socket.io when using the redisstore lead to memory leaks if the application crashes?
+
 # Error handling
 
   - there should be better error handling on the client side

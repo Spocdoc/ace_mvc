@@ -39,20 +39,36 @@ checkErr = (err, cb) ->
     true
 
 class Db
-  include Db, Emitter
+  include Db
+
+  emit: Emitter.emit
+
+  on: (event, fn, ctx) ->
+    @sub.subscribe event unless @_emitter and @_emitter[event]
+    super
+
+  off: (event, fn, ctx) ->
+    super
+    @sub.unsubscribe event unless @_emitter and @_emitter[event]
+    this
 
   constructor: (dbInfo, redisInfo) ->
     @pub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
     @sub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
     @mongo = new Mongo dbInfo.host, dbInfo.db
 
-    @subscriptions = {}
-
     @sub.on 'message', (channel, message) =>
       # use JSON, not OJSON, to avoid re-converting
       data = JSON.parse message
       [data[2]['c'], data[2]['i']] = channel.split ':'
+
       @emit channel, data[0], data[1], data[2]
+
+      # remove subscription if a deletion
+      if data[0] is 'delete' and @_emitter and @_emitter[channel]
+        @sub.unsubscribe channel
+        delete @_emitter[channel]
+
       return
 
   @channel = (coll, id) -> "#{coll}:#{id}"
@@ -157,17 +173,10 @@ class Db
     return unless id = replaceId(id, cb)
 
     c = Db.channel(coll, id)
-    unless @subscriptions[c]
-      @sub.subscribe c
-      @subscriptions[c] = true
 
     @mongo.run 'findOne', coll, {_id: id}, (err, doc) =>
       return unless checkErr(err, cb)
-      unless doc
-        @sub.unsubscribe c
-        delete @subscriptions[c]
-        cb.noDoc()
-        return
+      return cb.noDoc() unless doc
       return cb.doc doc if (doc['_v'] ||= 1) != version
       cb.ok()
       return
@@ -179,10 +188,6 @@ class Db
     return unless id = replaceId(id, cb)
 
     c = Db.channel(coll, id)
-
-    unless @subscriptions[c]
-      @sub.unsubscribe c
-      delete @subscriptions[c]
 
     cb.ok()
     return

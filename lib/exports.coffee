@@ -19,6 +19,7 @@ api [View.prototype, Controller.prototype],
 
 api [Ace],
   newClient: 'newClient'
+  findModel: 'findModel'
 
 api [Ace.View.prototype, Ace.Controller.prototype, Ace.Model.prototype, Ace.RouteContext.prototype],
   newTemplate: 'newTemplate'

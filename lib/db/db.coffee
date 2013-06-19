@@ -62,6 +62,9 @@ class Db
     debug "DB emitting delete request over sock #{@sock} for #{doc.coll.name}/#{doc.id}/#{doc.doc['_v']}"
     @sock.emit 'delete', {'c': doc.coll.name, 'i': doc.id}, cb
 
+  findOne: (coll, spec, cb) ->
+    @sock.emit 'findOne', {'c': coll.name, 'q': OJSON.toOJSON spec}, cb
+
 module.exports = Db
 
 # add OJSON serialization functions

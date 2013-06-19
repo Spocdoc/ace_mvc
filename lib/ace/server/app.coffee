@@ -117,6 +117,10 @@ class App
     Template = require '../../mvc/template'
 
     ace = new Ace
+    ace.reset = ->
+      req.url = '/'
+      handle req, res, next
+      return
     ace.cookies = new Cookies req, res
     ace.routing.enable @_routeConfig, @_routes
 

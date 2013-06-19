@@ -1,5 +1,7 @@
 Doc = require './doc'
 ObjectID = global.mongo.ObjectID
+Query = require './query'
+OJSON = require '../ojson'
 
 class Coll
   constructor: (@db, @name) ->
@@ -28,6 +30,20 @@ class Coll
     d = @docs[id]
     d._delete()
     delete @docs[id]
+    return
+
+  findOne: (spec, cb) ->
+    query = new Query spec
+    for id, doc of @docs
+      return cb null, doc if query.exec doc.doc
+
+    @db.findOne this, spec, (err) =>
+      return cb 'nodoc' unless err
+      return cb err unless err[0] is 'doc'
+
+      doc = OJSON.fromOJSON err[1]
+      cb null, @read doc._id, doc
+      return
     return
 
   # TODO these are for memory management

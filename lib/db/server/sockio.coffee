@@ -61,4 +61,7 @@ module.exports = (db, redisInfo, server, Mediator) ->
     sock.on 'unsubscribe', (data, cb) ->
       sock.mediator.unsubscribe data['c'], data['i'], new Callback cb
 
+    sock.on 'findOne', (data, cb) ->
+      sock.mediator.findOne data['c'], OJSON.fromOJSON(data['q']), new Callback cb
+
   io

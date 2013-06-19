@@ -33,6 +33,10 @@ class SockioEmulator
       when 'subscribe', 'unsubscribe'
         cb()
 
+      when 'findOne'
+        @mediator.findOne data['c'], OJSON.fromOJSON(data['q']), new Callback cb
+
+
   on: (event, fn) ->
     @emitter.on event, fn
 

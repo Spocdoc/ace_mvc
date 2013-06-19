@@ -85,11 +85,19 @@ class Ace
   newRouteContext: ->
     new Ace.RouteContext this
 
+  reset: ->
+    global.location.reload()
+
   deleteModel: (model) ->
     if @modelCache[model.id]
       delete @modelCache[model.id]
       model._delete()
     return
+
+  findModel: (coll, spec, cb) ->
+    @db.coll(coll).findOne spec, (err, doc) =>
+      return cb(err) if err?
+      cb null, @newModel coll, doc.id
 
   toString: -> "Ace [#{@_name}]"
 

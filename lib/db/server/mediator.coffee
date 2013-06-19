@@ -49,4 +49,8 @@ class Mediator
     @doUnsubscribe coll, id
     @db.unsubscribe @origin, coll, id, cb
 
+  findOne: (coll, spec, cb) ->
+    @db.findOne @origin, coll, spec, cb
+
+
 module.exports = Mediator

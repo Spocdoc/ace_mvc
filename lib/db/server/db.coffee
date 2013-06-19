@@ -45,10 +45,10 @@ class Db
 
   on: (event, fn, ctx) ->
     @sub.subscribe event unless @_emitter and @_emitter[event]
-    super
+    Emitter.on.call this, event, fn, ctx
 
   off: (event, fn, ctx) ->
-    super
+    Emitter.off.call this, event, fn, ctx
     @sub.unsubscribe event unless @_emitter and @_emitter[event]
     this
 
@@ -182,7 +182,6 @@ class Db
       return
     return
 
-
   unsubscribe: (origin, coll, id, cb) ->
     debug "Got unsubscribe request with",arguments...
     return unless id = replaceId(id, cb)
@@ -192,5 +191,13 @@ class Db
     cb.ok()
     return
 
+  findOne: (origin, coll, spec, cb) ->
+    debug "Got findOne with", arguments
+
+    @mongo.run 'findOne', coll, spec, (err, doc) ->
+      return unless checkErr err, cb
+      cb.doc doc
+      return
+    return
 
 module.exports = Db

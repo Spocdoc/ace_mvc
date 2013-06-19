@@ -123,6 +123,8 @@
 
   - when requesting a URL with a hash, the server won't see the hash and will send a different page. the client does nothing about this discrepancy
 
+  - the session is being created in routes, but ace is hooked into the DOM *before* the routes are run, so if a link is clicked after hooking but before routes are setup, there's no session variable --> error.
+
 # View
 
   - doesn't allow swapping out the template
@@ -252,3 +254,15 @@
 # database
 
   - to_mongo doesn't accommodate a set of updates that overlaps (e.g., an increment followed by a set or a set then unset)
+
+# Ace
+
+  - there's a lack of proper separation of concerns with the model and ace
+
+    findModel, deleteModel, etc. all use details about the database setup that would be better left encapsulated in the Model class
+
+  - the ace.reset() method could be revisited
+
+    currently it calls location.reload() and is overridden in the server-side render
+
+

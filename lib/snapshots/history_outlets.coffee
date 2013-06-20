@@ -122,7 +122,7 @@ class HistoryOutlets extends Snapshots
     get: (path) ->
       path = Snapshots.getPath path
       return current if (current = (base = @ensurePath(path))['_'])?
-      base[key] = new ToHistoryOutlet @['_snapshots'].sliding.get(path)
+      base['_'] = new ToHistoryOutlet @['_snapshots'].sliding.get(path)
 
     set: (path, value) ->
       @get(path).set(value)

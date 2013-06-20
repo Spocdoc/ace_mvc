@@ -21,7 +21,8 @@ module.exports = makeLoader = (mvc, globals, options, cb) ->
       dirs.sort()
 
       script = []
-      script.push "require(#{quote(path.resolve(lib,'exports'))});"
+      # there are no exports
+      # script.push "require(#{quote(path.resolve(lib,'exports'))});"
       script.push "var r;"
       for p in dirs
         name = p.substr(2).replace(/\/.*$/,'')

@@ -20,7 +20,7 @@ class View extends ControllerBase
 
   @defaultOutlets = @_super.defaultOutlets.concat ['template','inWindow']
 
-  insertAfter: ($elem) ->
+  'insertAfter': ($elem) ->
     @remove()
     $container = $elem.parent()
     debugDom "insert #{@} after #{$elem}"
@@ -28,7 +28,7 @@ class View extends ControllerBase
     $elem.after(@$root)
     @_setInWindow $container
 
-  insertBefore: ($elem) ->
+  'insertBefore': ($elem) ->
     @remove()
     $container = $elem.parent()
     debugDom "insert #{@} before #{$elem}"
@@ -36,14 +36,14 @@ class View extends ControllerBase
     $elem.before(@$root)
     @_setInWindow $container
 
-  prependTo: ($container) ->
+  'prependTo': ($container) ->
     @remove()
     debugDom "prepend #{@} to #{$container}"
     @$container = $container
     $container.prepend(@$root)
     @_setInWindow $container
 
-  appendTo: ($container) ->
+  'appendTo': ($container) ->
     @remove()
     debugDom "append #{@} to #{$container}"
     @$container = $container
@@ -95,7 +95,7 @@ class View extends ControllerBase
 
     setDom = (view, name, obj) ->
       for k, v of obj
-        view.outletMethods.push om = view.newOutletMethod(v, k)
+        view.outletMethods.push om = new view.OutletMethod(v, k)
         addStringOutflow(view, name, k, om)
       return
 
@@ -110,9 +110,9 @@ class View extends ControllerBase
           when 'string'
             addStringOutflow this, s, m, outlet
           when 'function'
-            @outletMethods.push om = @newOutletMethod(m,k)
+            @outletMethods.push om = new @['OutletMethod'](m,k)
             outlet.set om
-      else
+      else if typeof m is 'function'
         @[s] = (args...) =>
           Cascade.Block =>
             m.apply this, args
@@ -125,7 +125,7 @@ class View extends ControllerBase
     if arg instanceof Template
       outlet.set @template = arg
     else
-      outlet.set @template = @newTemplate arg
+      outlet.set @template = new @['Template'] arg
 
     @template.view = this
     @['domCache'] = {}
@@ -163,7 +163,7 @@ class View extends ControllerBase
       else
         @_stateletDefaults[name] = (arg) => v.call(this, arg)
 
-    o ||= @newStatelet name
+    o ||= new @['Statelet'] name
     @[name] ||= @outlets[name] = o
     return
 

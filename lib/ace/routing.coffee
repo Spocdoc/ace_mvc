@@ -8,7 +8,7 @@ debugCascade = global.debug 'ace:cascade'
 debug = global.debug 'ace:routing'
 
 class Routing
-  constructor: (@ace, @routeContext, @_doNavigate) ->
+  constructor: (@ace, @routeContext, @_doNavigate, @sliding) ->
     @uriOutlets = {}
 
   @buildRoutes: (config, routes = []) ->
@@ -28,7 +28,7 @@ class Routing
       @router.push route
       for spec in route.specs
         unless @uriOutlets[spec.key]
-          context[spec.key] = @uriOutlets[spec.key] = @ace.sliding "routing/#{spec.key}"
+          context[spec.key] = @uriOutlets[spec.key] = @sliding "routing/#{spec.key}"
           debugCascade "created uri outlet #{@uriOutlets[spec.key]}"
 
     config['vars'].call context

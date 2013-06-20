@@ -16,10 +16,10 @@ class Controller extends ControllerBase
 
   @defaultOutlets = @_super.defaultOutlets.concat ['view','model']
 
-  appendTo: ($container) -> @view.appendTo($container)
-  prependTo: ($container) -> @view.prependTo($container)
-  insertBefore: ($elem) -> @view.insertBefore($elem)
-  insertAfter: ($elem) -> @view.insertAfter($elem)
+  'appendTo': ($container) -> @view['appendTo']($container)
+  'prependTo': ($container) -> @view['prependTo']($container)
+  'insertBefore': ($elem) -> @view['insertBefore']($elem)
+  'insertAfter': ($elem) -> @view['insertAfter']($elem)
   remove: -> @view.remove()
 
   _buildView: (arg, settings) ->
@@ -28,10 +28,10 @@ class Controller extends ControllerBase
     if arg instanceof View
       outlet.set @view = arg
     else if typeof arg is 'string'
-      outlet.set @view = @newView arg
+      outlet.set @view = new @['View'] arg
     else
       break for k,v of arg
-      outlet.set @view = @newView k, undefined, v
+      outlet.set @view = new @['View'] k, undefined, v
 
     @$ = {}
     for k, v of @view.outlets
@@ -43,14 +43,14 @@ class Controller extends ControllerBase
   _buildMethod: (k, m) ->
     if k.charAt(0) is '$'
       if typeof m is 'function'
-        @outletMethods.push m = @newOutletMethod(m, k)
+        @outletMethods.push m = new @['OutletMethod'](m, k)
       @view.outlets[k.substr(1)].set m
     else if @outlets[k]
       if m.length
         @_outletDefaults[k] = (done) => m.call(this,done)
       else
         @_outletDefaults[k] = => m.call(this)
-    else
+    else if typeof m is 'function'
       @[k] = (args...) =>
         Cascade.Block =>
           m.apply this, args

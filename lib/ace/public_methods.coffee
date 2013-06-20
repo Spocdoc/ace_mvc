@@ -5,76 +5,83 @@ Outlet = require '../cascade/outlet'
 OutletMethod = require '../cascade/outlet_method'
 Auto = require '../cascade/auto'
 diff = require '../diff'
+View = require '../mvc/view'
 
-module.exports = (Ace) ->
+makeOutletPath = (inst, name) ->
+  path = inst._path.concat()
+  name = "$#{name}" if inst instanceof View
+  path.push name
+  path
 
-  makeOutletPath = (inst, name) ->
-    path = inst._path.concat()
-    switch inst.constructor
-      when Ace.View then name = "$#{name}"
-      when Ace
-        name = "#{path[0]}-#{name}"
-        path = []
-    path.push name
-    path
+module.exports =
+  prototypeMethods:
 
-  diff: diff
+    'diff': diff
+      
+    'local': (path) -> @ace.historyOutlets.noInherit(path)
+
+    'to': (path) ->
+      path = makeOutletPath(this, path) unless ~path.indexOf '/'
+      outlet = @ace.historyOutlets.to.get(path)
+      outlet.auto = true
+      debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+      outlet
+
+    'from': (path) ->
+      path = makeOutletPath(this, path) unless ~path.indexOf '/'
+      outlet = @ace.historyOutlets.from.get(path)
+      outlet.auto = true
+      debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+      outlet
+
+    'sliding': (path) ->
+      path = makeOutletPath(this, path) unless ~path.indexOf '/'
+      outlet = @ace.historyOutlets.sliding.get(path)
+      outlet.auto = true
+      debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
+      outlet
+
+    'navigate': -> @ace.routing.navigate()
+
+    'Auto': Auto
+    'Outlet': Outlet
+
+  instanceMethods: (self) ->
     
-  local: (path) -> @ace.historyOutlets.noInherit(path)
+    'OutletMethod': class OutletMethodLocal extends OutletMethod
+      constructor: (func, debug) ->
+        super func, self.outlets, silent: !!func.length, context: self, auto: true
+        debugCascade "created outlet method for #{debug}: #{this}"
 
-  to: (path) ->
-    path = makeOutletPath(this, path) unless ~path.indexOf '/'
-    outlet = @ace.historyOutlets.to.get(path)
-    outlet.auto = true
-    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
-    outlet
+    'Statelet': class StateletLocal extends Statelet
+      constructor: (name) ->
+        hdOutlet = self.ace.historyOutlets.sliding.get path = makeOutletPath(self, name)
+        super undefined, enableSet: self.inWindow, silent: true
+        @set hdOutlet._value # so it propagates the update
+        hdOutlet.set(this) # so it synchronizes with the history outlets store
 
-  from: (path) ->
-    path = makeOutletPath(this, path) unless ~path.indexOf '/'
-    outlet = @ace.historyOutlets.from.get(path)
-    outlet.auto = true
-    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
-    outlet
+        self.ace.historyOutlets.on 'willNavigate', => @update()
+        debugCascade "created #{@} at",path.join('/'),"backed by #{hdOutlet}"
 
-  sliding: (path) ->
-    path = makeOutletPath(this, path) unless ~path.indexOf '/'
-    outlet = @ace.historyOutlets.sliding.get(path)
-    outlet.auto = true
-    debugCascade "created #{outlet} at #{if typeof path is 'string' then path else path.join('/')}"
-    outlet
+    'Controller': class ControllerLocal extends self.ace.Controller
+      _parent: self
 
-  newAuto: (init, options) -> new Auto init, options
-  newOutlet: (init, options) -> new Outlet init, options
+      constructor: (type, name, settings) ->
+        debugCascade "creating new controller",type,name
+        super type, name, settings
 
-  newController: (type, name, settings) -> debugCascade "creating new controller",type,name; new Ace.Controller(@ace,type, this, name, settings)
-  newView: (type, name, settings) -> debugCascade "creating new view",type,name; new Ace.View(@ace, type, this, name, settings)
-  newTemplate: (type) -> debugCascade "creating new template",type; new Ace.Template(@ace, type, this)
+    'View': class ViewLocal extends self.ace.View
+      _parent: self
 
-  newOutletMethod: (func, debug) ->
-    om = new OutletMethod func, @outlets, silent: !!func.length, context: this, auto: true
-    debugCascade "created outlet method for #{debug}: #{om}"
-    om
+      constructor: (type, name, settings) ->
+        debugCascade "creating new view",type,name
+        super type, name, settings
 
-  # spec and id are optional
-  newModel: (type, id, spec) ->
-    debugCascade "creating new model",type,id,spec
-    [id,spec] = [undefined, id] unless spec or id instanceof global.mongo.ObjectID or typeof id is 'string'
+    'Template': class TemplateLocal extends self.ace.Template
+      _parent: self
 
-    if exists = @ace.modelCache[type]?[id]
-      debugModel "reusing existing model"
-      return exists
+      constructor: (type) ->
+        debugCascade "creating new template",type
+        super type
 
-    model = new Ace.Model(@ace, type, id, spec)
-    (@ace.modelCache[type] ||= {})[model.id] = model
-
-  navigate: -> @ace.routing.navigate()
-
-  newStatelet: (name) ->
-    hdOutlet = @ace.historyOutlets.sliding.get path = makeOutletPath(this, name)
-    statelet = new Statelet undefined, enableSet: @inWindow, silent: true
-    statelet.set hdOutlet._value # so it propagates the update
-    hdOutlet.set(statelet) # so it synchronizes with the history outlets store
-
-    @ace.historyOutlets.on 'willNavigate', -> statelet.update()
-    debugCascade "created #{statelet} at",path.join('/'),"backed by #{hdOutlet}"
-    statelet
+    'Model': self.ace.Model

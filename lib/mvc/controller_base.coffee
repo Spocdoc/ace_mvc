@@ -44,7 +44,7 @@ class ControllerBase
 
   @defaultOutlets = [ 'delegate' ]
 
-  constructor: (@_type, @_parent, @_name, settings) ->
+  constructor: (@_type, @_name, settings) ->
     prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
     @_path = @_parent._path
@@ -113,7 +113,7 @@ class ControllerBase
 
   _buildOutletMethods: (arr) ->
     for m in arr
-      @outletMethods.push @newOutletMethod m
+      @outletMethods.push new @['OutletMethod'] m
     return
 
   _buildMixins: (mixins, mixins2) ->

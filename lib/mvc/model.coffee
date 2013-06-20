@@ -32,7 +32,7 @@ class Model
 
     @_patchRegistry = new Registry
     @_patchRegistry.add DBRef,
-      translate: (d, o) => @newModel d.namespace, d.oid
+      translate: (d, o) => new @constructor d.namespace, d.oid
 
     @doc = @db.coll(@coll).read id, spec
 
@@ -83,7 +83,7 @@ class Model
     for p,i in path
       d = d[p] ||= {}
       if d instanceof DBRef
-        model = @newModel d.namespace, d.oid
+        model = new @constructor d.namespace, d.oid
         return model.get path[(i+1)..].concat(key).join('.')
       o = o[p] ||= {}
 
@@ -92,7 +92,7 @@ class Model
 
     unless o['_']
       if d instanceof DBRef
-        d = @newModel d.namespace, d.oid
+        d = new @constructor d.namespace, d.oid
       else
         d = clone d
 
@@ -104,7 +104,7 @@ class Model
   toString: ->
     "#{@constructor.name} [#{@id}]"
 
-  _delete: -> @doc.delete()
+  delete: -> @doc.delete()
 
   serverDelete: ->
     debug "serverDelete for #{@}"

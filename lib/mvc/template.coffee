@@ -29,7 +29,7 @@ class Template
     Config[type] = new Config(domString, type)
     return this
 
-  constructor: (@_type, @_parent, @_name) ->
+  constructor: (@_type, @_name) ->
     prev = Outlet.auto; Outlet.auto = null
     debugMVC "Building #{@}"
     @_path = @_parent._path

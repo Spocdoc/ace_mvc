@@ -9,115 +9,117 @@ Cookies = require '../cookies'
 OJSON = require '../ojson'
 {include,extend} = require '../mixin'
 debugBoot = global.debug 'ace:boot:mvc'
+debugModel = global.debug 'ace:mvc:model'
+debugCascade = global.debug 'ace:cascade'
+publicMethods = require './public_methods'
 
 class Ace
-  publicMethods = require('./public_methods')(Ace)
-
-  include @, publicMethods
-
-  @newClient: (ojson, routesObj, $container) ->
+  @['newClient'] = (ojson, routesObj, $container) ->
     global['ace'] = (ojson && OJSON.fromOJSON ojson) || new Ace
     ace['cookies'] = new Cookies
     ace.routing.enable routesObj
     navigator = ace.routing.enableNavigator()
     ace.routing.router.route navigator.url
-    ace.appendTo $container
+    ace['appendTo'] $container
     return
-
-  class @Template extends Template
-    @_bootstrapped = {} # re-used element ids from the server-rendered dom
-
-    constructor: (@ace, others...) ->
-      super others...
-
-    _build: (base) ->
-      boot = @constructor._bootstrapped
-      prev = boot[@_prefix]
-      boot[@_prefix] = true
-
-      unless !prev && (@$root = @ace.$container?.find("##{@_prefix}")).length
-        debugBoot "Not bootstrapping template with prefix #{@_prefix}"
-        return super
-
-      debugBoot "Bootstrapping template with prefix #{@_prefix}"
-      @$['root'] = @$root
-      for id in base.ids
-        (@["$#{id}"] = @$[id] = @$root.find("##{@_prefix}-#{id}"))
-          .template = this
-      return
-
-  class @View extends View
-    include @, publicMethods
-
-    constructor: (@ace, others...) ->
-      super others...
-
-  class @Model extends Model
-    @prototype.newModel = publicMethods.newModel
-
-    constructor: (@ace, coll, id, spec) ->
-      super @ace.db, coll, id, spec
-
-  class @Controller extends Controller
-    include @, publicMethods
-
-    constructor: (@ace, others...) -> super others...
-
-  class @RouteContext
-    include @, publicMethods
-    constructor: (@ace) ->
-      @_path = ['routing']
 
   constructor: (@db = new Db, @historyOutlets = new HistoryOutlets, @_name='') ->
     @_path = [@_name]
-    @ace = this
-    @modelCache = {}
+    ace = @ace = this
 
-    @root = @to('root')
-    @rootType = @to('rootType')
-    @rootType.set('body') unless @rootType.get()
+    class @Template extends Template
+      @_bootstrapped = {} # re-used element ids from the server-rendered dom
 
-    @rootType.outflows.add => @_setRoot()
+      _parent: ace
 
-    @routing = new Routing this, new Ace.RouteContext(this),
-      (arg) => @historyOutlets.navigate(arg)
+      constructor: ->
+        @ace = ace
+        super
 
-  newRouteContext: ->
-    new Ace.RouteContext this
+      _build: (base) ->
+        boot = @constructor._bootstrapped
+        prev = boot[@_prefix]
+        boot[@_prefix] = true
 
-  reset: ->
-    global.location.reload()
+        unless !prev && (@$root = @ace.$container?.find("##{@_prefix}")).length
+          debugBoot "Not bootstrapping template with prefix #{@_prefix}"
+          return super
 
-  deleteModel: (model) ->
-    if @modelCache[model.id]
-      delete @modelCache[model.id]
-      model._delete()
-    return
+        debugBoot "Bootstrapping template with prefix #{@_prefix}"
+        @$['root'] = @$root
+        for id in base.ids
+          (@["$#{id}"] = @$[id] = @$root.find("##{@_prefix}-#{id}"))
+            .template = this
+        return
 
-  findModel: (coll, spec, cb) ->
-    @db.coll(coll).findOne spec, (err, doc) =>
-      return cb(err) if err?
-      cb null, @newModel coll, doc.id
+    class @View extends View
+      include @, publicMethods.prototypeMethods
+
+      _parent: ace
+
+      constructor: ->
+        @ace = ace
+        extend this, publicMethods.instanceMethods(this)
+        super
+
+    class @Controller extends Controller
+      include @, publicMethods.prototypeMethods
+
+      _parent: ace
+
+      constructor: ->
+        @ace = ace
+        extend this, publicMethods.instanceMethods(this)
+        super
+
+    class @Model extends Model
+      cache = {}
+
+      # spec and id are optional
+      constructor: (coll, id, spec) ->
+        @ace = ace
+
+        debugCascade "creating new model",coll,id,spec
+        [id,spec] = [undefined, id] unless spec or id instanceof global.mongo.ObjectID or typeof id is 'string'
+
+        if exists = cache[coll]?[id]
+          debugModel "reusing existing model"
+          return exists
+
+        super ace.db, coll, id, spec
+
+        (cache[coll] ||= {})[@id] = this
+
+      @find: (coll, spec, cb) ->
+        ace.db.coll(coll).findOne spec, (err, doc) =>
+          return cb(err) if err?
+          cb null, new this coll, doc.id
+
+      delete: ->
+        super
+        delete cache[model.id]
+
+    class @RouteContext
+      include @, publicMethods.prototypeMethods
+      constructor: ->
+        @ace = ace
+        extend this, publicMethods.instanceMethods(this)
+        @_path = ['routing']
+
+    @routing = new Routing this, new @RouteContext,
+      ((arg) => @historyOutlets.navigate(arg)), publicMethods.prototypeMethods.sliding
+
+    # exports
+    @Model['find'] = @Model.find
+
+  reset: -> global.location.reload()
 
   toString: -> "Ace [#{@_name}]"
 
-  _setRoot: ->
-    type = @rootType.get()
-    return if (root = @root.get())?.type == type
-    @historyOutlets.noInherit(@_path)
-    root?.remove()
-    @root.set(@newController(type))
-    @appendTo(@$container) if @$container
-    return
-
   _nodelegate: true
 
-  appendTo: (@$container) ->
-    unless @root.get()
-      @_setRoot()
-    else
-      @root.get().appendTo(@$container)
-    return
+  'appendTo': (@$container) ->
+    (new @Controller 'body')['appendTo'] @$container
 
 module.exports = Ace
 

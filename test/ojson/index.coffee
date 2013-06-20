@@ -177,7 +177,7 @@ ojsonTest = (OJSON) ->
 
   it 'should allow registration & unregistration by name', ->
     class Fro
-    desc = {Uno: Fro}
+    desc = {'Uno': Fro}
     OJSON.register desc
     expect(-> OJSON.register desc).to.throw(Error)
     OJSON.unregister desc
@@ -202,14 +202,14 @@ ojsonTest = (OJSON) ->
       class @A
         constructor: -> @foo = 'bar'
         '_ojson': true
-      OJSON.register {'another_a': @A}
+      OJSON.register {'Another_a': @A}
 
       class @B
       extend @B, OJSON.copyKeys
-      OJSON.register {'another_b': @B}
+      OJSON.register {'Another_b': @B}
 
     after ->
-      OJSON.unregister 'another_a','another_b'
+      OJSON.unregister 'Another_a','Another_b'
 
 
     it 'should create unique ids for objects with `true` _ojson fields (including inherited)', ->
@@ -290,12 +290,12 @@ ojsonTest = (OJSON) ->
             @foo = 'bar'
             @['_ojson'] = true
           '_ojson': true
-        OJSON.register {'another_d': @D}
+        OJSON.register {'Another_d': @D}
 
         class @E extends @D
           constructor: ->
         extend @E, OJSON.copyKeys
-        OJSON.register {'another_e': @E}
+        OJSON.register {'Another_e': @E}
 
         hasOwn = {}.hasOwnProperty
 
@@ -314,7 +314,7 @@ ojsonTest = (OJSON) ->
         expectations()
 
       finally
-        OJSON.unregister 'another_e', 'another_d'
+        OJSON.unregister 'Another_e', 'Another_d'
 
     it 'should serialize object keys in a deterministic order', ->
       a = {a: 1, b: 2, c: 3}

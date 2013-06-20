@@ -18,14 +18,14 @@ class HistoryOutlets extends Snapshots
   class SlidingOutlet extends SyncOutlet
     @name = 'SlidingOutlet'
 
-    constructor: (snapshots, path, key, @_syncValue) ->
+    constructor: (snapshots, path, @_syncValue) ->
       super @_syncValue
 
       @outflows.add @_out = =>
         if @_value != @_syncValue
           @_syncValue = @_value
           dataStore = snapshots.dataStore.array[snapshots.to['index']]
-          dataStore.localPath(path)[key] = @_value
+          dataStore.localPath(path)['_'] = @_value
 
     sync: (value) ->
       return if @pending or @_noSync or @_toOutlet?._noSync
@@ -77,11 +77,11 @@ class HistoryOutlets extends Snapshots
 
     _inherit: -> throw new Error()
 
-    get: (path, key) ->
-      [path, key] = Snapshots.getPathKey path, key
-      return current if (current = (base = @ensurePath(path))[key])?
-      outlet = base[key] = new SlidingOutlet(@['_snapshots'], path, key, @['_snapshots'].dataStore.array[@['index']].get(path)?[key])
-      debugCascade "created #{outlet} at #{path.concat(key).join('/')}"
+    get: (path) ->
+      path = Snapshots.getPath path
+      return current if (current = (base = @ensurePath(path))['_'])?
+      outlet = base['_'] = new SlidingOutlet(@['_snapshots'], path, @['_snapshots'].dataStore.array[@['index']].get(path)?['_'])
+      debugCascade "created #{outlet} at #{path.join('/')}"
       outlet
 
     slide: do ->
@@ -89,11 +89,8 @@ class HistoryOutlets extends Snapshots
 
       recurse = (o,to) ->
         to ||= empty
-        for k, v of o when k.charAt(0) != '_' and k isnt 'index' and !o.constructor.prototype[k]?
-          if v instanceof Snapshots.Compound
-            recurse v, to[k]
-          else
-            v.slide to[k]
+        recurse(v, to[k]) for k, v of o when k.charAt(0) != '_' and k isnt 'index' and !o.constructor.prototype[k]?
+        o['_'].slide to if o.hasOwnProperty '_'
         return
 
       (index) ->
@@ -107,9 +104,9 @@ class HistoryOutlets extends Snapshots
 
     _inherit: -> throw new Error()
 
-    get: (path, key) ->
-      [path, key] = Snapshots.getPathKey path, key
-      @ensurePath(path)[key] ?= new FromHistoryOutlet(if ~@['index'] then @['_snapshots'].dataStore.array[@['index']].get(path)?[key] else undefined)
+    get: (path) ->
+      path = Snapshots.getPath path
+      @ensurePath(path)['_'] ?= new FromHistoryOutlet(if ~@['index'] then @['_snapshots'].dataStore.array[@['index']].get(path)?['-'] else undefined)
 
   class ToHistorySnapshot extends Snapshots.Snapshot
     constructor: (snapshots) ->
@@ -122,24 +119,20 @@ class HistoryOutlets extends Snapshots
       ret['index'] = @['index'] + 1
       ret
 
-    get: (path, key) ->
-      [path, key] = Snapshots.getPathKey path, key
-      return current if (current = (base = @ensurePath(path))[key])?
-      base[key] = new ToHistoryOutlet @['_snapshots'].sliding.get(path, key)
+    get: (path) ->
+      path = Snapshots.getPath path
+      return current if (current = (base = @ensurePath(path))['_'])?
+      base[key] = new ToHistoryOutlet @['_snapshots'].sliding.get(path)
 
     set: (path, value) ->
       @get(path).set(value)
       return this
 
     # sets the path to null (NOT undefined) if it isn't own property
-    noInherit: (path, key) ->
-      [path, key] = Snapshots.getPathKey path, key
-      @['_snapshots'].dataStore.array[@['index']].noInherit path, key
-      return unless prev = super path,key
-      if prev instanceof Snapshots.Compound
-        Snapshots.Snapshot.each prev, (outlet) -> outlet.localizeChanges()
-      else
-        prev.localizeChanges()
+    noInherit: (path) ->
+      path = Snapshots.getPath path
+      @['_snapshots'].dataStore.array[@['index']].noInherit path
+      (super path)?.localizeChanges()
       return
 
   constructor: (@dataStore = new Snapshots) ->

@@ -34,8 +34,8 @@ class Route
   matchParams: (params) ->
     for spec in @specs when !spec.optional
       return false unless params[spec.key]?
-    for k of @outletHash
-      return false unless params[k]?
+    for k,v of @outletHash
+      return false unless params[k] is v
     return true
 
   # @returns URI path + fragment formed from parameters

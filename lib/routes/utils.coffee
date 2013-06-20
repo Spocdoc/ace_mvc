@@ -24,6 +24,8 @@ module.exports.parseRoute = do ->
     fn.push "var r = [];"
     lastI = 0
 
+    original = path
+
     path = path
       .replace(rPath, (match, slash='', format='', key, capture, optional, star, index) ->
 
@@ -69,12 +71,19 @@ module.exports.parseRoute = do ->
         ret += '?' if optional
         ret += '(/*)?' if star
         ret)
-      .replace(rEscape, '\\$1')
-      .replace(rStar,'(.*)')
+
+    if original.length > lastI
+      fn.push """
+        r.push("#{original.substr(lastI)}");
+        """
 
     fn.push """
       return r.join('');
     """
+
+    path = path
+      .replace(rEscape, '\\$1')
+      .replace(rStar,'(.*)')
 
     [new RegExp('^' + path + '$', if options.sensitive then '' else 'i'),new Function('p', fn.join(''))]
 

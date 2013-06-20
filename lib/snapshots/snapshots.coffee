@@ -11,7 +11,7 @@ class Snapshots
 
     syncTarget = (src, dst) ->
       syncTarget(src[k], dst[k]) for k of src when k.charAt(0) != '_' and !src.constructor.prototype[k]? and dst[k]
-      dst['_'].sync src['_'] if src.hasOwnProperty '_'
+      dst['_']?.sync src['_'] if src.hasOwnProperty '_'
       return
 
     localPath: (arr) ->

@@ -30,6 +30,8 @@ class Routing
         unless @uriOutlets[spec.key]
           context[spec.key] = @uriOutlets[spec.key] = @sliding "routing/#{spec.key}"
           debugCascade "created uri outlet #{@uriOutlets[spec.key]}"
+      for name of route.outletHash
+        context[name] = @uriOutlets[name] = @sliding "routing/#{name}"
 
     config['vars'].call context
 

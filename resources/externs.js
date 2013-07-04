@@ -1,18 +1,3 @@
-var mvc = {
-  "model": {},
-  "view": {},
-  "controller": {},
-  "template": {},
-  "inWindow": {},
-  "statelets": {},
-  "mixins": {},
-  "outlets": {},
-  "outletMethods": {},
-  "ace": {},
-  "_type": {},
-  "_name": {}
-};
-
 window.io = {
   "connect": function () {},
   "on": function () {},

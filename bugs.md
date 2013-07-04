@@ -265,4 +265,20 @@
 
     currently it calls location.reload() and is overridden in the server-side render
 
+# jQuery
+
+  - replaceWith does remove() then insertBefore instead of replaceChild
+
+# query_compiler
+  - doesn't include
+
+
+        $exists
+        $where
+        $type
+        $regex doesn't have options
+        $geoWithin
+        $geoIntersects
+        $near
+        $nearSphere
 

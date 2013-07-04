@@ -1,158 +1,136 @@
 Outflows = require './outflows'
-Emitter = require '../events/emitter'
+Emitter = require '../utils/events/emitter'
 addBlocks = require './blocks'
-{include, extend} = require '../mixin'
-makeId = require '../id'
+{include, extend} = require '../utils/mixin'
+makeId = require '../utils/id'
 debug = global.debug 'ace:cascade'
 debugCount = global.debug 'ace:cascade:count'
 
-class Cascade
-  extend Cascade, Emitter
+module.exports = ->
+  class Cascade
+    extend Cascade, Emitter
+    @pending = 0
 
-  constructor: (@func) ->
-    @func ||= ->
-    @inflows = {}
-    @changes = []
-    @outflows = new Outflows(this, Cascade)
-    @pending = false
-    @_runNumber = 0
-    @cid = makeId()
-
-  @newContext: ->
-    @_emitter = {}
-    @_emitter.pending = 0
-    @_emitter
-
-  # remove inflow or all inflows
-  detach: (inflow) ->
-    unless inflow?
-      inflows = @inflows
-      inflow.outflows.removeAll this for cid,inflow of inflows
-    else
-      inflow.outflows?.removeAll this
-
-    return
-
-  @run: (cascade, source) ->
-    if typeof cascade is 'function'
-      cascade(source)
-    else
-      cascade._run(source)
-    
-  run: (source) ->
-    sp = source?.pending
-    debug "called run on #{@}"
-    @setThisPending true
-    @outflows.setPending true
-    @_mustRun = true # must run at least once since explicitly asked it to
-    Cascade.run this, source unless sp
-    return
-
-  allOutflows: (hash) ->
-    for outflow in @outflows.array when !hash[outflow.cid]
-      hash[outflow.cid] = outflow
-      outflow.allOutflows? hash
-    hash
-
-  cascade: ->
-    debug "called cascade on #{@}"
-    unless @running
-      @setThisPending false
-      # this is to stop recursion if this is an outflow of one of its outflows
-      @outflows.setPending @pending = true
+    constructor: (@func) ->
+      @func ||= ->
+      @inflows = {}
+      @changes = []
+      @outflows = new Outflows(this, Cascade)
       @pending = false
-    # explicit looping because the array length could change while looping it
-    `for (var i = 0, arr = this.outflows.array; i < arr.length; ++i) {
-      outflow = arr[i];
-      if (outflow.pending || outflow.pending === (void 0)) {
-        outflow._mustRun = true;
-        Cascade.run(outflow, this);
-      }
-    }`
-    return
+      @_runNumber = 0
+      @cid = makeId()
 
-  setThisPending: (tf) ->
-    return if @pending is tf=!!tf
-    debug "set pending [#{tf}] on #{@}"
-    @pending = tf
-    if cc = Cascade._emitter
-      debugCount "#{if tf then "+1" else "-1"} from #{cc.pending}"
-      unless (cc.pending += if tf then 1 else -1)
+    @run: (cascade, source) ->
+      if typeof cascade is 'function'
+        cascade(source)
+      else
+        cascade._run(source)
+      
+    run: (source) ->
+      sp = source?.pending
+      debug "called run on #{@}"
+      @setThisPending true
+      @outflows.setPending true
+      @_mustRun = true # must run at least once since explicitly asked it to
+      @constructor.run this, source unless sp
+      return
+
+    allOutflows: (hash) ->
+      for outflow in @outflows.array when !hash[outflow.cid]
+        hash[outflow.cid] = outflow
+        outflow.allOutflows? hash
+      hash
+
+    cascade: ->
+      debug "called cascade on #{@}"
+      unless @running
+        @setThisPending false
+        # this is to stop recursion if this is an outflow of one of its outflows
+        @outflows.setPending @pending = true
+        @pending = false
+      # explicit looping because the array length could change while looping it
+      `for (var i = 0, arr = this.outflows.array; i < arr.length; ++i) {
+        outflow = arr[i];
+        if (outflow.pending || outflow.pending === (void 0)) {
+          outflow._mustRun = true;
+          this.constructor.run(outflow, this);
+        }
+      }`
+      return
+
+    setThisPending: (tf) ->
+      return if @pending is tf=!!tf
+      debug "set pending [#{tf}] on #{@}"
+      @pending = tf
+      debugCount "#{if tf then "+1" else "-1"} from #{@constructor.pending}"
+      unless (@constructor.pending += if tf then 1 else -1)
         debugCount "done"
-        Cascade.emit 'done'
-    return
-
-  setPending: (tf) ->
-    return if @pending is tf=!!tf
-
-    if !tf
-      return unless @_canRun()
-      return Cascade.run this if @_mustRun
-
-    @setThisPending tf
-    @outflows.setPending tf
-    return
-
-  _canRun: ->
-    for cid,inflow of @inflows when inflow.pending
-      return false unless @outflows[inflow.cid]?
-    true
-
-  _run: do ->
-    done = (cascade) ->
-      prev = Cascade._emitter
-      Cascade._emitter = cascade._cc
-
-      cascade.changes = []
-
-      if cascade._stopPropagation
-        debug "#{cascade} called stopPropagation"
-        cascade._stopPropagation = false
-        cascade.setPending(false)
-      else
-        cascade.setThisPending false
-        cascade.cascade()
-
-      cascade.running = false
-
-      Cascade._emitter = prev
+        @constructor.emit 'done'
       return
 
+    setPending: (tf) ->
+      return if @pending is tf=!!tf
 
-    (source) ->
-      unless @pending
-        debug "not running #{@} because not pending mustrun: [#{@_mustRun}]"
+      if !tf
+        return unless @_canRun()
+        return @constructor.run this if @_mustRun
+
+      @setThisPending tf
+      @outflows.setPending tf
+      return
+
+    _canRun: ->
+      for cid,inflow of @inflows when inflow.pending
+        return false unless @outflows[inflow.cid]?
+      true
+
+    _run: do ->
+      done = (cascade) ->
+        cascade.changes = []
+
+        if cascade._stopPropagation
+          debug "#{cascade} called stopPropagation"
+          cascade._stopPropagation = false
+          cascade.setPending(false)
+        else
+          cascade.setThisPending false
+          cascade.cascade()
+
+        cascade.running = false
         return
 
-      @changes.push source if source
 
-      unless @_canRun()
-        debug "can't run #{source}->#{@} yet because pending inflows"
-        @_mustRun = true
-        return
+      (source) ->
+        unless @pending
+          debug "not running #{@} because not pending mustrun: [#{@_mustRun}]"
+          return
 
-      @_mustRun = false
+        @changes.push source if source
 
-      @running = true
-      ++@_runNumber
-      @_cc = Cascade._emitter
+        unless @_canRun()
+          debug "can't run #{source}->#{@} yet because pending inflows"
+          @_mustRun = true
+          return
 
-      if @func.length
-        num = @_runNumber
-        @func =>
-          return if num != @_runNumber
+        @_mustRun = false
+
+        @running = true
+        ++@_runNumber
+
+        if @func.length
+          num = @_runNumber
+          @func =>
+            return if num != @_runNumber
+            done this
+        else
+          @func()
           done this
-      else
-        @func()
-        done this
-      return
+        return
 
-  # can be called by the func to prevent updating outflows
-  stopPropagation: ->
-    @_stopPropagation = true
+    # can be called by the func to prevent updating outflows
+    stopPropagation: ->
+      @_stopPropagation = true
 
-
-addBlocks Cascade
-module.exports = Cascade
-
+  addBlocks Cascade
+  Cascade
 

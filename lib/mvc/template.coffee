@@ -1,6 +1,6 @@
 $ = global.$
-Outlet = require '../cascade/outlet'
-debugMVC = global.debug 'ace:mvc'
+debugMvc = global.debug 'ace:mvc'
+debugBoot = global.debug 'ace:boot'
 utils = require './utils'
 
 class Config
@@ -23,44 +23,71 @@ class Config
 
     (dom) -> helper [], dom
 
-class Template
-  @add: (type, domString) ->
-    throw new Error("Template: already added #{type}") if Config[type]?
-    Config[type] = new Config(domString, type)
-    return this
+module.exports = (pkg) ->
+  Outlet = pkg.cascade.Outlet
+  mvc = pkg.mvc
 
-  constructor: (@_type, @_name) ->
-    prev = Outlet.auto; Outlet.auto = null
-    debugMVC "Building #{@}"
-    @_path = @_parent._path
-    @_path = @_path.concat(@_name) if @_name
-    @_prefix = @_path.join('-') || "ace"
-    @_prefix = "ace#{@_prefix}" if @_prefix.charAt(0) is '-'
-    @$ = {}
-    base = Config[@_type]
-    base.lazy()
-    @_build(base)
+  mvc.Global.prototype['Template'] = mvc.Template = class Template
+    toString: ->
+      "#{@constructor.name} [#{@_type}] name [#{@_name}]"
 
-    # api
-    @['$root'] = @$root
-    @$root.addClass utils.makeClassName(@_parent._type)
-    debugMVC "done building #{@}"
-    Outlet.auto = prev
+    bootstrapped = {} # re-used element ids from the server-rendered dom
+    _build: (config) ->
+      prev = bootstrapped[@_prefix]
+      bootstrapped[@_prefix] = true
 
-  toString: ->
-    "#{@constructor.name} [#{@_type}] name [#{@_name}]"
+      unless !prev && (@['$root'] = @$['root'] = Template.$root?.find("##{@_prefix}")).length
+        debugBoot "Not bootstrapping template with prefix #{@_prefix}"
+        @$['root'] = @['$root'] = config.$root.clone()
+        @['$root'].attr('id',@_prefix)
 
+        for id in config.ids
+          (@["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
+          .attr('id', "#{@_prefix}-#{id}")
+          .template = this
+      else
+        debugBoot "Bootstrapping template with prefix #{@_prefix}"
+        for id in config.ids
+          (@["$#{id}"] = @$[id] = @['$root'].find("##{@_prefix}-#{id}"))
+            .template = this
 
-  _build: (base) ->
-    @$root = base.$root.clone()
-    @$root.attr('id',@_prefix)
-    @$['root'] = @$root
+      return
 
-    for id in base.ids
-      (@["$#{id}"] = @$[id] = @$root.find("##{id}"))
-      .attr('id', "#{@_prefix}-#{id}")
-      .template = this
-    return
+  for _type,_config of Config
+    mvc.Template[_type] = class Template extends mvc.Template
+      type = _type
+      config = _config
 
-module.exports = Template
+      @name = 'Template'
+      _type: type
+
+      _setPrefix: ->
+        elem = this
+        path = []
+
+        while elem
+          path.push name if name = elem._name
+          elem = elem._parent
+
+        @_prefix = path.reverse().join('-') || 'ace'
+
+      constructor: (@_parent, @_name) ->
+        prev = Outlet.auto; Outlet.auto = null
+        debugMvc "Building #{@}"
+
+        @_setPrefix()
+
+        @$ = {}
+        config.lazy()
+        @_build(config)
+
+        @['$root'].addClass utils.makeClassName(@_parent._type)
+
+        debugMvc "done building #{@}"
+        Outlet.auto = prev
+
+module.exports.add = (type, domString) ->
+  throw new Error("Template: already added #{type}") if Config[type]?
+  Config[type] = new Config(domString, type)
+  return
 

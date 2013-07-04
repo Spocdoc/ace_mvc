@@ -1,222 +1,145 @@
-ControllerBase = require './controller_base'
-Cascade = require '../cascade/cascade'
-Outlet = require '../cascade/outlet'
-OutletMethod = require '../cascade/outlet_method'
-Template = require './template'
-{defaults} = require '../mixin'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
+debugCascade = global.debug 'ace:cascade'
 
-class View extends ControllerBase
-  @name = 'View'
-  @_super = @__super__.constructor
+configs = new (require('./configs'))
 
-  class @Config extends @_super.Config
-    @_super = @__super__.constructor
+module.exports = (pkg) ->
+  cascade = pkg.cascade
+  mvc = pkg.mvc
 
-    @defaultConfig = defaults {}, @_super.defaultConfig,
-      statelets: []
-      template: ''
+  mvc.Global.prototype['View'] = mvc.View = class View extends mvc.ControllerBase
+    constructor: (config, settings) ->
+      debugCascade "creating new view",@_type,@_name
+      super config, settings
 
-  @defaultOutlets = @_super.defaultOutlets.concat ['template','inWindow']
+    'insertAfter': ($elem) ->
+      @remove()
+      $container = $elem.parent()
+      debugDom "insert #{@} after #{$elem}"
+      @$container = $container
+      $elem.after(@['$root'])
+      @_setInWindow $container
 
-  'insertAfter': ($elem) ->
-    @remove()
-    $container = $elem.parent()
-    debugDom "insert #{@} after #{$elem}"
-    @$container = $container
-    $elem.after(@$root)
-    @_setInWindow $container
+    'insertBefore': ($elem) ->
+      @remove()
+      $container = $elem.parent()
+      debugDom "insert #{@} before #{$elem}"
+      @$container = $container
+      $elem.before(@['$root'])
+      @_setInWindow $container
 
-  'insertBefore': ($elem) ->
-    @remove()
-    $container = $elem.parent()
-    debugDom "insert #{@} before #{$elem}"
-    @$container = $container
-    $elem.before(@$root)
-    @_setInWindow $container
+    'prependTo': ($container) ->
+      @remove()
+      debugDom "prepend #{@} to #{$container}"
+      @$container = $container
+      $container.prepend(@['$root'])
+      @_setInWindow $container
 
-  'prependTo': ($container) ->
-    @remove()
-    debugDom "prepend #{@} to #{$container}"
-    @$container = $container
-    $container.prepend(@$root)
-    @_setInWindow $container
+    'appendTo': ($container) ->
+      @remove()
+      debugDom "append #{@} to #{$container}"
+      @$container = $container
+      $container.append(@['$root'])
+      @_setInWindow $container
 
-  'appendTo': ($container) ->
-    @remove()
-    debugDom "append #{@} to #{$container}"
-    @$container = $container
-    $container.append(@$root)
-    @_setInWindow $container
+    'remove': ->
+      return unless @$container
+      debugDom "remove #{@} from #{@$container}"
+      @$container = undefined
+      @inWindow.unset()
+      @inWindow.set(false)
+      @['$root'].remove()
+      return
 
-  _setInWindow: ($container) ->
-    if other = $container.template?.view?.inWindow
-    else
-      for parent in $container.parents()
-        (break) if other = parent.template?.view?.inWindow
+    _setInWindow: ($container) ->
+      if other = $container.template?._parent?.inWindow
+      else
+        for parent in $container.parents()
+          (break) if other = parent.template?.view?.inWindow
 
-    @inWindow.set(other || true)
-    return
+      @inWindow.set(other || true)
+      return
 
-  remove: ->
-    return unless @$container
-    debugDom "remove #{@} from #{@$container}"
-    @$container = undefined
-    @inWindow.unset()
-    @inWindow.set(false)
-    @$root.remove()
-    return
-
-  _buildMethod: do ->
-    addStringOutflow = (view, name, str, outlet) ->
-      e = view.$[name]
+    _buildDollarString: (dollar, methName, outlet) ->
+      e = @[dollar]
       outflows = outlet.outflows
 
-      switch str
+      switch methName
         when 'toggleClass'
-          outflows.add ->
-            debugDom "calling #{str} in dom on #{name} with #{outlet.get()}"
-            e[str].call(e, name, ''+outlet.get())
+          outflows.add =>
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](dollar.substr(1), ''+outlet.value)
 
         when 'text','html'
-          outflows.add ->
-            if view['domCache'][name] isnt (v = outlet.get())
-              view['domCache'][name] = ''+v
-              debugDom "calling #{str} in dom on #{name} with #{v}"
-              e[str].call(e, ''+v)
+          outflows.add =>
+            if @['domCache'][dollar] isnt (v = ''+outlet.value)
+              @['domCache'][dollar] = v
+              debugDom "calling #{methName} in dom on #{dollar} with #{v}"
+              e[methName](v)
 
         else
-          outflows.add ->
-            debugDom "calling #{str} in dom on #{name} with #{outlet.get()}"
-            e[str].call(e, outlet.get())
+          outflows.add =>
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](outlet.value)
 
       return
 
-    setDom = (view, name, obj) ->
-      for k, v of obj
-        view.outletMethods.push om = new view.OutletMethod(v, k)
-        addStringOutflow(view, name, k, om)
+    _buildDollar: (config) ->
+      for k,v of config when k.charAt(0) is '$'
+        if typeof v is 'string'
+          @_buildDollarString k, v, @outlets[k.substr(1)]
+        else # object
+          for str, method of v
+            @_buildDollarString k, str, new @Outlet method, k
       return
 
-    (k,m) ->
-      s = if k.charAt(0) is '$' then k.substr(1) else k
+    _buildTemplate: (arg) ->
+      if arg instanceof @['Template']
+        @['template'] = arg
+      else # string
+        @['template'] =  new @['Template'][arg] this
 
-      if k.charAt(0) is '$' and typeof m is 'object'
-        setDom(this, s, m)
+      @['domCache'] = {}
 
-      else if (outlet = @outlets[s])?
-        switch typeof m
-          when 'string'
-            addStringOutflow this, s, m, outlet
-          when 'function'
-            @outletMethods.push om = new @['OutletMethod'](m,k)
-            outlet.set om
-      else if typeof m is 'function'
-        @[s] = (args...) =>
-          Cascade.Block =>
-            m.apply this, args
+      @$ = {}
+      @$[k] = @["$#{k}"] = v for k,v of @['template'].$
 
       return
 
-  _buildTemplate: (arg) ->
-    outlet = @outlets['template'] ||= @to('template')
+  for _type,_config of configs.configs
+    mvc.View[_type] = class View extends mvc.View
+      type = _type
+      config = _config
 
-    if arg instanceof Template
-      outlet.set @template = arg
-    else
-      outlet.set @template = new @['Template'] arg
+      @name = 'View'
+      _type: type
 
-    @template.view = this
-    @['domCache'] = {}
-    @$ = @template.$
-    @[k] = v for k,v of @template when k.charAt(0) is '$'
-    @$root = @template.$root # closure mangling
+      @_applyStatic config
+      @_applyOutlets config
+      @_applyMethods config
 
-    # disallow changing the template
-    outlet.set = ->
+      constructor: (@_parent, @_name, settings={}) ->
+        super()
 
-    return
+        prev = @Outlet.auto; @Outlet.auto = null
+        debugMvc "Building #{@}"
 
-  _buildStatelet: (k,v,name) ->
-    name ||= k
+        cascade.Cascade.Block =>
 
-    if Array.isArray v
-      for e,i in v
-        @_buildStatelet k, e, "#{name}-#{i}"
-      return
+          @_buildOutlets()
 
-    if v instanceof Cascade
-      o = v
-    else if typeof v is 'string'
-      name = "#{name}-#{v}"
-      debugMvc "setting statelet #{name} to k [#{k}] v [#{v}]"
-      @_stateletDefaults[name] = (arg) =>
-        if arg?
-          @[k][v](arg)
-        else
-          @[k][v]()
-    else if typeof v is 'function'
-      if v.length > 1
-        @_stateletDefaults[name] = (arg) =>
-          v.call(this, @[k], arg)
-      else
-        @_stateletDefaults[name] = (arg) => v.call(this, arg)
+          @inWindow = @['inWindow'] = @outlets['inWindow'] = new @Outlet false
 
-    o ||= new @['Statelet'] name
-    @[name] ||= @outlets[name] = o
-    return
+          @_buildTemplate settings['template'] || config['template'] || type, settings
+          @_buildDollar config
+          @_applyConstructors config, settings
+          @_setOutlets settings
 
-  _buildStatelets: (statelets) ->
-    return unless statelets
-    @_stateletDefaults ||= {}
+        debugMvc "done building #{@}"
+        @Outlet.auto = prev
 
-    if Array.isArray statelets
-      @_buildStatelets k for k in statelets
-    else
-      for k,v of statelets
-        @_buildStatelet k,v
-    return
+  mvc.View
 
-  _setStatelet: (k, v) ->
-    if typeof v is 'function' and !v.length
-      v = v.call(this)
-      if v.length > 1
-        fn = (arg) => v.call(this,@[k], arg)
-      else
-        fn = (arg) => v.call(this,arg)
-    else
-      fn = v
-
-    @outlets[k]?.runner.getset = fn
-    return
-
-  _setStatelets: (settings) ->
-    for k,v of settings when !@constructor.Config.defaultConfig[k]?
-      @_setStatelet k, v
-    for k,v of @_stateletDefaults
-      @_setStatelet k, v
-    return
-
-  _build: (base, settings) ->
-    base = base.get(this)
-    config = base.config
-
-    @_buildMixins config.mixins, settings?.mixins
-    @_buildOutlets config.outlets
-    @_buildStatelets config.statelets
-    @_buildOutletMethods config.outletMethods
-
-    unless @_mixing
-      @_buildTemplate settings?.template || config.template || base.type
-
-    @_buildMethods config
-    @_buildMethods config['methods']
-
-    unless @_mixing
-      @_setOutlets settings
-      @_setStatelets settings
-
-    base
-
-module.exports = View
+module.exports.add = (type,config) -> configs.add type,config
+module.exports.finish = -> configs.applyMixins()

@@ -3,7 +3,7 @@
 connect = require 'connect'
 express = require 'express'
 path = require 'path'
-Ace = require './lib/ace/server'
+Ace = require './lib/server'
 
 debugger
 
@@ -32,7 +32,7 @@ ace = new Ace
 
 ace.configure 'development', ->
   ace.set 'debug', true
-  ace.set 'db',
+  ace.set 'mvc',
     mediator: path.resolve './app/mediator'
     host: '/tmp/mongodb-27017.sock'
     db: 'test'
@@ -44,7 +44,7 @@ ace.configure 'development', ->
 
 ace.configure 'production', ->
   ace.set 'debug', false
-  ace.set 'db',
+  ace.set 'mvc',
     mediator: path.resolve './app/mediator'
     host: '/tmp/mongodb-27017.sock'
     db: 'test'

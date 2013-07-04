@@ -1,77 +1,74 @@
-ControllerBase = require './controller_base'
-Cascade = require '../cascade/cascade'
-View = require './view'
-Model = require './model'
-{defaults} = require '../mixin'
+debugCascade = global.debug 'ace:cascade'
+debugMvc = global.debug 'ace:mvc'
 
-class Controller extends ControllerBase
-  @name = 'Controller'
-  @_super = @__super__.constructor
+configs = new (require('./configs'))
 
-  class @Config extends @_super.Config
-    @_super = @__super__.constructor
+module.exports = (pkg) ->
+  cascade = pkg.cascade
+  mvc = pkg.mvc
 
-    @defaultConfig = defaults {}, @_super.defaultConfig,
-      view: ''
+  mvc.Global.prototype['Controller'] = mvc.Controller = class Controller extends mvc.ControllerBase
+    constructor: (config, settings) ->
+      debugCascade "creating new controller",@_type,@_name
+      super config, settings
 
-  @defaultOutlets = @_super.defaultOutlets.concat ['view','model']
+    'appendTo': ($container) -> @['view']['appendTo']($container)
+    'prependTo': ($container) -> @['view']['prependTo']($container)
+    'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
+    'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
+    'remove': -> @['view']['remove']()
 
-  'appendTo': ($container) -> @view['appendTo']($container)
-  'prependTo': ($container) -> @view['prependTo']($container)
-  'insertBefore': ($elem) -> @view['insertBefore']($elem)
-  'insertAfter': ($elem) -> @view['insertAfter']($elem)
-  remove: -> @view.remove()
-
-  _buildView: (arg, settings) ->
-    outlet = @outlets['view'] ||= @to('view')
-
-    if arg instanceof View
-      outlet.set @view = arg
-    else if typeof arg is 'string'
-      outlet.set @view = new @['View'] arg
-    else
-      break for k,v of arg
-      outlet.set @view = new @['View'] k, undefined, v
-
-    @$ = {}
-    for k, v of @view.outlets
-      @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v
-
-    # view outlet is immutable
-    outlet.set = ->
-
-  _buildMethod: (k, m) ->
-    if k.charAt(0) is '$'
-      if typeof m is 'function'
-        @outletMethods.push m = new @['OutletMethod'](m, k)
-      @view.outlets[k.substr(1)].set m
-    else if @outlets[k]
-      if m.length
-        @_outletDefaults[k] = (done) => m.call(this,done)
+    _buildView: (arg, settings) ->
+      if arg instanceof mvc.View
+        @['view'] = arg
+      else if typeof arg is 'string'
+        @['view'] = new @['View'][arg] this
       else
-        @_outletDefaults[k] = => m.call(this)
-    else if typeof m is 'function'
-      @[k] = (args...) =>
-        Cascade.Block =>
-          m.apply this, args
+        break for k,v of arg
+        outlet.set @['view'] = new @['View'][k] this, undefined, v
 
-  _build: (base, settings) ->
-    base = base.get(this)
-    config = base.config
+      @$ = {}
+      @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v for k, v of @['view'].outlets
+      return
 
-    @_buildMixins config.mixins, settings?.mixins
-    @_buildOutlets config.outlets
+    _buildDollar: (config) ->
+      for k,v of config when k.charAt(0) is '$'
+        v = new @Outlet(v, k) if typeof v is 'function'
+        @['view'].outlets[k.substr(1)].set v
+      return
 
-    unless @_mixing
-      @_buildView settings?.view || config.view || base.type, settings
+  for _type,_config of configs.configs
 
-    @_buildOutletMethods config.outletMethods
-    @_buildMethods config
-    @_buildMethods config['methods']
+    mvc.Controller[_type] = class Controller extends mvc.Controller
+      type = _type
+      config = _config
 
-    unless @_mixing
-      @_setOutlets settings
+      @name = 'Controller'
+      _type: type
 
-    base
+      @_applyStatic config
+      @_applyOutlets config
+      @_applyMethods config
 
-module.exports = Controller
+      constructor: (@_parent, @_name, settings={}) ->
+        super()
+
+        prev = @Outlet.auto; @Outlet.auto = null
+        debugMvc "Building #{@}"
+
+        cascade.Cascade.Block =>
+
+          @_buildOutlets()
+          @_buildView settings['view'] || config['view'] || type, settings
+          @_buildDollar config
+          @_applyConstructors config, settings
+          @_setOutlets settings
+
+        debugMvc "done building #{@}"
+        @Outlet.auto = prev
+
+  mvc.Controller
+
+module.exports.add = (type,config) -> configs.add type,config
+module.exports.finish = -> configs.applyMixins()
+

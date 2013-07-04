@@ -1,5 +1,4 @@
-{include, extend} = require '../mixin'
-makeId = require '../id'
+makeId = require '../utils/id'
 debug = global.debug 'ace:cascade:outflows'
 
 class Outflows
@@ -53,19 +52,6 @@ class Outflows
     return unless @[outflow.cid]?
     @[outflow.cid] = 1
     @remove outflow
-    return
-
-  # removes all the outflows (and removes this cascade from the inflows of
-  # each). These can be restored with #attach
-  detach: ->
-    ret = @array.splice(0)
-    for outflow in ret
-      delete outflow.inflows?[@cascade.cid]
-      delete @[outflow.cid]
-    return ret
-
-  attach: (arr) ->
-    @add outflow for outflow in arr
     return
 
 module.exports = Outflows

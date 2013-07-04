@@ -1,64 +1,29 @@
-fs = require 'fs'
-path = require 'path'
-express = require('express')
-glob = require 'glob'
-async = require 'async'
-{extend} = require '../../mixin'
-App = require './app'
-Bundler = require '../../bundler/server'
+Ace = require '../index'
+Cookies = require '../../cookies'
 
-# express sets route, parent
-class Main
-  constructor: (settings) ->
-    extend @, express()
-    extend @settings, settings
+module.exports = ->
 
-  _loadExterns: (lib, cb) ->
-    async.waterfall [
-      (next) -> glob "#{lib}/_*/server/*", next
-      (filePaths, next) ->
-        filePaths.map (filePath) -> require filePath
-        next()
-    ], cb
+  Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
+    pkg = {}
+    require('../../mvc')(pkg).Global.prototype['cookies'] = new Cookies req, res
 
-  _loadServerFiles: (lib, cb) ->
-    async.waterfall [
-      (next) -> glob "#{lib}/!(_*|ace|bundler)/server", nonegate: true, next
-      (filePaths, next) =>
-        filePaths.map (filePath) =>
-          name = path.basename path.resolve filePath, '..'
-          fn(@settings[name], this) if typeof (fn = require filePath) is 'function'
-        next()
-    ], cb
+    ace = new Ace undefined, routes, vars, pkg
 
-  boot: (cb) ->
-    app = @parent
-    process.on 'SIGINT', -> process.exit(1)
+    ace.reset = ->
+      req.url = '/'
+      handle req, res, next
+      return
 
-    lib = path.resolve __dirname, '../../'
-    async.waterfall [
-      (done) => @_loadExterns lib, done
-      (done) => @_loadServerFiles lib, done
-      (done) =>
-        listMvc = require '../../mvc/server/list_mvc'
-        listMvc @settings['root'], done
-      (mvc, done) =>
-        @settings.mvc = mvc
+    ace.router.route req.url
+    ace.appendTo $container
 
-        extend @settings['bundler'],
-          mvc: mvc
-          'debug': @settings['debug']
-          'routes': @settings['routes']
-          'globals':
-            'Ace': path.resolve(__dirname, '../../ace')
+    Cascade = ace.pkg.cascade.Cascade
 
-        app.use @bundler = new Bundler @settings['bundler']
-        @bundler.boot done
+    if Cascade.pending
+      Cascade.on 'done', =>
+        process.nextTick => cb null, ace
+    else
+      cb null, ace
 
-      (done) =>
-        app.use @aceApp = new App @bundler, @settings
-        @aceApp.boot done
-    ], cb
-
-module.exports = Main
+    return
 

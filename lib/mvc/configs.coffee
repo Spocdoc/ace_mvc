@@ -19,7 +19,7 @@ class Configs
     else if typeof mixin is 'string'
       @mixins[mixin](config)
 
-    else if mixins?
+    else if mixin?
       @mixins[type](config, args...) for type, args of mixin
 
     return

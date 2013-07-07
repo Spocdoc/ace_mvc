@@ -34,7 +34,7 @@ module.exports = (pkg) ->
     _buildDollar: (config) ->
       for k,v of config when k.charAt(0) is '$'
         v = new @Outlet(v, k) if typeof v is 'function'
-        @['view'].outlets[k.substr(1)].set v
+        (@['view'].outlets[name=k.substr(1)] || @['view']._buildOutlet(name)).set v
       return
 
   for _type,_config of configs.configs

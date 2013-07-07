@@ -252,6 +252,7 @@ module.exports = (pkg) ->
       return
 
     get: (key) ->
+      @_clientOps ||= []
       @_clientUpdater ||= new Outlet (=> @update @_clientOps?.splice(0)), silent: true
       unless @_patchRegistry
         @_patchRegistry = new Registry
@@ -266,7 +267,7 @@ module.exports = (pkg) ->
       for p,i in path
         d = d[p] ||= {}
         if d instanceof DBRef
-          model = new mvc.Model[d.namespace] d.oid
+          model = mvc.Model[d.namespace].read d.oid
           return model.get path[(i+1)..].concat(key).join('.')
         o = o[p] ||= {}
 
@@ -275,7 +276,7 @@ module.exports = (pkg) ->
 
       unless o['_']
         if d instanceof DBRef
-          d = new mvc.Model[d.namespace] d.oid
+          d = mvc.Model[d.namespace].read d.oid
         else
           d = clone d
 
@@ -283,7 +284,7 @@ module.exports = (pkg) ->
         path = path.concat key
 
         (@_pushers ||= []).push pusher = new Outlet (=>
-          if ops = diff(@clientDoc, outlet._value, path: path)
+          if ops = diff(@clientDoc, outlet.value, path: path)
             @clientDoc = diff.patch @clientDoc, ops
 
             # update descendant outlets whose value may have changed because of this change
@@ -338,7 +339,7 @@ module.exports = (pkg) ->
         else if err
           outgoing.push @outgoing...
           @outgoing = outgoing
-          @pending.set pending.value & ~UPDATE_NOW
+          @pending.set @pending.value & ~UPDATE_NOW
           switch err[0]
             when 'ver' then @_conflict err[1] # this version too old. will get updates (or may have queued already)
             when 'rej' then @_reject err[1] # if updates applied, leads to invalid doc.
@@ -419,13 +420,13 @@ module.exports = (pkg) ->
 
       # everything is optional
       @['create'] = @create = (idOrSpec, spec, cb) ->
-        if typeof spec is 'function'
-          spec = undefined
-          cb = spec
-
         unless typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
           spec = idOrSpec
           idOrSpec = new ObjectID
+
+        if typeof spec is 'function'
+          cb = spec
+          spec = undefined
 
         (model = models[idOrSpec] = new this idOrSpec, spec).create() unless model = models[idOrSpec]
         model.onServerDoc cb if cb
@@ -450,7 +451,7 @@ module.exports = (pkg) ->
             switch reply?[0]
               when 'no' then return cb null
               when 'doc'
-                doc = reply[1]
+                doc = OJSON.fromOJSON reply[1]
                 return cb models[doc['_id']] ||= new this doc['_id'], doc
 
             cb null

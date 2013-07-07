@@ -5,14 +5,15 @@ module.exports = ->
 
   Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
     pkg = {}
-    require('../../mvc')(pkg).Global.prototype['cookies'] = new Cookies req, res
 
-    ace = new Ace undefined, routes, vars, pkg
-
-    ace.reset = ->
+    Global = require('../../mvc')(pkg).Global
+    Global.prototype['cookies'] = new Cookies req, res
+    Global.prototype['reset'] = ->
       req.url = '/'
       handle req, res, next
       return
+
+    ace = new Ace pkg, undefined, routes, vars
 
     ace.router.route req.url
     ace.appendTo $container

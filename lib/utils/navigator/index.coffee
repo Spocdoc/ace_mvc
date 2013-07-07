@@ -1,6 +1,4 @@
 Url = require '../url'
-Emitter = require '../events/emitter'
-{include, extend} = require '../mixin'
 debug = global.debug 'ace:navigator'
 
 class NavigatorUrl extends Url
@@ -34,114 +32,99 @@ class NavigatorUrl extends Url
     (url=@) ->
       +url.hash?.match(regex)?[1]
 
+  stripHash: ->
+    @reform
+      hash: @hashHash() || ''
+      path: if @hasPath() then @path else @hashPath()
 
-class Navigator
-  include Navigator, Emitter
+listen = (event, fn) ->
+  if window.addEventListener
+    window.addEventListener event, fn
+  else if window.attachEvent
+    window.attachEvent "on#{event}", fn
+  return
 
-  constructor: (win=window, @useHash=false) ->
-    @window = win
-    @useHash ||= !@window.history || !@window.history.pushState
-    @useHash = true #TODO DEBUG
-    @url = new NavigatorUrl(@window.location.href)
-    @index = 0
-    @_urls = [@url]
-
-    @_replace @_stripHash()
-    @_ignoreCount = 0
-
-    if @useHash
-      @_listen 'hashchange', @_urlchange
-    else
-      @_ignoreCount = 1
-      @_listen 'popstate', @_urlchange
-
-  _listen: (event, fn) ->
-    if @window.addEventListener
-      @window.addEventListener event, fn
-    else if @window.attachEvent
-      @window.attachEvent "on#{event}", fn
+module.exports = (route, ctx) ->
+  navigator = (url) ->
+    url = new NavigatorUrl url, navigator.url unless url instanceof NavigatorUrl
+    if url.href isnt navigator.url.href
+      if url.path is navigator.url.path then replace url else push url
     return
 
-  push: (url=@url) ->
-    url = new NavigatorUrl url, @url unless url instanceof NavigatorUrl
-    @url = url
-
-    ++@index
-    @_urls.splice(@index)
-    @_urls[@index] = @url
-
-    if @useHash
-      ++@_ignoreCount
-      @window.location.href = @_formHashUrl().href
-    else
-      @window.history.pushState @index, '', @url.href
-
-    return @index
-
-  replace: (url) ->
-    url = new NavigatorUrl url, @url unless url instanceof NavigatorUrl
-    return if url.href is @url.href
-    @_replace url
-
-  back: -> @go(-1)
-  forward: -> @go(+1)
-  go: (delta) ->
-    @window.history.go(delta)
-    return @index+delta
-
-  _replace: (url) ->
-    prev = @url
-    @url = url
-    @_urls[@index] = @url
-
-    if @useHash
-      ++@_ignoreCount
-      if prev.path != @url.path
-        @window.location.replace @_formHashUrl().href
-      else
-        @window.location.replace @_formHashUrl().hash
-    else
-      @window.history.replaceState @index, '', @url.href
-    return @index
-
-  _stripHash: (url=@url) ->
-    if url.hasHashPath()
-      url.reform
-        hash: url.hashHash() || ''
-        path: if url.hasPath() then url.path else url.hashPath()
-    else
-      url
-
-  _formHashUrl: ->
-    @url.clone().reform
+  formHashUrl = ->
+    navigator.url.clone().reform
       path: '/'
-      hash: "##{@index}#{@url.path}#{@url.hash || ''}"
+      hash: "##{navigator.index}#{navigator.url.path}#{navigator.url.hash || ''}"
 
-  _urlchange: (event) =>
-    if @_ignoreCount
-      --@_ignoreCount
+  replace = (url) ->
+    prev = navigator.url
+    navigator.url = url
+    urls[navigator.index] = url
+
+    if useHash
+      ++ignoreCount
+      if prev.path != url.path
+        window.location.replace formHashUrl().href
+      else
+        window.location.replace formHashUrl().hash
+    else
+      window.history.replaceState navigator.index, '', url.href
+
+    return
+
+  push = (url) ->
+    navigator.url = url
+
+    ++navigator.index
+    urls.splice(navigator.index)
+    urls[navigator.index] = url
+
+    if useHash
+      ++ignoreCount
+      window.location.href = formHashUrl().href
+    else
+      window.history.pushState navigator.index, '', url.href
+
+    return
+
+  urlchange = (event) =>
+    if ignoreCount
+      --ignoreCount
       return
 
-    newUrl = new NavigatorUrl(event.newURL || @window.location.href)
+    newUrl = new NavigatorUrl(event.newURL || window.location.href)
     newIndex = if event.state? then +event.state else newUrl.hashIndex()
-    @_stripHash newUrl
+    newUrl.stripHash() if newUrl.hasHashPath()
 
-    debug "Got url change from #{@url} to #{newUrl}"
+    debug "Got url change from #{navigator.url} to #{newUrl}"
 
-    if not isFinite(newIndex) or newUrl.href isnt @_urls[newIndex]?.href
+    if not isFinite(newIndex) or newUrl.href isnt urls[newIndex]?.href
       debug "emitting new url navigate [#{newUrl}]"
-      @_navigate newUrl
-    else if newIndex != @index
+
+      urls.splice ++navigator.index
+      replace newUrl
+      route.call ctx, navigator.url.href, navigator.index
+
+    else if newIndex != navigator.index
       debug "emitting index navigate to [#{newIndex}]"
-      @index = newIndex
-      @url = @_urls[newIndex]
-      @emit 'navigate', @index
-    
-  _navigate: (newUrl) ->
-    ++@index
-    @_urls.splice(@index)
-    @_replace newUrl
-    @emit 'navigate', newUrl.href, @index
+      navigator.url = urls[navigator.index = newIndex]
+      route.call ctx, navigator.url.href, navigator.index
 
+    return
 
-module.exports = Navigator
+  useHash = !window.history || !window.history.pushState
+  useHash = true #TODO DEBUG
+  navigator.url = new NavigatorUrl(window.location.href)
+  navigator.index = 0
+  urls = [navigator.url]
+
+  replace navigator.url.stripHash() if navigator.url.hasHashPath()
+  ignoreCount = 0
+
+  if useHash
+    listen 'hashchange', urlchange
+  else
+    ignoreCount = 1
+    listen 'popstate', urlchange
+
+  navigator

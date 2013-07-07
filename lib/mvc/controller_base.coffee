@@ -2,7 +2,7 @@ debugCascade = global.debug 'ace:cascade'
 debugMVC = global.debug 'ace:mvc'
 clone = require '../utils/clone'
 
-reserved = ['constructor','static','model','view','outlets','outletMethods','template','inWindow']
+reserved = ['constructor','static','view','outlets','outletMethods','template','inWindow']
 
 module.exports = (pkg) ->
   cascade = pkg.cascade
@@ -12,9 +12,11 @@ module.exports = (pkg) ->
     constructor: ->
       _this = this
 
+      @vars = (if @_name then @_parent.vars[@_name] else @_parent.vars) || {}
+
       @Outlet = class Outlet extends @Outlet
         constructor: (func, debug) ->
-          super func, outlets: _this.outlets, context: _this, auto: true
+          super func, context: _this, auto: true
           debugCascade "created outlet for #{debug}: #{this}"
 
       @outlets = {}
@@ -76,11 +78,11 @@ module.exports = (pkg) ->
 
       return
 
-    _buildOutlet: (name, value) ->
-      @[name] = @outlets[name] = new @Outlet
+    _buildOutlet: (name) ->
+      @[name] = @outlets[name] = @vars[name]?.outlet || new @Outlet
 
     _buildOutlets: ->
-      @_buildOutlet name, value for name, value of @constructor._outletDefaults
+      @_buildOutlet name for name of @constructor._outletDefaults
       return
 
     _setOutlets: (settings) ->
@@ -90,6 +92,6 @@ module.exports = (pkg) ->
         if typeof v is 'function'
           o.context = this
           o.set v
-        else if @outlets[k].get() is undefined # i.e., it wasn't restored from snapshots
+        else unless @vars[k]?.outlet # i.e., can't set an outlet that's a routing var via defaults
           o.set(if settings.hasOwnProperty k then settings[k] else v)
       return

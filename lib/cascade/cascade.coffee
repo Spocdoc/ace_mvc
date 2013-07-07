@@ -43,16 +43,16 @@ module.exports = ->
 
     cascade: ->
       debug "called cascade on #{@}"
+      @setThisPending false
       unless @running
-        @setThisPending false
         # this is to stop recursion if this is an outflow of one of its outflows
         @outflows.setPending @pending = true
         @pending = false
       # explicit looping because the array length could change while looping it
+      outflow._mustRun = true for outflow in @outflows.array
       `for (var i = 0, arr = this.outflows.array; i < arr.length; ++i) {
         outflow = arr[i];
         if (outflow.pending || outflow.pending === (void 0)) {
-          outflow._mustRun = true;
           this.constructor.run(outflow, this);
         }
       }`
@@ -62,10 +62,10 @@ module.exports = ->
       return if @pending is tf=!!tf
       debug "set pending [#{tf}] on #{@}"
       @pending = tf
-      debugCount "#{if tf then "+1" else "-1"} from #{@constructor.pending}"
-      unless (@constructor.pending += if tf then 1 else -1)
+      debugCount "#{if tf then "+1" else "-1"} from #{Cascade.pending}"
+      unless (Cascade.pending += if tf then 1 else -1)
         debugCount "done"
-        @constructor.emit 'done'
+        Cascade.emit 'done'
       return
 
     setPending: (tf) ->
@@ -93,7 +93,6 @@ module.exports = ->
           cascade._stopPropagation = false
           cascade.setPending(false)
         else
-          cascade.setThisPending false
           cascade.cascade()
 
         cascade.running = false

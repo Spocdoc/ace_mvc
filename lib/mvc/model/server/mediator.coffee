@@ -35,19 +35,23 @@ class Mediator
     @db.create @origin, coll, doc, cb
 
   read: (coll, id, version, cb, query, sort, limit) ->
-    cb.doc = (docs) ->
+    origDoc = cb.doc
+    cb.doc = (docs) =>
       if Array.isArray docs
         reply = []; i = 0
         for doc,i in docs
           reply[i] = id = doc._id
           @clientCreate coll, doc if @doSubscribe coll, id
         docs = reply
+      else
+        @doSubscribe coll, id
 
-      Callback.prototype.doc.call cb, docs
+      origDoc.call cb, docs
 
-    cb.ok = ->
+    origOk = cb.ok
+    cb.ok = =>
       @doSubscribe coll, id
-      Callback.prototype.ok.call cb
+      origOk.call cb
 
     @db.read @origin, coll, id, version, cb, query, sort, limit
 

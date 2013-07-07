@@ -1,7 +1,6 @@
 class Ace
 
-  constructor: (json, routes, vars, pkg={}) ->
-    @pkg = pkg
+  constructor: (@pkg, json, routes, vars, useNavigator) ->
     pkg.ace = ace = @ace = this
     @_name = 'ace'
 
@@ -12,24 +11,16 @@ class Ace
 
     OJSON.fromOJSON json if json
 
-    @router = new pkg.Router routes, vars
+    @router = new pkg.Router routes, vars, useNavigator
+    @vars = @router.vars
 
   toJSON: -> @pkg.ojson.toOJSON @pkg.mvc.Model.allModels()
-
-  # TODO a reset could simply remove all the models from the cache and load the index
-  reset: -> global.location.reload()
 
   toString: -> "Ace [#{@_name}]"
 
   'appendTo': ($root) ->
     @pkg.mvc.Template.$root = $root
-
-    unless @root
-      Outlet = @pkg.cascade.Outlet
-      @root = new Outlet
-      @root.setDir Outlet.root
-
-    @root.set controller = new @pkg.mvc.Controller['body'] this
+    controller = new @pkg.mvc.Controller['body'] this
     controller['appendTo'] $root
     return
 

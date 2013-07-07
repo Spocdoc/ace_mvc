@@ -5,17 +5,6 @@ debugError = global.debug 'ace:error'
 
 module.exports = (Cascade) ->
 
-  class Dir
-    constructor: (@name) ->
-      @length = 0
-      @obj = {}
-
-    push: (dir) ->
-      @obj[dir.name] = dir
-      @[@length++] = dir
-      @length
-
-
   class OutletFunc
     constructor: (@outlet, @func, names) ->
       @autoInflows = {}
@@ -76,6 +65,8 @@ module.exports = (Cascade) ->
         finally
           Outlet.auto = prev
 
+        return
+
     run: (done) ->
       @_done = done
       @_runBlock()
@@ -111,17 +102,6 @@ module.exports = (Cascade) ->
   class Outlet extends Cascade
     @name = 'Outlet'
     @auto = undefined
-
-    @root = new Dir
-
-    @addDir: (path, outlet) ->
-      dir = @root
-      for p in path.split '/' when p
-        unless e = dir.obj[p]
-          dir.push e = new Dir p
-        dir = e
-      dir.outlet = outlet
-      dir
 
     constructor: (init, options={}) ->
       @outlets = {}
@@ -242,19 +222,6 @@ module.exports = (Cascade) ->
       Outlet.auto = prev
       return
 
-    setDir: (@dir) ->
-      @set ou if ou = dir.outlet
-      if ou = @value?.outlets
-        ou[elem.name]?.setDir elem for elem in dir
-      return
-
-    unsetDir: ->
-      @unset ou if ou = @dir.outlet
-      if ou = @value?.outlets
-        ou[elem.name]?.unsetDir elem for elem in @dir
-      @dir = undefined
-      return
-
     toJSON: -> @value
 
     toString: -> "#{@constructor.name}#{if @auto then "/auto" else ""} [#{@cid}] value [#{@value}]"
@@ -294,12 +261,6 @@ module.exports = (Cascade) ->
         if @value != value
           @oldValue = @value
           @value = value
-
-          if @dir
-            if ou = @oldValue?.outlets
-              ou[elem.name]?.unsetDir elem for elem in @dir
-            if ou = @value?.outlets
-              ou[elem.name]?.setDir elem for elem in @dir
 
       return
 

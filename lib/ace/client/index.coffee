@@ -8,10 +8,6 @@ module.exports = ->
     pkg = {}
     require('../../mvc')(pkg).Global.prototype['cookies'] = new Cookies
 
-    ace = new Ace json, router.getRoutes(routesConfig), router.getVars(routesConfig), pkg
-
-    ace.router.enableNavigator()
-    ace.router.route ace.router.navigator.url
-
+    ace = new Ace pkg, json, router.getRoutes(routesConfig), router.getVars(routesConfig), true
     ace['appendTo'] $container
     return

@@ -3,7 +3,7 @@ sockio = require("socket.io")
 redis = require 'redis'
 RedisStore = require 'socket.io/lib/stores/redis'
 Db = require './db'
-Callback = require './callback'
+callback = require './callback'
 
 # called with this = sock
 
@@ -37,24 +37,16 @@ module.exports = (db, redisInfo, server, Mediator) ->
     ]
 
   io.on 'connection', (sock) ->
-    sock.mediator = new Mediator db, sock
-
-    sock.on 'disconnect', ->
-      sock.mediator.disconnect()
-
-    sock.on 'create', (data, cb) ->
-      sock.mediator.create data['c'], OJSON.fromOJSON(data['v']), new Callback cb
-
-    sock.on 'read', (data, cb) ->
-      sock.mediator.read data['c'], data['i'], data['e'], new Callback(cb), data['q'], data['s'], data['l']
-
-    sock.on 'update', (data, cb) ->
-      sock.mediator.update data['c'], data['i'], data['e'], OJSON.fromOJSON(data['d']), new Callback cb
-
-    sock.on 'delete', (data, cb) ->
-      sock.mediator.delete data['c'], data['i'], new Callback cb
-
-    sock.on 'run', (data, cb) ->
-      sock.mediator.run data['c'], data['i'], data['e'], data['m'], OJSON.fromOJSON(data['a']), new Callback cb
+    sock.mediator = mediator = new Mediator db, sock
+    for name of ['disconnect', 'cookies', 'create', 'read', 'update', 'delete', 'run']
+      Callback = callback[a.charAt(0).toUpperCase() + a[1..]]
+      do (name, Callback) ->
+        sock.on name, ->
+          for arg,i in arguments
+            switch typeof arg
+              when 'object' then arguments[i] = OJSON.fromOJSON arg
+              when 'function' then arguments[i] = new Callback arguments[i]
+          mediator[name].apply mediator, arguments
+    return
 
   io

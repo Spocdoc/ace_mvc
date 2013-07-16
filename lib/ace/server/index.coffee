@@ -6,12 +6,16 @@ module.exports = ->
   Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
     pkg = {}
 
+    sock = pkg.socket = global.io.connect '/'
+
     Global = require('../../mvc')(pkg).Global
-    Global.prototype['cookies'] = new Cookies req, res
+    cookies = Global.prototype['cookies'] = new Cookies req, res
     Global.prototype['reset'] = ->
       req.url = '/'
       handle req, res, next
       return
+
+    sock.emit 'cookies', cookies.toJSON()
 
     ace = new Ace pkg, undefined, routes, vars
 
@@ -20,11 +24,15 @@ module.exports = ->
 
     Cascade = ace.pkg.cascade.Cascade
 
+    done = =>
+      sock.emit 'disconnect'
+      json = ace.toJSON()
+      cb null, json
+
     if Cascade.pending
-      Cascade.on 'done', =>
-        process.nextTick => cb null, ace
+      Cascade.on 'done', => process.nextTick done
     else
-      cb null, ace
+      done()
 
     return
 

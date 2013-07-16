@@ -50,16 +50,16 @@ parsePart = (field, spec, func) ->
   return
 
 
-parseClause = (model, spec, func) ->
+parseClause = (doc, spec, func) ->
   arr1 = []
 
   for k,v of spec
     if op = joinerOp[k]
       arr2 = []
-      parseClause model, clause, arr2 for clause in v
+      parseClause doc, clause, arr2 for clause in v
       arr1.push "#{if k.charAt(1) is 'n' then '!' else ''}(#{arr2.join op})"
     else
-      parsePart "#{model}[#{quote(k)}]", v, arr1
+      parsePart "#{doc}[#{quote(k)}]", v, arr1
 
   func.push arr1.join '&&'
 
@@ -67,9 +67,11 @@ parseClause = (model, spec, func) ->
 
 module.exports = (spec) ->
   func = []
-  parseClause 'model', spec, func
+  parseClause 'doc', spec, func
   func = """return #{func.join ''};"""
   console.log func
-  func = new Function 'deepEqual', 'match', 'indexOf', 'model', func
-  (model) -> func(deepEqual, String.prototype.match, Array.prototype.indexOf, model)
+  func = new Function 'deepEqual', 'match', 'indexOf', 'doc', func
+  (model) ->
+    return false unless doc = model.clientDoc
+    func(deepEqual, String.prototype.match, Array.prototype.indexOf, doc)
 

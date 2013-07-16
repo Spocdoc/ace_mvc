@@ -9,12 +9,12 @@ class Ace
     pkg.mvc || require('../mvc')(pkg)
     pkg.router || require('../router')(pkg)
 
-    OJSON.fromOJSON json if json
+    @pkg.mvc.Model.fromJSON json if json
 
     @router = new pkg.Router routes, vars, useNavigator
     @vars = @router.vars
 
-  toJSON: -> @pkg.ojson.toOJSON @pkg.mvc.Model.allModels()
+  toJSON: -> @pkg.mvc.Model.toJSON()
 
   toString: -> "Ace [#{@_name}]"
 

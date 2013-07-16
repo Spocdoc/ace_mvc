@@ -16,7 +16,7 @@ module.exports = ->
     else
       a[e] = v
       e = if e+1 is max then 0 else e+1
-      return this
+      return fn
 
   fn.empty = ->
     s == e
@@ -29,6 +29,11 @@ module.exports = ->
     if --s < 0
       s = s + max
     a[s] = v
-    return this
+    return fn
+
+  fn.clear = ->
+    e = s
+    a = []
+    return fn
 
   fn

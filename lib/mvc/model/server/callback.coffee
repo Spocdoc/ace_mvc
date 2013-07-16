@@ -1,39 +1,51 @@
 OJSON = require '../../../utils/ojson'
 
-class Callback
-  constructor: (@cb) ->
+methods =
+  ok: -> ['o'].concat arguments
+  doc: (doc) -> ['d', OJSON.toOJSON doc]
+  update: (version, ops) -> ['u', version, OJSON.toOJSON ops]
+  conflict: (currentVersion) -> ['c',currentVersion]
+  reject: (msg) -> ['r',msg]
+  bulk: (reply) -> reply
 
-  reject: (reason) ->
-    @cb(['rej',reason])
-    @cb = undefined
-    return
+replies =
+  Create: [
+    'ok'
+    'reject'
+  ]
 
-  doc: (doc) ->
-    @cb(['doc',OJSON.toOJSON doc])
-    @cb = undefined
-    return
+  Read: [
+    'ok'
+    'doc'
+    'reject'
+    'bulk'
+  ]
 
-  update: (version, ops) ->
-    @cb(['up',version,OJSON.toOJSON ops])
-    @cb = undefined
-    return
+  Update: [
+    'ok'
+    'update'
+    'conflict'
+    'reject'
+  ]
 
-  badVer: (current) ->
-    if current?
-      @cb(['ver',current])
-    else
-      @cb(['ver'])
-    @cb = undefined
-    return
+  Delete: [
+    'ok'
+    'reject'
+  ]
 
-  noDoc: ->
-    @cb(['no'])
-    @cb = undefined
-    return
+  Run: [
+    'ok'
+    'doc'
+    'update'
+    'conflict'
+    'reject'
+  ]
 
-  ok: ->
-    @cb()
-    @cb = undefined
-    return
-
-module.exports = Callback
+for type, methodNames of replies
+  module.exports[type] = clazz = (@cb) ->
+  for name in methodNames
+    clazz[name] = methods[name]
+    clazz.prototype[name] = ->
+      @cb.apply null, clazz[name].apply(null, arguments)
+      @cb = undefined
+      return

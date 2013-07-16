@@ -10,6 +10,7 @@ OJSON = require '../../../utils/ojson'
 Emitter = require '../../../utils/events/emitter'
 debug = global.debug 'ace:server:db'
 async = require 'async'
+callback = require './callback'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID
@@ -53,15 +54,13 @@ class Db extends Mongo
     @sub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
     super dbInfo.host, dbInfo.db
 
-    @sub.on 'message', (channel, message) =>
+    @sub.on 'message', (channel, str) =>
       # use JSON, not OJSON, to avoid re-converting
-      data = JSON.parse message
-      [data[2]['c'], data[2]['i']] = channel.split ':'
-
-      @emit channel, data[0], data[1], data[2]
+      args = JSON.parse message
+      @emit channel, args
 
       # remove subscription if a deletion
-      if data[0] is 'delete' and @_emitter and @_emitter[channel]
+      if data[1] is 'delete' and @_emitter and @_emitter[channel]
         @sub.unsubscribe channel
         delete @_emitter[channel]
 
@@ -81,22 +80,54 @@ class Db extends Mongo
       return
     return
 
-  read: (origin, coll, id, version, cb, query, sort, limit) ->
+  read: (origin, coll, id, version, query, sort, limit, cb) ->
     debug "Got read request with",arguments...
     doc = undefined
 
     if id
-      return unless id = replaceId(id, cb)
+      if Array.isArray id
+        reply = {}
+        versions = {}
+        query = '_id': '$in': id
+        ok = callback.Read.ok()
+        reject = callback.Read.reject()
+        for docId, i in id
+          reply[docId] = reject
+          versions[docId] = version[i]
 
-      async.waterfall [
-        (next) => @run 'findOne', coll, {_id: id}, next
-        (_doc, next) =>
-          doc = _doc
-          return cb.noDoc() unless doc
-          return cb.ok() unless (doc['_v'] ||= 1) > version
-          if cb.validate? then cb.validate(doc, next) else next()
-        (next) => cb.doc doc
-      ], (err) -> cb.reject err.message if err?
+        fullDocs = []
+
+        async.waterfall [
+          (next) => if cb.validateQuery? then cb.validateQuery(query,next) else next()
+          (next) => @run 'find', coll, query, {'_id': 1, '_v': 1}, next
+          (docs, next) =>
+            for doc in docs
+              if doc._v is versions[doc._id]
+                reply[doc._id] = ok
+              else
+                fullDocs.push doc._id
+
+            if fullDocs.length
+              @run 'find', coll, {'_id': '$in': fullDocs}, next
+            else
+              next()
+          (docs, next) =>
+            reply[doc._id] = callback.Read.doc doc for doc in docs
+            cb.bulk reply
+        ], (err) -> cb.reject err.message if err?
+
+      else
+        return unless id = replaceId(id, cb)
+
+        async.waterfall [
+          (next) => @run 'findOne', coll, {_id: id}, next
+          (_doc, next) =>
+            doc = _doc
+            return cb.reject() unless doc
+            return cb.ok() unless (doc['_v'] ||= 1) > version
+            if cb.validate? then cb.validate(doc, next) else next()
+          (next) => cb.doc doc
+        ], (err) -> cb.reject err.message if err?
 
     else if query
       spec =
@@ -113,9 +144,11 @@ class Db extends Mongo
             @run 'findOne', coll, query, next
         (_doc, next) =>
           doc = _doc
-          return cb.noDoc() if !doc || Array.isArray(doc) && !doc.length
-          if cb.validate? then cb.validate(doc, next) else next()
-        (next) => cb.doc doc
+          if !doc || Array.isArray(doc) && !doc.length
+            cb.reject()
+          else
+            cb.doc doc
+          return
       ], (err) -> cb.reject err.message if err?
 
     else
@@ -132,21 +165,19 @@ class Db extends Mongo
       (next) => @run 'findOne', coll, {_id: id}, next
 
       (doc, next) =>
-        return cb.noDoc() unless doc
-        return cb.badVer doc['_v'] unless version is (doc['_v'] ? 1)
+        return cb.reject() unless doc
+        return cb.conflict doc['_v'] unless version is (doc['_v'] ? 1)
 
-        # TODO this ridiculousness is entirely because toMongo doesn't work with overlapping sequential updates
         orig = clone doc
         to = diff.patch(to = doc, ops)
         doc = orig
 
         if cb.validate?
-          cb.validate ops, to, (err, moreOps_) -> moreOps = moreOps_; next err, doc,to
+          cb.validate doc, ops, to, (err, moreOps_) -> moreOps = moreOps_; next err, doc, to
         else
           next null, doc,to
 
       (doc, to, next) =>
-        # TODO also because of toMongo restriction
         ops = diff doc, to
         spec = diff.toMongo ops, to
 
@@ -159,15 +190,15 @@ class Db extends Mongo
         @run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
 
       (updated, next) =>
-        return cb.badVer() unless updated
+        return cb.conflict() unless updated
 
         if moreOps
           cb.update version+1, moreOps
-          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': []}])
-          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version+1, 'd': ops}])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version,[]])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version+1,ops])
         else
           cb.ok()
-          @pub.publish Db.channel(coll,id), OJSON.stringify(['update',origin,{'e': version, 'd': ops}])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version,ops])
 
     ], (err) -> cb.reject err.message if err?
 
@@ -177,10 +208,10 @@ class Db extends Mongo
     debug "Got delete request with",arguments...
     return unless id = replaceId(id, cb)
 
-    @run 'remove', {_id: id}, (err) ->
+    @run 'remove', coll, {_id: id}, (err) =>
       return unless checkErr(err, cb)
       cb.ok()
-      @pub.publish Db.channel(coll,id), OJSON.stringify(['delete',origin])
+      @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'delete',coll,id])
       return
     return
 

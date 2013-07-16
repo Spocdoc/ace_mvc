@@ -61,7 +61,7 @@ class App
     $body = $html.find 'body'
     $head = $html.find 'head'
 
-    Ace.newServer req, res, next, $body, @_routes, @_vars, (err, ace) =>
+    Ace.newServer req, res, next, $body, @_routes, @_vars, (err, json) =>
       uris = (if @settings['debug'] then @bundler.debugUris else @bundler.releaseUris)
 
       $body.prepend $("""
@@ -92,7 +92,7 @@ class App
       $body.append $("""
       <script type="text/javascript">
       (function () {
-        var restore = window.wrongPage ? null : #{OJSON.stringify ace};
+        var restore = window.wrongPage ? null : #{JSON.stringify json};
         window.Ace.newClient(restore, require('routes'), $('body'));
       }());
       </script>

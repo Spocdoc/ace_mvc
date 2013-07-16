@@ -32,6 +32,10 @@ RUN_LATER      = 1 << 8
 NOW           += 2 << 8
 RUN_NOW        = 3 << 8
 
+OK_INCONSISTENT = 1 << 0
+OK_NOAUTH       = 2 << 2
+OK_CONFLICT     = 3 << 4
+
 module.exports = (pkg) ->
 
   OJSON = pkg.ojson || require('../../utils/ojson')(pkg)
@@ -42,25 +46,49 @@ module.exports = (pkg) ->
   Cascade = cascade.Cascade
   Outlet = cascade.Outlet
 
-  mvc.sock = sock = global.io.connect '/'
+  sock = pkg.socket
 
-  sock.on 'create', (data) ->
-    doc = OJSON.fromOJSON data['v']
-    mvc.Model[data['c']].read(doc['_id']).serverCreate doc
+  sock.on 'create', (coll, doc) ->
+    doc = OJSON.fromOJSON doc
+    if model = mvc.Model[coll].models[doc._id]
+      model.serverCreate doc
+    else
+      new mvc.Model[coll] doc._id, doc
     return
 
-  sock.on 'update', (data) ->
-    mvc.Model[data['c']].read(data['i']).serverUpdate data['e'], OJSON.fromOJSON data['d']
+  sock.on 'update', (coll, id, version, ops) ->
+    if model = mvc.Model[coll].models[id]
+      model.serverUpdate version, OJSON.fromOJSON ops
     return
 
-  sock.on 'delete', (data) ->
-    mvc.Model[data['c']].read(data['i']).serverDelete()
+  sock.on 'delete', (coll, id) ->
+    model.serverDelete() if model = mvc.Model[coll].models[id]
     return
 
   Query = require('./query')(pkg)
 
   mvc.Global.prototype['Model'] = mvc.Model = class Model extends mvc.Global
     @name = 'Model'
+
+    @fromJSON: (obj) ->
+      for type, docs of obj
+        ids = []
+        versions = []
+        for doc,i in docs
+          (new mvc.Model[type] doc._id, doc).read true
+          ids[i] = doc._id
+          versions[i] = doc._v
+        mvc.Model[type].read ids, versions
+      return
+
+    @toJSON: ->
+      docs = {}
+      for type of configs.configs
+        models = docs[type] = []
+        i = 0
+        for id, model of mvc.Model[type].models when serverDoc = model.serverDoc
+          models[i++] = serverDoc
+      OJSON.toOJSON docs
 
     @_applyStatic: (config) ->
       @[name] = fn for name, fn of config['static']
@@ -81,44 +109,24 @@ module.exports = (pkg) ->
 
       return
 
-    constructor: (id, @clientDoc) ->
+    constructor: (id, @clientDoc={}) ->
       try
         id = new ObjectID id unless id instanceof ObjectID
       catch _error
 
       @id = id
 
-      @clientDoc['_id'] ||= @id
+      @clientDoc['_id'] = id
       @clientDoc['_v'] ||= 0
-
-      @serverDoc = clone @clientDoc if @clientDoc['_v'] > 0
 
       @outgoing = [] # outgoing ops when pending
       @incoming = [] # incoming ops when pending
 
       @runQueue = queue()
 
-      # status is one of
-      #   ''
-      #   'rejected'
-      #   'conflicted'
-      #   'deleted'
       @['pending'] = @pending = new Outlet 0
-      @['status'] = @status = new Outlet
-      @['error'] = @error = new Outlet
-
-    @fromJSON: (obj) ->
-      (model = new mvc.Model[obj[0]] obj[1], obj[2]).read()
-      model
-    toJSON: -> [@coll, OJSON.toOJSON @id, OJSON.toOJSON @serverDoc]
-    OJSON.register 'Model': this
-    @allModels: ->
-      models = []
-      i = 0
-      for type of configs.configs
-        for id, model of mvc.Model[type].models
-          models[i++] = model
-      models
+      @['reject'] = @reject = new Outlet ''
+      @['conflict'] = @conflict = new Outlet false
 
     onServerDoc: (cb) ->
       return cb this if @serverDoc
@@ -129,62 +137,180 @@ module.exports = (pkg) ->
       delete @_onServerDoc
 
     create: ->
+      return if @serverDoc
       return @pending.set pending | CREATE_LATER if (pending = @pending.value) & NOW
       @pending.set pending | CREATE_NOW
 
       @clientDoc['_v'] ||= 1
+      clientDoc = clone @clientDoc
+      sock.emit 'create', @coll, OJSON.toOJSON(clientDoc), (code, msg) =>
+        Cascade.Block => @handleCreate code, clientDoc, msg
 
-      serverDoc = @serverDoc || clone @clientDoc
+    handleCreate: (code, doc, msg) ->
+      @pending.set @pending.value & ~CREATE_NOW
 
-      sock.emit 'create', {'c': @coll, 'v': OJSON.toOJSON serverDoc}, (reply) =>
-        @pending.set @pending.value & ~CREATE_NOW
-        @serverDoc = serverDoc
+      if code is 'r'
+        @reject.set msg || 'rejected'
+      else
+        @reject.set ''
+        @serverDoc = doc
 
-        switch reply?[0]
-          when 'rej'
-            delete @serverDoc
-            @_reject reply[1]
-          when 'up'
-            @serverUpdate reply[1], OJSON.fromOJSON reply[2]
-          when 'doc'
-            @serverCreate OJSON.fromOJSON reply[1]
+      @_notifyServerDoc() if @_onServerDoc
+      @_loop()
+      return
 
-        @_notifyServerDoc() if @_onServerDoc
-
-        @_doPending()
-
-    read: ->
+    read: (bulk) ->
+      return if @conflict.value
       return @pending.set pending | READ_LATER if (pending = @pending.value) & NOW
       @pending.set pending | READ_NOW
 
-      serverDoc = @serverDoc || clone @clientDoc
+      clientDoc = clone @clientDoc
 
-      sock.emit 'read', {'c': @coll, 'i': @id, 'e': serverDoc['_v']}, (reply) =>
+      unless bulk
+        sock.emit 'read', @coll, @id, (clientDoc && clientDoc['_v']), null, null, null, (code, arg) =>
+          Cascade.Block => @handleRead code, arg, clientDoc
+      true
 
-        @pending.set @pending.value & ~READ_NOW
-        @serverDoc = serverDoc
+    handleRead: (code, arg, clientDoc) ->
+      @pending.set @pending.value & ~READ_NOW
 
-        switch reply?[0]
-          when 'doc'
-            @serverCreate OJSON.fromOJSON reply[1]
-          when 'no'
-            delete @serverDoc
-            @serverDelete()
-          when 'rej'
-            delete @serverDoc
-            @_reject reply[1]
-            @serverDelete()
+      if code is 'r'
+        @serverDelete()
+        @reject.set arg || 'rejected'
+      else
+        @reject.set ''
+        @serverCreate if code is 'd' then OJSON.fromOJSON(arg) else clientDoc
 
-        @_notifyServerDoc() if @_onServerDoc
+      @_notifyServerDoc() if @_onServerDoc
+      @_loop()
+      return
 
-        @_doPending()
+    serverCreate: (doc) ->
+      return if @conflict.value
 
+      newVersion = doc['_v']
+
+      if @serverDoc
+        oldVersion = @serverDoc['_v']
+        return if newVersion <= oldVersion
+
+        incoming = []
+        len = @incoming.length
+        `for (var i = newVersion; i < len; ++i) incoming[i] = this.incoming[i];`
+        @incoming = incoming
+
+      @serverDoc = doc
+
+      return if @clientDoc and @clientDoc['_v'] is newVersion
+
+      if @outgoing.length
+        @_conflict()
+      else
+        @patchClient diff @clientDoc, @serverDoc
+      return
+
+    patchClient: (ops) ->
+      @clientDoc = diff.patch @clientDoc, ops
+      if @_outlets
+        Cascade.Block =>
+          patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
+      return
+
+    'reset': ->
+      @reject.set ''
+      @conflict.set false
+      @outbound = []
+      @patchClient diff @clientDoc, @serverDoc
+      return
+
+    # never called if conflicted
     update: (ops) ->
+      pending = @pending.value
+      unless @serverDoc
+        return @create unless pending & (CREATE | READ)
+
       @outgoing.push ops... if ops
-      return if @conflicted or @rejected?
-      return @pending.set pending | UPDATE_LATER if (pending = @pending.value) & NOW
+      return @pending.set pending | UPDATE_LATER if pending & NOW
+
       @pending.set pending | UPDATE_NOW
-      @_doUpdate()
+      @_update()
+      return
+
+    _update: ->
+      outgoing = @outgoing
+      @outgoing = []
+      unless outgoing[0]
+        @pending.set @pending.value & ~UPDATE_NOW
+        @_loop()
+        return
+
+      sock.emit 'update', @coll, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2, outgoing) =>
+        Cascade.Block => @handleUpdate code, arg1, arg2, outgoing
+      return
+
+    handleUpdate: (code, arg1, arg2, outgoing) ->
+      if code is 'r'
+        @reject.set arg1 || 'rejected'
+        if @outgoing.length
+          outgoing.push @outgoing...
+          @outgoing = outgoing
+          @_update()
+        else
+          @pending.set @pending.value & ~UPDATE_NOW
+          @_loop()
+      else if code is 'c'
+        if @serverDoc['_v'] > @clientDoc['_v']
+          @_conflict()
+        else
+          outgoing.push @outgoing...
+          @outgoing = outgoing
+          @pending.set @pending.value & ~UPDATE_NOW
+          @_loop()
+      else
+        ++@serverDoc['_v']
+        @serverDoc = diff.patch @serverDoc, outgoing
+        @serverUpdate arg1, OJSON.fromOJSON(arg2) if code is 'u'
+        @_update()
+      return
+
+    serverUpdate: (version, ops) ->
+      return unless @serverDoc
+      if version?
+        return if version < @serverDoc['_v']
+        @incoming[version] = ops
+      @_serverUpdate()
+
+    _serverUpdate: ->
+      return if @pending.value or @conflict.value
+      ops = @patchServer()
+      if @outgoing
+        @_conflict()
+      else
+        @patchClient ops
+      return
+
+    patchServer: ->
+      a = []
+      while ops = @incoming[@serverDoc['_v']]
+        a.push ops...
+        delete @incoming[@serverDoc['_v']]
+        @serverDoc = diff.patch @serverDoc, ops
+        ++@serverDoc['_v']
+      return a
+
+    _conflict: ->
+      @conflict.set true
+      @outgoing = []
+      @runQueue.clear()
+      @pending.set 0
+      return
+
+    'resolveConflict': ->
+      return unless @serverDoc['_v'] > @clientDoc['_v']
+      @conflict.set false
+      @clientDoc['_v'] = @serverDoc['_v']
+      @update diff @serverDoc, @clientDoc
+      return
 
     'delete': ->
       return @pending.set pending | DELETE_LATER if (pending = @pending.value) & NOW
@@ -193,62 +319,60 @@ module.exports = (pkg) ->
       unless @serverDoc
         @serverDelete()
       else
-        sock.emit 'delete', {'c': @coll, 'i': @id}, (reply) =>
-          if reply
-            @_doPending()
-          else
-            @serverDelete()
-
-    'run': (name, args, cb) ->
-      @runQueue [name, args, cb] if name
-      return if @conflicted or @rejected? or (pending = @pending.value) & NOW
-      @pending.set pending | RUN_NOW
-      @_doRun()
-
-    'resolveConflict': ->
-      Cascade.Block =>
-        @error.set ''
-        @status.set ''
-        delete @conflicted
-      @update()
+        sock.emit 'delete', @coll, @id, (code, msg) => Cascade.Block => @handleDelete code, msg
       return
 
-    'resolveReject': ->
-      Cascade.Block =>
-        @error.set ''
-        @status.set ''
-        delete @rejected
-      if @incoming[@serverDoc['_v']]
-        @_conflict()
-      else if @serverDoc['_v']
-        @update()
+    handleDelete: (code, msg) ->
+      if code is 'r'
+        @reject.set msg || 'rejected'
+        @_loop()
       else
-        @create()
+        @serverDelete()
       return
-
-    serverCreate: (doc) ->
-      return unless doc['_v'] > @serverDoc['_v']
-      --doc['_v']
-
-      incoming = []
-      incoming[@serverDoc['_v']] = [{'o': 1, 'v': doc}]
-      incoming[k] = @incoming[v] for k of @incoming when k > doc['_v']
-      @incoming = incoming
-      @_doServerUpdate()
-      return
-
-    serverUpdate: (version, ops) ->
-      return if version < @serverDoc['_v']
-      @incoming[version] = ops
-      @_doServerUpdate()
 
     serverDelete: ->
-      Cascade.Block =>
-        @status.set 'deleted'
-        @error.set ''
-        delete @constructor.models[@id]
-        delete @serverDoc
-        @pending.set 0
+      delete @serverDoc
+      @pending.set @pending.value & NOW
+      @['reset']()
+      return
+
+    'run': (name, args, cb) ->
+      return if @conflict.value or !@serverDoc
+      @runQueue [name, args, cb] if name
+      return @pending.set pending | RUN_LATER if (pending = @pending.value) & NOW
+      @pending.set pending | RUN_NOW
+      @_run()
+
+    _run: ->
+      unless arr = @runQueue()
+        @pending.set @pending.value & ~RUN_NOW
+        @_loop()
+        return
+
+      [cmd, args, cb] = arr
+
+      sock.emit 'run', @coll, @id, @serverDoc['_v'], cmd, OJSON.toOJSON(args), (code) =>
+        cb.apply null, arguments[1..] if code is 'o'
+        @_run()
+        return
+      return
+
+    _loop: ->
+      pending = @pending.value
+
+      if pending & DELETE_LATER
+        @delete()
+      else if pending & CREATE_LATER
+        @create()
+      else if pending & READ_LATER
+        @read()
+      else unless @conflict.value
+        if pending & RUN_LATER
+          @run()
+        else if pending & UPDATE_LATER
+          @update()
+        else
+          @serverUpdate()
       return
 
     get: (key) ->
@@ -284,7 +408,7 @@ module.exports = (pkg) ->
         path = path.concat key
 
         (@_pushers ||= []).push pusher = new Outlet (=>
-          if ops = diff(@clientDoc, outlet.value, path: path)
+          if !@conflict.value and ops = diff(@clientDoc, outlet.value, path: path)
             @clientDoc = diff.patch @clientDoc, ops
 
             # update descendant outlets whose value may have changed because of this change
@@ -292,6 +416,7 @@ module.exports = (pkg) ->
 
             @_clientOps.push ops...
             pusher.modified()
+          return
         ), silent: true
 
         outlet.outflows.add pusher
@@ -299,111 +424,7 @@ module.exports = (pkg) ->
 
       o['_']
 
-    toString: -> "Model[#{@coll}][#{@id}][#{@clientDoc['_v']}]"
-
-    _doPending: ->
-      pending = @pending.value
-
-      if pending & DELETE_LATER
-        @delete()
-      else if pending & CREATE_LATER
-        @create()
-      else if pending & READ_LATER
-        @read()
-      else unless @conflicted or @rejected?
-        if pending & RUN_LATER
-          @run()
-        else if pending & UPDATE_LATER
-          @update()
-        else
-          @_doServerUpdate()
-      return
-
-    _doUpdate: ->
-      outgoing = @outgoing
-      @outgoing = []
-      unless outgoing[0]
-        @pending.set @pending.value & ~UPDATE_NOW
-        @_doPending()
-        return
-
-      version = @serverDoc['_v']
-
-      sock.emit 'update', {'c': @coll, 'i': @id, 'e': @serverDoc['_v'], 'd': OJSON.toOJSON outgoing}, (err) =>
-        if err && err[0] is 'up'
-          ++@serverDoc['_v']
-          diff.patch(@serverDoc, outgoing)
-          @serverUpdate err[1], OJSON.fromOJSON err[2]
-          @_doUpdate()
-
-        else if err
-          outgoing.push @outgoing...
-          @outgoing = outgoing
-          @pending.set @pending.value & ~UPDATE_NOW
-          switch err[0]
-            when 'ver' then @_conflict err[1] # this version too old. will get updates (or may have queued already)
-            when 'rej' then @_reject err[1] # if updates applied, leads to invalid doc.
-            when 'no' then @serverDelete()
-          @_doPending()
-        else
-          ++@serverDoc['_v']
-          diff.patch(@serverDoc, outgoing)
-          @_doUpdate()
-      return
-
-    _doRun: ->
-      unless arr = @runQueue()
-        @pending.set @pending.value & ~RUN_NOW
-        @_doPending()
-        return
-
-      [cmd, args, cb] = arr
-
-      sock.emit 'run', {'c': @coll, 'i': @id, 'e': @serverDoc['_v'], 'm': cmd, 'a': OJSON.toOJSON args}, (err) =>
-        cb.apply null, arguments
-        @_doRun()
-        return
-      return
-
-    _reject: (data) ->
-      @rejected = data ?= ''
-
-      Cascade.Block =>
-        @status.set 'rejected'
-        @error.set @rejected
-      return
-
-    _conflict: (data) ->
-      @conflicted ||= data || true
-      return if @rejected?
-
-      if @incoming[@serverDoc['_v']]
-        @_patchIncoming()
-        Cascade.Block =>
-          @status.set 'conflicted'
-          @error.set ''
-
-      return
-
-    _doServerUpdate: ->
-      return if @rejected? or @pending.value
-
-      if @conflicted
-        @_conflict()
-      else
-        if (ops = @_patchIncoming()).length
-          @clientDoc = diff.patch @clientDoc, ops
-          Cascade.Block =>
-            patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
-
-    _patchIncoming: ->
-      a = []
-      while ops = @incoming[@serverDoc['_v']]
-        a.push ops...
-        delete @incoming[@serverDoc['_v']]
-        @serverDoc = diff.patch @serverDoc, ops
-        ++@serverDoc['_v']
-      return a
+    toString: -> "Model[#{@coll}][#{@id}][#{@clientDoc?['_v']}]"
 
   for _type,_config of configs.configs
 
@@ -433,12 +454,28 @@ module.exports = (pkg) ->
         model
 
       # cb is optional
+      # can also call with an array of ids, optional array of versions and optional callback
       @['read'] = @read = (idOrSpec, cb) ->
         if typeof idOrSpec is 'string' or idOrSpec instanceof ObjectID
           (model = models[idOrSpec] = new this idOrSpec).read() unless model = models[idOrSpec]
           model.onServerDoc cb if cb
           return model
           
+        else if Array.isArray idOrSpec
+          if Array.isArray cb
+            versions = cb
+            cb = arguments[2]
+          else
+            versions = []
+
+          sock.emit 'read', type, idOrSpec, versions, null, null, null, (code) =>
+            if typeof code is 'object'
+              Cascade.Block =>
+                for id, arr of code
+                  (model = models[id] ||= new this id).handleRead.apply model, arr
+
+            cb() if cb
+
         else
           query = new @Query idOrSpec
           for id, model of models when query.exec model
@@ -447,14 +484,13 @@ module.exports = (pkg) ->
 
           return null unless cb
 
-          sock.emit 'read', {'c': type, 'q': OJSON.toOJSON idOrSpec}, (reply) =>
-            switch reply?[0]
-              when 'no' then return cb null
-              when 'doc'
-                doc = OJSON.fromOJSON reply[1]
-                return cb models[doc['_id']] ||= new this doc['_id'], doc
-
-            cb null
+          sock.emit 'read', type, null, null, OJSON.toOJSON(idOrSpec), null, null, (code, arg) =>
+            if code is 'd'
+              doc = OJSON.fromOJSON arg
+              cb models[doc['_id']] ||= new this doc['_id'], doc
+            else
+              cb null
+            return
 
       @Query = (spec, sort, limit) -> new Query mvc.Model[type], spec, sort, limit
 

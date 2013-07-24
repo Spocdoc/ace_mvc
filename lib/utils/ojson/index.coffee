@@ -23,9 +23,11 @@ module.exports = class OJSON
       if typeof o is 'object'
         for name,constructor of o
           constructor['_ojson'] = name
+          throw new Error("already registered [#{name}]") if current = @registry[name] and current isnt constructor
           @registry[name] = constructor
       else if o.name
         @registry[o.name] = o
+      else throw new Error("can't register anonymous types")
     return
 
   @unregister: (constructors...) ->
@@ -93,6 +95,12 @@ module.exports = class OJSON
 
   @registry = {}
 
+  @copyKeys =
+    fromJSON: (obj) ->
+      inst = new this
+      inst[k] = v for k,v of obj
+      inst
+
   register: @register
   unregister: @unregister
   stringify: @stringify
@@ -107,8 +115,4 @@ module.exports = class OJSON
     @registry = Object.create OJSON.registry
 
 OJSON.register Date, Array
-extend Array,
-  fromJSON: (obj) ->
-    inst = new this
-    inst[k] = v for k,v of obj
-    inst
+extend Array, OJSON.copyKeys

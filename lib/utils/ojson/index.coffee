@@ -15,40 +15,15 @@ numSort = (a,b) ->
   else
     a < b
 
-# used to restore ojson object references
-# (it has to keep track of whether it's ownProperty or not because it's added
-# to objects that inherit a truthy _ojson)
-class OJSONRef
-  @name = 'OJSONRef'
-
-  count = 0
-  uniqueId = ->
-    count = if count+1 == count then 0 else count+1
-    "#{count}oj"
-  cache = {}
-  constructor: (@own, @id=uniqueId()) ->
-  toJSON: -> {'o': @own, 'i': @id}
-  @fromJSON: (obj) -> cache[obj['i']] || new OJSONRef(obj['o'], obj['i'])
-  @add: (inst, obj) -> cache[inst.id] = obj
-  @clear: ->
-    # reset all the ojson objects
-    for id, obj of cache when (j = obj?['_ojson']) and j instanceof OJSONRef
-      if j.own
-        obj['_ojson'] = true
-      else
-        delete obj['_ojson']
-    cache = {}
-    count = 0
-
 module.exports = class OJSON
   @useArrays = true
 
   @register: (constructors...) ->
     for o in constructors
       if typeof o is 'object'
-        for k,v of o
-          v['_ojson'] = k
-          @registry[k] = v
+        for name,constructor of o
+          constructor['_ojson'] = name
+          @registry[name] = constructor
       else if o.name
         @registry[o.name] = o
     return
@@ -67,17 +42,11 @@ module.exports = class OJSON
 
   @toOJSON: (obj) ->
     ret = @_toJSON obj if obj == ret = @_replacer '', obj
-    OJSONRef.clear()
     ret
 
   @_toJSON: (obj) ->
     return obj if obj == null or typeof obj != 'object'
     ret = if OJSON.useArrays and Array.isArray obj then [] else {}
-
-    # add ojson ref object
-    if obj['_ojson']? and (!(own = hasOwn.call(obj,'_ojson')) or !(obj['_ojson'] instanceof OJSONRef))
-      OJSONRef.add (obj['_ojson'] = new OJSONRef(own)), obj
-
     keys = Object.keys(obj)
     keys.sort(numSort)
     for k in keys
@@ -91,7 +60,6 @@ module.exports = class OJSON
 
   @_replacer: (k, v) ->
     return v if v == null or typeof v isnt 'object'
-    return @_replacer '', v['_ojson'] if hasOwn.call(v,'_ojson') && v['_ojson'] instanceof OJSONRef
     n = v.constructor['_ojson'] || v.constructor.name
     if not @registry[n]?
       return undefined if v.constructor != Object
@@ -102,11 +70,6 @@ module.exports = class OJSON
     doc
 
   @fromOJSON: (obj) ->
-    ret = @_fromOJSON obj
-    OJSONRef.clear()
-    ret
-
-  @_fromOJSON: (obj) ->
     return obj if typeof obj isnt 'object' or obj == null
 
     res = if Array.isArray obj then [] else {}
@@ -114,7 +77,7 @@ module.exports = class OJSON
     keys.sort(numSort)
 
     for k in keys
-      v = @_fromOJSON obj[k]
+      v = @fromOJSON obj[k]
       if k.charAt(0) is '$' and 'A' <= k.charAt(1) <= 'Z'
         if (constructor = @registry[k.substr(1)])?
           if constructor.fromJSON?
@@ -123,11 +86,6 @@ module.exports = class OJSON
             res = new constructor obj=v
           break
       res[k] = v
-
-    if obj['_ojson'] instanceof OJSONRef
-      OJSONRef.add obj['_ojson'], res
-    if res?['_ojson'] instanceof OJSONRef
-      OJSONRef.add res['_ojson'], res
 
     res
 
@@ -139,7 +97,6 @@ module.exports = class OJSON
   unregister: @unregister
   stringify: @stringify
   fromOJSON: @fromOJSON
-  _fromOJSON: @_fromOJSON
   toOJSON: @toOJSON
   _toJSON: @_toJSON
   _replacer: @_replacer
@@ -149,7 +106,7 @@ module.exports = class OJSON
     @useArrays = OJSON.useArrays
     @registry = Object.create OJSON.registry
 
-OJSON.register Date, Array, 'Ref': OJSONRef
+OJSON.register Date, Array
 extend Array,
   fromJSON: (obj) ->
     inst = new this

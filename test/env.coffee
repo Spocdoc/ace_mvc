@@ -6,6 +6,14 @@ global.sinon = require 'sinon'
 global.debug = -> ->
 chai.use(require('sinon-chai'))
 
+fs = require 'fs'
+path = require 'path'
+
+vendor = path.resolve __dirname, '../lib/_vendor/server/'
+
+for file in fs.readdirSync vendor
+  require "#{vendor}/#{file}"
+
 path = require 'path'
 
 # from http://stackoverflow.com/questions/13227489/how-can-one-get-the-file-path-of-the-caller-function-in-node-js

@@ -168,11 +168,12 @@ ojsonTest = (OJSON) ->
 
   it 'should allow registration & unregistration', ->
     class Fro
+    class Bro
     OJSON.register 'Fro': Fro
-    expect(-> OJSON.register Fro).to.throw(Error)
+    expect(-> OJSON.register 'Fro': Bro).to.throw(Error)
     OJSON.unregister 'Fro'
     OJSON.register 'Fro': Fro
-    expect(-> OJSON.register Fro).to.throw(Error)
+    expect(-> OJSON.register 'Fro': Bro).to.throw(Error)
     OJSON.unregister 'Fro'
 
   it 'should allow registration & unregistration by name', ->
@@ -195,132 +196,6 @@ ojsonTest = (OJSON) ->
     OJSON.register desc
     expect(-> OJSON.register desc).to.throw(Error)
     OJSON.unregister name
-
-
-  describe 'references', ->
-    before ->
-      class @A
-        constructor: -> @foo = 'bar'
-        '_ojson': true
-      OJSON.register {'Another_a': @A}
-
-      class @B
-      extend @B, OJSON.copyKeys
-      OJSON.register {'Another_b': @B}
-
-    after ->
-      OJSON.unregister 'Another_a','Another_b'
-
-
-    it 'should create unique ids for objects with `true` _ojson fields (including inherited)', ->
-      a = new @A
-      str = OJSON.stringify a
-      expect(str.indexOf('_ojson')).not.eq -1
-
-    it 'should not create unique ids if the object has a toJSON method', ->
-      a = new Bar(42)
-      a['_ojson'] = true
-      str = OJSON.stringify a
-      expect(str.indexOf('_ojson')).eq -1
-
-    it 'should add OJSONRef\'s to the object when referenced', ->
-      a = new @A
-      b = new @B
-      b.a = a
-
-      doc = [a, b]
-      str = OJSON.stringify doc
-      doc = OJSON.parse str
-      expect(doc[1].a).eq doc[0]
-      expect(doc[0].foo).eq 'bar'
-      expect(doc[0]['_ojson']).eq true
-
-    it 'should also restore references to plain objects', ->
-      a = {foo: 'bar', '_ojson': true}
-      b = {a: a, b: 'yay b'}
-      doc = [a, b]
-      str = OJSON.stringify doc
-      doc = OJSON.parse str
-      expect(doc[1].a).eq doc[0]
-
-    it 'should allow a chain of referenced, inherited objects', ->
-      class C
-        '_ojson': true
-        OJSON.register {'C123': @}
-        @fromJSON: (obj) ->
-          if obj._parent?
-            inst = Object.create obj._parent
-            inst._parent = obj._parent
-          else
-            inst = new @
-          inst[k] = v for k,v of obj when k not in ['_parent', '_ojson']
-          inst
-
-      try
-        chain = []
-        chain[0] = new C
-        for i in [1..10]
-          chain[i] = Object.create(parent=chain[i-1])
-          chain[i]._parent = parent
-
-        chain[0].foo = {foo: 'bar'}
-        chain[3].foo = {foo: 'baz'}
-
-        str = OJSON.stringify chain
-        chain = OJSON.parse str
-
-        for i in [0..10]
-          expect(chain[i]).instanceof C
-
-        for i in [1...3]
-          expect(chain[i].foo).eq chain[0].foo
-
-        for i in [3..10]
-          expect(chain[i].foo).eq chain[3].foo
-
-        expect(chain[0].foo.foo).eq 'bar'
-        expect(chain[3].foo.foo).eq 'baz'
-      finally
-        OJSON.unregister 'C123'
-
-    it 'should restore _ojson when inherited and when not', ->
-      try
-        class @D
-          constructor: ->
-            @foo = 'bar'
-            @['_ojson'] = true
-          '_ojson': true
-        OJSON.register {'Another_d': @D}
-
-        class @E extends @D
-          constructor: ->
-        extend @E, OJSON.copyKeys
-        OJSON.register {'Another_e': @E}
-
-        hasOwn = {}.hasOwnProperty
-
-        a = new @D
-        b = new @E
-        doc = [a,b]
-
-        expectations = =>
-          expect(hasOwn.call(doc[0], '_ojson')).true
-          expect(hasOwn.call(doc[1], '_ojson')).false
-
-        expectations()
-
-        doc = thruJSON doc
-
-        expectations()
-
-      finally
-        OJSON.unregister 'Another_e', 'Another_d'
-
-    it 'should serialize object keys in a deterministic order', ->
-      a = {a: 1, b: 2, c: 3}
-      b = {c: 3, a: 1, b: 2}
-      expect(OJSON.stringify a).eq(OJSON.stringify b)
-
 
 describe 'OJSON', ->
   describe 'with Arrays', ->

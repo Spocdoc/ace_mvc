@@ -39,12 +39,12 @@ class Outlet
   _setValue: (value, version=@version) ->
     return if @pending or (@value is value and @version is version)
     @value = value; @version = version
-    @openBlock()
+    Outlet.openBlock()
     equiv._setValue value, version for index, equiv of @equivalents
     for index, outflow of @outflows when !outflow.pending
       outflow._setPendingTrue()
       Outlet.roots.push outflow
-    @closeBlock()
+    Outlet.closeBlock()
     return
 
   _setOutlet: (outlet) ->
@@ -146,7 +146,7 @@ class Outlet
   _runSource: (source) ->
     delete @changing[source] if source
     return unless @pending and !@changing.length
-    @openBlock()
+    Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto
     try
       @_autoInflows[index] = 0 for index of @_autoInflows
@@ -160,7 +160,7 @@ class Outlet
       debugError _error.stack if _error
     finally
       Outlet.auto = prev
-      @closeBlock()
+      Outlet.closeBlock()
     if outlet = @funcOutlet
       return @_setPendingFalse() if value is outlet
       delete @equivalents[outlet]

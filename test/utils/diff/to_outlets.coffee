@@ -1,5 +1,5 @@
 patchOutlets = lib 'to_outlets'
-Outlet = lib '../cascade/outlet'
+Outlet = lib '../outlet'
 diff = lib 'index'
 clone = lib '../clone'
 

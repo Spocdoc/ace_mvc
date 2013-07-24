@@ -27,26 +27,23 @@ uniqueHashes = (toHash, fromHash, compare) ->
 
 module.exports =
   # returns an array of insert and delete operations to transform `from` to `to`
-  # optionally performs diff of replaced elements and uses "move" 
+  # optionally performs diff of replaced elements and uses "move". 
   # linear time.
   # options:
   #   compare
   #   hash
   #   move
-  #   replace
   #   deep
   diff: (from, to, options = {}) ->
     result = []
     return result if from == to
-
-    if options['replace']
-      options['deep'] = (a, b) -> b
 
     hash = options['hash'] || (o) -> o.toString()
 
     addOp = do ->
       lastSeen = {}
       lastSpec = {}
+      ref = {}
       lastValue = undefined
 
       (op, hash, value, index) ->
@@ -54,15 +51,16 @@ module.exports =
           'o': op
           'i': index
 
-        if ref = options['move'] && (lastIndex = lastSeen[hash])? && (prev = result[lastIndex])['o'] is -op
+        if refd = options['move'] && (lastIndex = lastSeen[hash])? && !ref[lastIndex] && (prev = result[lastIndex])['o'] is -op
           if op < 0
             spec['p'] = prev['i']
             delete prev['v']
           else
             prev['r'] = result.length
 
-          delete lastSeen[hash]
-        else if options['deep'] and lastSpec['o'] == -op and (op > 0 && lastSpec['i'] == index || op < 0 && lastSpec['i'] == index-1)
+          refd = 1
+
+        else if refd = options['deep'] and lastSpec and lastSpec['o'] == -op and (op > 0 && lastSpec['i'] == index || op < 0 && lastSpec['i'] == index-1)
           spec['d'] = options['deep']((if op > 0 then lastValue else value), (if op > 0 then value else lastValue), options)
 
           if op < 0
@@ -71,15 +69,17 @@ module.exports =
           else
             lastSpec['r'] = result.length
 
-          delete lastSeen[hash]
-          lastSpec = {}
-          ref = true
+          lastIndex = result.length-1
+
         else
           spec['v'] = value if op > 0
 
         index = -1 + result.push spec
 
-        unless ref
+        if refd
+          ref[lastIndex] = ref[index] = 1
+          lastSpec = null
+        else
           lastSeen[hash] = index
           lastSpec = spec
           lastValue = value

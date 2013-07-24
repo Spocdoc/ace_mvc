@@ -60,7 +60,7 @@ class Outlet
   _setFunc: (@func, context) ->
     context && @context = context
     @funcArgOutlets = []
-    @funcArgOutlets[i] = @context[name] for name,i in argNames func
+    (@funcArgOutlets[i] = @context[name]).addOutflow this for name,i in argNames func
     @_setPendingTrue()
     if Outlet.roots.depth
       Outlet.roots.push this
@@ -181,7 +181,7 @@ class Outlet
     @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
     @func.apply @context, @funcArgs
 
-  _setFuncValue: ->
+  _setFuncValue: (value) ->
     if @value is value
       @_setPendingFalse()
     else

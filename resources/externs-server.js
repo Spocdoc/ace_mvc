@@ -89,6 +89,8 @@ var mongodb = {
   "Server": function () {}
 };
 
-global.module = {
-  "exports": {}
-};
+var g = {
+  "module": {
+    "exports": {}
+  }
+}

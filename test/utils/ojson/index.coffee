@@ -9,8 +9,8 @@ class Foo
 class Bar extends Foo
   toString: -> "bar #{@_value}"
 
-OJSON.register Foo
-OJSON.register Bar
+OJSON.register 'Foo': Foo
+OJSON.register 'Bar': Bar
 
 thruJSON = (obj) ->
   OJSON.parse OJSON.stringify OJSON.parse OJSON.stringify obj

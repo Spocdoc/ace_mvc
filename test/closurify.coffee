@@ -9,6 +9,8 @@ os = require 'os'
 beautify = require('js-beautify').js_beautify
 coffee = require 'coffee-script'
 
+debugger
+
 getModTime = (filePath, cb) ->
   fs.stat filePath, (err, stat) ->
     return cb(err) if err?
@@ -42,7 +44,8 @@ _writeClosure = (inPath, outPath, logPath, cb) ->
       code = code.replace(/\blib\b\(['"]([^'"]+)['"]\)/g, """require("#{lib}/$1")""")
       fs.writeFile outPath, code, next
     (next) ->
-      closurify [outPath], options, (err, debug, release, stderr) ->
+      closurify [outPath], options, (err, obj) ->
+        {debug, release: [release,stderr]} = obj
         async.series [
           (done) ->
             if stderr
@@ -87,7 +90,7 @@ if module is require.main
 
   async.waterfall [
     (next) -> glob './*/**/!(_*).coffee', next
-    # (next) -> glob './clone/index.coffee', next
+    # (next) -> glob './utils/events/listener.coffee', next
     (files, next) ->
       async.eachLimit files, os.cpus().length, writeClosure, next
     ], (err) ->

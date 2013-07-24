@@ -3,11 +3,6 @@
 mixin = require '../mixin'
 querystring = require './querystring'
 
-
-RegExp['escape'] ?= do ->
-  regex = /[-\/\\^$*+?.()|[\]{}]/g
-  (str) -> return str.replace(regex, '\\$&')
-
 protocolPattern = /^([a-z0-9.+-]+:)/i
 portPattern = /:[0-9]*$/
 

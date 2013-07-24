@@ -1,38 +1,31 @@
 Ace = require '../index'
-Cookies = require '../../cookies'
+Cookies = require '../../utils/cookies'
+Outlet = require '../../outlet'
+Router = require '../../router'
+debug = global.debug 'ace:error'
 
 module.exports = ->
 
   Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
-    pkg = {}
+    sock = global.io.connect '/'
 
-    sock = pkg.socket = global.io.connect '/'
+    globals =
+      app:
+        'cookies': cookies = new Cookies req, res
+        'session': session = new Outlet
+        'Model': class Model extends require('../../mvc/model')
+      Template:
+        $container: $container
 
-    Global = require('../../mvc')(pkg).Global
-    cookies = Global.prototype['cookies'] = new Cookies req, res
-    Global.prototype['reset'] = ->
-      req.url = '/'
-      handle req, res, next
-      return
-
+    Model.init globals, sock
     sock.emit 'cookies', cookies.toJSON()
 
-    ace = new Ace pkg, undefined, routes, vars
+    try
+      (router = new Router routes, vars, globals, false).route req.url
+      ace = new Ace globals, router
+    catch _error
+      debug _error?.stack
 
-    ace.router.route req.url
-    ace.appendTo $container
-
-    Cascade = ace.pkg.cascade.Cascade
-
-    done = =>
+    sock.onIdle ->
       sock.emit 'disconnect'
-      json = ace.toJSON()
-      cb null, json
-
-    if Cascade.pending
-      Cascade.on 'done', => process.nextTick done
-    else
-      done()
-
-    return
-
+      cb null, Model.toJSON()

@@ -1,4 +1,3 @@
-Callback = require './callback'
 Db = require './db'
 OJSON = require '../../../utils/ojson'
 Listener = require '../../../utils/events/listener'
@@ -35,7 +34,7 @@ class Mediator
   create: (coll, doc, cb) ->
     @db.create @origin, coll, doc, cb
 
-  read: (coll, id, version, query, sort, limit, cb) ->
+  read: (coll, id, version, query, limit, sort, cb) ->
     proxy = Object.create cb
 
     proxy.doc = (docs) =>
@@ -66,7 +65,7 @@ class Mediator
           @doSubscribe coll, id
       cb.bulk reply
 
-    @db.read @origin, coll, id, version, query, sort, limit, cb
+    @db.read @origin, coll, id, version, query, limit, sort, cb
 
   update: (coll, id, version, ops, cb) ->
     @db.update @origin, coll, id, version, ops, cb
@@ -76,5 +75,8 @@ class Mediator
 
   run: (coll, id, version, cmd, args, cb) ->
     cb.reject "unhandled"
+
+  distinct: (coll, query, key, cb) ->
+    @db.distinct @origin, coll, query, key, cb
 
 module.exports = Mediator

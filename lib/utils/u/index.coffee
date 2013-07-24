@@ -35,9 +35,15 @@ _.argNames = do ->
   regexTrimCommas = /\s*,\s*/mg
 
   return (fn) ->
-    fnText = Function.toString.apply(fn).replace(regexComments, '')
-    argsBody = fnText.match(regexFunction)
-    if str = argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',')
-      str.split ','
+    if fn.length
+      fnText = Function.toString.apply(fn).replace(regexComments, '')
+      argsBody = fnText.match(regexFunction)
+      argsBody[1].replace(regexTrim,'').replace(regexTrimCommas,',').split ','
     else
       []
+
+_.htmlEscape = do ->
+  p = global.$ '<p>'
+  (text) ->
+    p.text(text).html()
+

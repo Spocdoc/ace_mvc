@@ -53,7 +53,6 @@ module.exports = class OJSON
         @registry[o.name] = o
     return
 
-
   @unregister: (constructors...) ->
     for o in constructors
       if typeof o is 'object'
@@ -147,12 +146,8 @@ module.exports = class OJSON
   parse: @parse
 
   constructor: ->
-    unless this instanceof OJSON
-      # "pkg" form
-      return arguments[0].ojson = new OJSON
-    else
-      @useArrays = OJSON.useArrays
-      @registry = Object.create OJSON.registry
+    @useArrays = OJSON.useArrays
+    @registry = Object.create OJSON.registry
 
 OJSON.register Date, Array, 'Ref': OJSONRef
 extend Array,

@@ -41,6 +41,11 @@ replies =
     'reject'
   ]
 
+  Distinct: [
+    'doc'
+    'reject'
+  ]
+
 for type, methodNames of replies
   module.exports[type] = clazz = (@cb) ->
   for name in methodNames

@@ -38,8 +38,8 @@ module.exports = (db, redisInfo, server, Mediator) ->
 
   io.on 'connection', (sock) ->
     sock.mediator = mediator = new Mediator db, sock
-    for name of ['disconnect', 'cookies', 'create', 'read', 'update', 'delete', 'run']
-      Callback = callback[a.charAt(0).toUpperCase() + a[1..]]
+    for name of ['disconnect', 'cookies', 'create', 'read', 'update', 'delete', 'run', 'distinct']
+      Callback = callback[name.charAt(0).toUpperCase() + name[1..]]
       do (name, Callback) ->
         sock.on name, ->
           for arg,i in arguments

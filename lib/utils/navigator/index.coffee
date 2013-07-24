@@ -3,7 +3,7 @@ debug = global.debug 'ace:navigator'
 
 class NavigatorUrl extends Url
   hasHashPath: do ->
-    regex = /^#\d+/
+    regex = /^#\//
 
     (url=@) ->
       if url.hash?
@@ -15,7 +15,7 @@ class NavigatorUrl extends Url
     url.path.length > 1
 
   hashPath: do ->
-    regex = /^#\d+(\/[^#]*)/
+    regex = /^#(\/[^#]*)/
 
     (url=@) ->
       url.hash?.match(regex)?[1] || '/'
@@ -25,12 +25,6 @@ class NavigatorUrl extends Url
 
     (url=@) ->
       url.hash?.match(regex)?[1]
-
-  hashIndex: do ->
-    regex = /^#(\d+)/
-
-    (url=@) ->
-      +url.hash?.match(regex)?[1]
 
   stripHash: ->
     @reform
@@ -54,12 +48,11 @@ module.exports = (route, ctx) ->
   formHashUrl = ->
     navigator.url.clone().reform
       path: '/'
-      hash: "##{navigator.index}#{navigator.url.path}#{navigator.url.hash || ''}"
+      hash: "##{navigator.url.path}#{navigator.url.hash || ''}"
 
   replace = (url) ->
     prev = navigator.url
     navigator.url = url
-    urls[navigator.index] = url
 
     if useHash
       ++ignoreCount
@@ -68,55 +61,36 @@ module.exports = (route, ctx) ->
       else
         window.location.replace formHashUrl().hash
     else
-      window.history.replaceState navigator.index, '', url.href
+      window.history.replaceState null, '', url.href
 
     return
 
   push = (url) ->
     navigator.url = url
 
-    ++navigator.index
-    urls.splice(navigator.index)
-    urls[navigator.index] = url
-
     if useHash
       ++ignoreCount
       window.location.href = formHashUrl().href
     else
-      window.history.pushState navigator.index, '', url.href
+      window.history.pushState null, '', url.href
 
     return
 
   urlchange = (event) =>
     if ignoreCount
       --ignoreCount
-      return
+    else
+      newUrl = new NavigatorUrl(event.newURL || window.location.href)
+      newUrl.stripHash() if newUrl.hasHashPath()
 
-    newUrl = new NavigatorUrl(event.newURL || window.location.href)
-    newIndex = if event.state? then +event.state else newUrl.hashIndex()
-    newUrl.stripHash() if newUrl.hasHashPath()
-
-    debug "Got url change from #{navigator.url} to #{newUrl}"
-
-    if not isFinite(newIndex) or newUrl.href isnt urls[newIndex]?.href
-      debug "emitting new url navigate [#{newUrl}]"
-
-      urls.splice ++navigator.index
-      replace newUrl
-      route.call ctx, navigator.url.href, navigator.index
-
-    else if newIndex != navigator.index
-      debug "emitting index navigate to [#{newIndex}]"
-      navigator.url = urls[navigator.index = newIndex]
-      route.call ctx, navigator.url.href, navigator.index
-
+      if newUrl.href isnt navigator.url.href
+        debug "Got url change from #{navigator.url} to #{newUrl}"
+        route.call ctx, navigator.url.href
     return
 
   useHash = !window.history || !window.history.pushState
   useHash = true #TODO DEBUG
   navigator.url = new NavigatorUrl(window.location.href)
-  navigator.index = 0
-  urls = [navigator.url]
 
   replace navigator.url.stripHash() if navigator.url.hasHashPath()
   ignoreCount = 0

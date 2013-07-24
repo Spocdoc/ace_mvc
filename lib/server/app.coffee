@@ -76,7 +76,7 @@ class App
       if (window.wrongPage) {
         document.write("</div>");
         var a = document.getElementById("wrong-page");
-        a.parentNode.removeChild(a)
+        a.parentNode.removeChild(a);
       }
       })();
       </script>
@@ -93,7 +93,7 @@ class App
       <script type="text/javascript">
       (function () {
         var restore = window.wrongPage ? null : #{JSON.stringify json};
-        window.Ace.newClient(restore, require('routes'), $('body'));
+        window.ace = window.Ace.newClient(restore, $('body'));
       }());
       </script>
       """)

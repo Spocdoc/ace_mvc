@@ -1,83 +1,76 @@
 Url = require '../utils/url'
 Route = require '../utils/route'
+Outlet = require '../utils/outlet'
 navigator = require '../utils/navigator'
-debugCascade = global.debug 'ace:cascade'
-debug = global.debug 'ace:routing'
+debug = global.debug 'ace:router'
 
-module.exports = (pkg) ->
+class Var
+  constructor: (@outlet) ->
 
-  class Var
-    constructor: (@outlet) ->
+class Router
+  @getRoutes = (config) ->
+    routes = []
+    config['routes'] (args...) -> routes.push new Route args...
+    routes
 
-  {Outlet, Cascade} = (pkg.cascade || require('../cascade')(pkg))
-  mvc = pkg.mvc || require('../mvc')(pkg)
+  @getVars = (config) ->
+    config['vars']
 
-  pkg.Router = class Router
-    constructor: (routes, vars, useNavigator) ->
-      @outlets = {}
-      @length = 0
+  constructor: (routes, vars, globals, useNavigator) ->
+    Outlet.openBlock()
 
-      @routeSearch = new Outlet
-      @uriFormatter = new Outlet
-      @routeSearch.outflows.add @uriFormatter
+    @uriOutlets = {}
+    @length = 0
 
-      @vars = new Var
+    (@routeSearch = new Outlet).addOutflow @uriFormatter = new Outlet
 
-      context = new mvc.Global
+    @vars = new Var
 
-      for route in routes
-        @push route
-        for varName of route.pathVarNames when !@outlets[varName]
-          context[varName] = outlet = @outlets[varName] = new Outlet
-          outlet.outflows.add @routeSearch
-          outlet.outflows.add @uriFormatter
-        for varName of route.otherVarNames when !@outlets[varName]
-          context[varName] = outlet = @outlets[varName] = new Outlet
-          outlet.outflows.add @uriFormatter
+    context = Object.create globals.app
 
-      varOutlets = {}
-      context['var'] = (path, value) =>
-        unless outlet = varOutlets[path]
-          debug "Added new variable at #{path}"
-          v = @vars
-          v = (v[p] ||= new Var) for p in path.split '/' when p
-          outlet = v.outlet = varOutlets[path] = new Outlet value, auto: true, outlets: @outlets
-        outlet
-
-      if useNavigator
-        @route url = (@navigator = navigator(@route, this)).url
-
-        @routeSearch.set @current, silent: true
-        @routeSearch.set (=>
-          for r in this when r.matchOutlets @outlets
-            return @current = r
-          debug "routeSearch: no route found using outlets"), silent: true
-
-        @uriFormatter.set url.href, silent: true
-        @uriFormatter.set (=> @current?.format @outlets), silent: true
-        @uriFormatter.outflows.add => @navigator(@uriFormatter.value)
-
-      vars.call context
-
-    push: (route) ->
+    for route in routes
       @[@length++] = route
-      @length
+      for varName of route.pathVarNames
+        context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
+        outlet.addOutflow @routeSearch
+        outlet.addOutflow @uriFormatter
+      for varName of route.otherVarNames
+        context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
+        outlet.addOutflow @uriFormatter
 
-    route: (url) ->
-      debug "Routing #{url}"
-      url = new Url(url, slashes: false) unless url instanceof Url
+    varOutlets = {}
+    context['var'] = (path, value) =>
+      unless outlet = varOutlets[path]
+        v = @vars
+        v = (v[p] ||= new Var) for p in path.split '/' when p
+        outlet = v.outlet = varOutlets[path] = new Outlet value, context, true
+      outlet
 
-      Cascade.Block =>
-        for route in this when route.match url, @outlets
-          return @current = route
+    if useNavigator
+      @route url = (@navigator = navigator(@route, this)).url
 
-      debug "no match for #{url}"
+      @routeSearch.value = @current
+      @routeSearch.func = (=>
+        for r in this when r.matchOutlets @uriOutlets
+          return @current = r)
 
-module.exports.getRoutes = (config) ->
-  debug "getRoutes"
-  routes = []
-  config['routes'] (args...) -> routes.push new Route args...
-  routes
+      @uriFormatter.value url.href
+      @uriFormatter.func = (=> @current?.format @uriOutlets)
+      @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
 
-module.exports.getVars = (config) ->
-  config['vars']
+    vars.call context
+    Outlet.closeBlock()
+    return
+
+  route: (url) ->
+    debug "Routing #{url}"
+    url = new Url(url, slashes: false) unless url instanceof Url
+    Outlet.openBlock()
+    try
+      for route in this when route.match url, @uriOutlets
+        return @current = route
+    finally
+      Outlet.closeBlock()
+    debug "no match for #{url}"
+
+module.exports = Router

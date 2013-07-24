@@ -1,74 +1,72 @@
+Base = require './base'
+View = require './view'
 debugCascade = global.debug 'ace:cascade'
 debugMvc = global.debug 'ace:mvc'
 
 configs = new (require('./configs'))
 
-module.exports = (pkg) ->
-  cascade = pkg.cascade
-  mvc = pkg.mvc
+module.exports = class Controller extends Base
+  @name = 'Controller'
 
-  mvc.Global.prototype['Controller'] = mvc.Controller = class Controller extends mvc.ControllerBase
-    constructor: (config, settings) ->
-      debugCascade "creating new controller",@_type,@_name
-      super config, settings
+  @add: (type, config) -> configs.add type, config
 
-    'appendTo': ($container) -> @['view']['appendTo']($container)
-    'prependTo': ($container) -> @['view']['prependTo']($container)
-    'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
-    'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
-    'remove': -> @['view']['remove']()
+  @finish: ->
+    configs.applyMixins()
 
-    _buildView: (arg, settings) ->
-      if arg instanceof mvc.View
-        @['view'] = arg
-      else if typeof arg is 'string'
-        @['view'] = new @['View'][arg] this
-      else
-        break for k,v of arg
-        outlet.set @['view'] = new @['View'][k] this, undefined, v
+    ControllerBase = Controller
+    types = {}
+    for type,config of configs.configs
+      types[type] = class Controller extends ControllerBase
+        _type: type
+        _config: config
 
-      @$ = {}
-      @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v for k, v of @['view'].outlets
-      return
+        @_applyStatic config
+        @_applyOutlets config
+        @_applyMethods config
+    ControllerBase[k] = v for k, v of types
+    return
 
-    _buildDollar: (config) ->
-      for k,v of config when k.charAt(0) is '$'
-        v = new @Outlet(v, k) if typeof v is 'function'
-        (@['view'].outlets[name=k.substr(1)] || @['view']._buildOutlet(name)).set v
-      return
+  constructor: (@_parent, @_name, settings={}) ->
+    debugMvc "Building #{@}"
 
-  for _type,_config of configs.configs
+    super()
 
-    mvc.Controller[_type] = class Controller extends mvc.Controller
-      type = _type
-      config = _config
+    Outlet.openBlock()
+    prev = Outlet.auto; Outlet.auto = null
+    try
+      @_buildOutlets()
+      @_buildView settings['view'] || @_config['view'] || type, settings
+      @_buildDollar()
+      @_applyConstructors settings
+      @_setOutlets settings
+    finally
+      Outlet.auto = prev
+      Outlet.closeBlock()
 
-      @name = 'Controller'
-      _type: type
+    debugMvc "done building #{@}"
 
-      @_applyStatic config
-      @_applyOutlets config
-      @_applyMethods config
 
-      constructor: (@_parent, @_name, settings={}) ->
-        super()
+  'appendTo': ($container) -> @['view']['appendTo']($container)
+  'prependTo': ($container) -> @['view']['prependTo']($container)
+  'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
+  'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
+  'remove': -> @['view']['remove']()
 
-        prev = @Outlet.auto; @Outlet.auto = null
-        debugMvc "Building #{@}"
+  _buildView: (arg, settings) ->
+    if arg instanceof View
+      @['view'] = arg
+    else if typeof arg is 'string'
+      @['view'] = new View[arg] this
+    else
+      break for k,v of arg
+      outlet.set @['view'] = new View[k] this, undefined, v
 
-        cascade.Cascade.Block =>
+    @$ = {}
+    @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v for k, v of @['view'].outlets
+    return
 
-          @_buildOutlets()
-          @_buildView settings['view'] || config['view'] || type, settings
-          @_buildDollar config
-          @_applyConstructors config, settings
-          @_setOutlets settings
-
-        debugMvc "done building #{@}"
-        @Outlet.auto = prev
-
-  mvc.Controller
-
-module.exports.add = (type,config) -> configs.add type,config
-module.exports.finish = -> configs.applyMixins()
-
+  _buildDollar: ->
+    for k,v of @_config when k.charAt(0) is '$'
+      v = new Outlet v, this, true if typeof v is 'function'
+      (@['view'].outlets[name=k.substr(1)] || @['view']._buildOutlet(name)).set v
+    return

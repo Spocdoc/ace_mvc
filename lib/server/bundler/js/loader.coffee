@@ -6,9 +6,16 @@ closurify = require 'closurify'
 
 quote = require '../../../utils/quote'
 
+getInode = (filePath, cb) ->
+  fs.stat filePath, (err, stat) ->
+    return cb(err) if err?
+    cb null, ""+stat.ino
+
 module.exports = makeLoader = (app, globals, options, cb) ->
   if typeof options is 'function'
     [cb,options] = [options, {}]
+
+  script = []
 
   async.waterfall [
     (next) -> glob './!(_*)/**/client', cwd: lib, nonegate: true, next
@@ -16,7 +23,6 @@ module.exports = makeLoader = (app, globals, options, cb) ->
     (dirs, next) ->
       dirs.sort()
 
-      script = []
       # there are no exports
       # script.push "require(#{quote(path.resolve(lib,'exports'))});"
       script.push "var r;"
@@ -33,24 +39,35 @@ module.exports = makeLoader = (app, globals, options, cb) ->
         script.push "global[#{quote(n)}] = require(#{quote(p)});"
 
       # local Template, View, etc.
-      for type in ['Template','View','Controller','Model']
-        p = path.resolve(lib, "./mvc/#{type.toLowerCase()}")
-        script.push "var #{type} = require(#{quote(p)});"
+      for className in ['Template','Model','View','Controller']
+        p = path.resolve(lib, "./mvc/#{className.toLowerCase()}")
+        script.push "var #{className} = require(#{quote(p)});"
 
       # build templates
       for name, dom of app['template']
         script.push "Template.add(#{quote(name)}, #{quote(dom)});"
 
       # build mvc
-      for type in ['View','Controller','Model']
-        for name,i in Object.keys(app[type.toLowerCase()]).sort()
-          reqName = "#{type[0].toLowerCase()}#{i}" # e,g, "v1", "v2", "c1", ...
-          # the require(path,1) is a hack so it doesn't get replaced in closurify
-          script.push "#{type}.add(#{quote(name)}, require(#{quote(reqName)},1));"
+      mvc = []
+      for className in ['Model','View','Controller']
+        for name, filePath of app[className.toLowerCase()]
+          mvc.push {name, className, filePath}
 
-      # finish mvc
-      for type in ['View','Controller','Model']
-        script.push """#{type}.finish();"""
+      mvcToInode = (entry, cb) ->
+        getInode entry.filePath, (err, inode) ->
+          return cb err if err?
+          entry.inode = inode
+          cb null, entry
+
+      async.mapLimit mvc, 8, mvcToInode, next
+
+    (mvc, next) ->
+      script.push "global['Ace'].initMVC = function () {"
+      for entry in mvc
+        script.push "#{entry.className}.add(#{quote(entry.name)}, window['req#{entry.inode}']);"
+      for className in ['Model','View','Controller']
+        script.push "#{className}.finish();"
+      script.push "};"
 
       closurify script.join('\n'), options, (err, obj) ->
         if release = obj?.release

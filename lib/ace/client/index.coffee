@@ -1,15 +1,24 @@
 Ace = require '../index'
-Cookies = require '../../cookies'
+Cookies = require '../../utils/cookies'
 router = require '../../router'
 
 module.exports = ->
 
-  Ace['newClient'] = (json, routesConfig, $container) ->
-    pkg = {}
-    sock = pkg.socket = global.io.connect '/'
-    cookies = require('../../mvc')(pkg).Global.prototype['cookies'] = new Cookies
+  Ace['newClient'] = (json, $container) ->
+    routesConfig = Ace.routes
+    Ace.initMVC()
+
+    sock = global.io.connect '/'
+
+    globals =
+      app:
+        'cookies': cookies = new Cookies
+        'session': new Outlet
+        'Model': class Model extends require('../../mvc/model')
+      Template:
+        $root: $container
+
+    Model.init globals, sock, json
     sock.emit 'cookies', cookies.toJSON()
 
-    ace = new Ace pkg, json, router.getRoutes(routesConfig), router.getVars(routesConfig), true
-    ace['appendTo'] $container
-    return
+    new Ace globals, new Router Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true

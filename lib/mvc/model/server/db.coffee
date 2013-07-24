@@ -80,7 +80,7 @@ class Db extends Mongo
       return
     return
 
-  read: (origin, coll, id, version, query, sort, limit, cb) ->
+  read: (origin, coll, id, version, query, limit, sort, cb) ->
     debug "Got read request with",arguments...
     doc = undefined
 
@@ -143,11 +143,12 @@ class Db extends Mongo
           else
             @run 'findOne', coll, query, next
         (_doc, next) =>
-          doc = _doc
-          if !doc || Array.isArray(doc) && !doc.length
-            cb.reject()
+          if Array.isArray doc = _doc
+            return cb.reject() unless doc.length
           else
-            cb.doc doc
+            return cb.reject() unless doc
+            doc = [doc]
+          cb.doc doc
           return
       ], (err) -> cb.reject err.message if err?
 
@@ -214,5 +215,10 @@ class Db extends Mongo
       @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'delete',coll,id])
       return
     return
+
+  distinct: (origin, coll, query, key, cb) ->
+    @run 'distinct', coll, key, query, (err, docs) ->
+      return unless checkErr(err, cb)
+      cb.doc docs
 
 module.exports = Db

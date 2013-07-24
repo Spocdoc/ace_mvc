@@ -6,25 +6,26 @@ async = require 'async'
 EventEmitter = require('events').EventEmitter
 
 readExterns = require './extern'
-makeReqs = require './reqs'
+makeMvc = require './mvc'
 makeLoader = require './loader'
 
 class Bundler extends BundlerBase
   _bundle: (cb) ->
     app = @settings.app
 
-    reqs =
-      'routes': @settings['routes']
-
     options = defaults {}, @settings
     globals = @settings.globals
     unless @settings.debug
       options.release = true
 
-    async.parallel
+    mvcOptions = defaults {}, options
+    loaderOptions = defaults {}, options
+    loaderOptions.expose = mvcOptions.requires = []
+
+    async.series
       externs: (done) -> readExterns done
-      requires: (done) -> makeReqs app, reqs, options, done
-      loader: (done) -> makeLoader app, globals, options, done
+      mvc: (done) -> makeMvc app, routes: @settings['routes'], mvcOptions, done
+      loader: (done) -> makeLoader app, globals, loaderOptions, done
       (err, obj) =>
         return cb(err) if err?
         @_bundleRelease obj unless @settings.debug
@@ -33,13 +34,13 @@ class Bundler extends BundlerBase
 
   _bundleRelease: (obj) ->
     prod = []
-    prod.push obj.externs.release, obj.requires.release, obj.loader.release
+    prod.push obj.externs.release, obj.loader.release, obj.mvc.release
     prod = prod.join('\n')
     @release = [prod]
     return
 
   _bundleDebug: (obj) ->
-    @debug = [obj.externs.debug, obj.requires.debug, obj.loader.debug]
+    @debug = [obj.externs.debug, obj.loader.debug, obj.mvc.debug]
     return
 
 module.exports = Bundler

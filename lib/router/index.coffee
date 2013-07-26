@@ -7,7 +7,7 @@ debug = global.debug 'ace:router'
 class Var
   constructor: (@outlet) ->
 
-class Router
+module.exports = class Router
   @getRoutes = (config) ->
     routes = []
     config['routes'] (args...) -> routes.push new Route args...
@@ -22,8 +22,6 @@ class Router
     @uriOutlets = {}
     @length = 0
 
-    (@routeSearch = new Outlet).addOutflow @uriFormatter = new Outlet
-
     @vars = new Var
 
     context = Object.create globals.app
@@ -32,11 +30,9 @@ class Router
       @[@length++] = route
       for varName of route.pathVarNames
         context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
-        outlet.addOutflow @routeSearch
-        outlet.addOutflow @uriFormatter
+        outlet.affectsPath = true
       for varName of route.otherVarNames
-        context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
-        outlet.addOutflow @uriFormatter
+        context[varName] = @uriOutlets[varName] ||= new Outlet undefined, context, true
 
     varOutlets = {}
     context['var'] = (path, value) =>
@@ -49,14 +45,22 @@ class Router
     if useNavigator
       @route url = (@navigator = navigator(@route, this)).url
 
+      @routeSearch = new Outlet
       @routeSearch.value = @current
       @routeSearch.func = (=>
         for r in this when r.matchOutlets @uriOutlets
           return @current = r)
 
-      @uriFormatter.value url.href
+      @uriFormatter = new Outlet
+      @uriFormatter.value = url.href
       @uriFormatter.func = (=> @current?.format @uriOutlets)
+
+      @routeSearch.addOutflow @uriFormatter
       @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
+
+      for varName, outlet of @uriOutlets
+        outlet.addOutflow @routeSearch if outlet.affectsPath
+        outlet.addOutflow @uriFormatter
 
     vars.call context
     Outlet.closeBlock()
@@ -72,5 +76,3 @@ class Router
     finally
       Outlet.closeBlock()
     debug "no match for #{url}"
-
-module.exports = Router

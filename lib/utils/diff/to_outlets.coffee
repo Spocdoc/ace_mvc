@@ -3,7 +3,7 @@
 clone = require '../clone'
 
 translate = (doc, registry) ->
-  return r.translate doc if r = registry?.find doc
+  return r.translate doc if doc && r = registry?.find doc
   clone doc
 
 setDescendants = (outlets, doc, registry) ->

@@ -29,30 +29,21 @@ ace = new Ace
     cookies:
       domain: '127.0.0.1'
       secure: false
+  mvc:
+    mediator_factory: path.resolve './app/mediator_factory'
+    host: '/tmp/mongodb-27017.sock'
+    db: 'test'
+    redis:
+      host: '/tmp/redis.sock'
+      port: 6379
+      options:
+        retry_max_delay: 30*1000
 
 ace.configure 'development', ->
   ace.set 'debug', true
-  ace.set 'mvc',
-    mediator: path.resolve './app/mediator'
-    host: '/tmp/mongodb-27017.sock'
-    db: 'test'
-    redis:
-      host: '/tmp/redis.sock'
-      port: 6379
-      options:
-        retry_max_delay: 30*1000
 
 ace.configure 'production', ->
   ace.set 'debug', false
-  ace.set 'mvc',
-    mediator: path.resolve './app/mediator'
-    host: '/tmp/mongodb-27017.sock'
-    db: 'test'
-    redis:
-      host: '/tmp/redis.sock'
-      port: 6379
-      options:
-        retry_max_delay: 30*1000
 
 app.use ace
 

@@ -1,9 +1,9 @@
 Db = require './db'
-OJSON = require '../../../utils/ojson'
 Listener = require '../../../utils/events/listener'
 {include} = require '../../../utils/mixin'
+MediatorServer = require './mediator_server'
 
-class Mediator
+module.exports = class MediatorClient extends MediatorServer
   include @, Listener
 
   constructor: (@db, @sock) ->
@@ -23,16 +23,7 @@ class Mediator
 
   isSubscribed: (coll, id) -> @isListening Db.channel coll, id
 
-  clientCreate: (coll, doc) ->
-    @doSubscribe coll, doc._id
-    @sock.emit 'create', coll, OJSON.toOJSON(doc)
-
   disconnect: -> @listenOff @db
-
-  cookies: (cookies) ->
-
-  create: (coll, doc, cb) ->
-    @db.create @origin, coll, doc, cb
 
   read: (coll, id, version, query, limit, sort, cb) ->
     proxy = Object.create cb
@@ -66,17 +57,3 @@ class Mediator
       cb.bulk reply
 
     @db.read @origin, coll, id, version, query, limit, sort, cb
-
-  update: (coll, id, version, ops, cb) ->
-    @db.update @origin, coll, id, version, ops, cb
-
-  delete: (coll, id, cb) ->
-    @db.delete @origin, coll, id, cb
-
-  run: (coll, id, version, cmd, args, cb) ->
-    cb.reject "unhandled"
-
-  distinct: (coll, query, key, cb) ->
-    @db.distinct @origin, coll, query, key, cb
-
-module.exports = Mediator

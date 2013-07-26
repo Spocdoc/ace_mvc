@@ -1,8 +1,9 @@
 Ace = require '../index'
-Cookies = require '../../utils/cookies'
-Outlet = require '../../outlet'
+Cookies = require '../../cookies'
+Outlet = require '../../utils/outlet'
 Router = require '../../router'
 debug = global.debug 'ace:error'
+ModelBase = require '../../mvc/model'
 
 module.exports = ->
 
@@ -13,12 +14,12 @@ module.exports = ->
       app:
         'cookies': cookies = new Cookies req, res
         'session': session = new Outlet
-        'Model': class Model extends require('../../mvc/model')
+        'Model': class Model extends ModelBase
       Template:
-        $container: $container
+        $root: $container
 
+    sock.emit 'cookies', cookies.toJSON(), ->
     Model.init globals, sock
-    sock.emit 'cookies', cookies.toJSON()
 
     try
       (router = new Router routes, vars, globals, false).route req.url

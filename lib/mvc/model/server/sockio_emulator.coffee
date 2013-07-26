@@ -5,40 +5,48 @@ OJSON = require '../../../utils/ojson'
 debug = global.debug 'ace:error'
 
 class Emitter
+  id: 0
   include @, require '../../../utils/events/emitter'
 
 # emulates the *client's* sock.io access
 class SockioEmulator
   constructor: (@db, Mediator) ->
     @emitter = new Emitter
-    @mediator = new Mediator @db,
-      id: 0
-      emit: (event, data) => @emitter.emit event, data
+    @mediator = new Mediator @db, @emitter
 
     @pending = 0
     @_idleCallbacks = []
 
-  emit: (name) ->
+  emit: (name, args...) ->
     Callback = callback[name.charAt(0).toUpperCase() + name[1..]]
+    cookies = name is 'cookies'
 
-    args = arguments[1..]
+    for arg, i in args when typeof arg is 'object'
+      args[i] = OJSON.fromOJSON arg
 
-    for argFn,iFn in args when typeof arg is 'function'
+    # separate loop to avoid having to create a do wrap just for the arg closure
+    for argFn,iFn in args when typeof argFn is 'function'
       ++@pending
+      @_cookiesQueue = [] if cookies
+
       args[iFn] = new Callback =>
         try
           argFn.apply null, arguments
         catch _error
           debug _error?.stack
         finally
+          if cookies
+            queue = @_cookiesQueue; @_cookiesQueue = null
+            @mediator[name].apply @mediator, args for {name,args} in queue
+
           unless --@pending
             cb() for cb in @_idleCallbacks
       break
 
-    for arg, i in args when typeof arg is 'object'
-      args[i] = OJSON.fromOJSON arg
-
-    @mediator[name].apply @mediator, args
+    if !cookies and queue = @_cookiesQueue
+      queue.push {name, args}
+    else
+      @mediator[name].apply @mediator, args
 
   on: (event, fn) -> @emitter.on event, fn
 

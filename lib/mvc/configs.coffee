@@ -3,7 +3,7 @@ class Configs
     @configs = Object.create null
     @mixins = Object.create null
 
-  add: (type, config) ->
+  add: (type, config={}) ->
     if typeof config is 'function'
       @mixins[type] && throw new Error("already added #{type}")
       @mixins[type] = config

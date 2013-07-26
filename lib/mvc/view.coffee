@@ -1,11 +1,12 @@
 Base = require './base'
 Template = require './template'
+Outlet = require '../utils/outlet'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
 
 configs = new (require('./configs'))
 
-module.exports = class View extends Base
+module.exports = class ViewBase extends Base
   @name = 'View'
 
   @add: (type, config) -> configs.add type, config
@@ -13,7 +14,6 @@ module.exports = class View extends Base
   @finish: ->
     configs.applyMixins()
 
-    ViewBase = View
     types = {}
     for type,config of configs.configs
       types[type] = class View extends ViewBase
@@ -36,7 +36,7 @@ module.exports = class View extends Base
     try
       @_buildOutlets()
       @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet false, this, true
-      @_buildTemplate settings['template'] || @_config['template'] || type, settings
+      @_buildTemplate settings['template'] || @_config['template'] || @_type, settings
       @_buildDollar()
       @_applyConstructors settings
       @_setOutlets settings
@@ -45,6 +45,8 @@ module.exports = class View extends Base
       Outlet.closeBlock()
 
     debugMvc "done building #{@}"
+
+  'View': ViewBase
 
   'insertAfter': ($elem) ->
     @remove()

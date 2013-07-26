@@ -8,6 +8,7 @@ OJSON = require '../../utils/ojson'
 Outlet = require '../../utils/outlet'
 Query = require './query'
 patchOutlets = diff.toOutlets
+makeIndex = require '../../utils/id'
 
 debug = global.debug 'ace:mvc'
 
@@ -81,7 +82,7 @@ module.exports = class Model
       model.serverDelete() if model = @[coll].models[id]
       return
 
-    for type, config of configs
+    for type, config of configs.configs
       @[type] = class Model extends @[type]
         @models: {}
         sock: sock
@@ -95,47 +96,43 @@ module.exports = class Model
 
         @prototype[k] = v for k,v of (@prototype.globals = globals).app
 
-    if json
-      for type, docs of obj
-        ids = []
-        versions = []
-        clazz = @[type]
-        for doc in docs when (new clazz doc._id, doc).canRead()
-          ids.push doc._id
-          versions.push doc._v
-        do (clazz) ->
-          sock.emit 'read', type, ids, versions, null, null, null, (code) ->
-            if typeof code is 'object'
-              Outlet.openBlock()
-              (model = clazz.models[id]).handleRead.apply model, arr for id, arr of code
-              Outlet.closeBlock()
-            return
-
     @['reread'] = ->
-      for type of configs
+      for type of configs.configs
         clazz = @[type]
         ids = []
         versions = []
+        docs = {}
+        i = 0
         for id, model of clazz.models when model.canRead()
-          ids.push model.id
-          versions.push model.clientDoc?._v || 0
-        do (clazz) ->
-          sock.emit 'read', type, ids, versions, null, null, null, (code) ->
-            if typeof code is 'object'
-              Outlet.openBlock()
-              (model = clazz.models[id]).handleRead.apply model, arr for id, arr of code
-              Outlet.closeBlock()
-            return
+          ids[i] = id
+          versions[i] = model.clientDoc?._v || 0
+          docs[id] = model.clientDoc
+          ++i
+        if ids[0]
+          do (clazz, docs) ->
+            sock.emit 'read', type, ids, versions, null, null, null, (code) ->
+              if typeof code is 'object'
+                Outlet.openBlock()
+                clazz.models[id].handleRead args[0], args[1], docs[id] for id, args of code
+                Outlet.closeBlock()
+              return
       return
+
+    if json
+      for type, allDocs of OJSON.fromOJSON json
+        new @[type] doc._id, doc for doc in allDocs
+      @['reread']()
+
     return
 
   @toJSON: ->
     docs = {}
     for type of configs.configs
-      models = docs[type] = []
+      models = []
       i = 0
       for id, model of @[type].models when serverDoc = model.serverDoc
         models[i++] = serverDoc
+      docs[type] = models if i
     OJSON.toOJSON docs
 
   @_applyStatic: (config) ->
@@ -170,33 +167,6 @@ module.exports = class Model
     (model = new this id).read() unless model = @models[id]
     model
 
-    type = @prototype.coll
-    sock = @prototype.sock
-
-    if typeof arg is 'string' or arg instanceof ObjectID
-      (model = @models[arg] = new this arg).read() unless model = @models[arg]
-      
-    else if Array.isArray arg
-      allVersions = arguments[1] || []
-      ids = []
-      versions = []
-      i = 0
-
-      for id,j in arg
-        if (@models[id] ||= new this id).canRead()
-          ids[i] = id
-          versions[i] = allVersions[j]
-          ++i
-
-      sock.emit 'read', type, ids, versions, null, null, null, (code) =>
-        if typeof code is 'object'
-          Outlet.openBlock()
-          (model = @models[id]).handleRead.apply model, arr for id, arr of code
-          Outlet.closeBlock()
-        return
-
-    model
-
   @isValidId: do ->
     regex = /^[0-9a-f]{24}$/
     (id) -> !!(''+id).match regex
@@ -213,7 +183,7 @@ module.exports = class Model
       id = new ObjectID id unless id instanceof ObjectID
     catch _error
 
-    @id = id
+    @id = id.toString()
 
     present = !!clientDoc
     @clientDoc = clientDoc || {}
@@ -231,7 +201,7 @@ module.exports = class Model
     @['error'] = @error = new Outlet ''
     @['conflict'] = @conflict = new Outlet false
 
-    debug "Building #{@}"
+    debug "Building #{@coll}[#{@}]"
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = null
     try
@@ -239,7 +209,7 @@ module.exports = class Model
     finally
       Outlet.auto = prev
       Outlet.closeBlock()
-    debug "done building #{@}"
+    debug "done building #{@coll}[#{@}]"
 
   create: ->
     return if @serverDoc
@@ -249,19 +219,20 @@ module.exports = class Model
     @clientDoc ||= '_id': id
     @clientDoc['_v'] ||= 1
     clientDoc = clone @clientDoc
-    @sock.emit 'create', @coll, OJSON.toOJSON(clientDoc), (code, msg) =>
+    @sock.emit 'create', @coll, OJSON.toOJSON(clientDoc), (code, arg1, arg2) =>
       Outlet.openBlock()
-      @handleCreate code, clientDoc, msg
+      @handleCreate code, clientDoc, arg1, arg2
       Outlet.closeBlock()
 
-  handleCreate: (code, doc, msg) ->
+  handleCreate: (code, doc, arg1, arg2) ->
     @_pending.set @_pending.value & ~CREATE_NOW
 
     if code is 'r'
-      @error.set msg || "can't create"
+      @error.set arg1 || "can't create"
     else
       @error.set ''
       @serverDoc = doc
+      @serverUpdate arg1, OJSON.fromOJSON(arg2) if code is 'u'
 
     @_loop()
     return
@@ -311,7 +282,7 @@ module.exports = class Model
 
     return if @clientDoc and @clientDoc['_v'] is newVersion
 
-    if @outgoing.length
+    if @outgoing[0]
       @_conflict()
     else
       @patchClient diff @clientDoc, @serverDoc
@@ -354,7 +325,7 @@ module.exports = class Model
       @_loop()
       return
 
-    @sock.emit 'update', @coll, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2, outgoing) =>
+    @sock.emit 'update', @coll, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2) =>
       Outlet.openBlock()
       @handleUpdate code, arg1, arg2, outgoing
       Outlet.closeBlock()
@@ -362,7 +333,7 @@ module.exports = class Model
 
   handleUpdate: (code, arg1, arg2, outgoing) ->
     if code is 'r'
-      if @outgoing.length
+      if @outgoing[0]
         outgoing.push @outgoing...
         @outgoing = outgoing
         @_update()
@@ -394,9 +365,9 @@ module.exports = class Model
     @_serverUpdate()
 
   _serverUpdate: ->
-    return if @_pending.value or @conflict.value
+    return if (@_pending.value & NOW) or @conflict.value
     ops = @patchServer()
-    if @outgoing
+    if @outgoing[0]
       @_conflict()
     else
       @patchClient ops
@@ -414,7 +385,7 @@ module.exports = class Model
   _conflict: ->
     @conflict.set true
     @outgoing = []
-    @runQueue.clear()
+    @runQueue?.clear()
     @_pending.set 0
     return
 
@@ -506,16 +477,12 @@ module.exports = class Model
     o = @_outlets ||= {}
     d = @clientDoc
 
-    # TODO strictly speaking this behavior of navigating transparently through a DBRef is inconsistent
     for p,i in path
-      d = d[p] ||= {}
-      if d instanceof DBRef
-        model = @Model[d.namespace].read d.oid
-        return model.get path[(i+1)..].concat(key).join('.')
+      d &&= d[p]
       o = o[p] ||= {}
 
     o = o[key] ||= {}
-    d = d[key]
+    d &&= d[key]
 
     unless o['_']
       if d instanceof DBRef
@@ -528,15 +495,16 @@ module.exports = class Model
 
       (@_pushers ||= []).push pusher = new Outlet
       pusher.func = (=>
-        if !@conflict.value and ops = diff(@clientDoc, outlet.value, path: path)
+        if @clientDoc and !@conflict.value and ops = diff(@clientDoc, outlet.value, path: path)
           @clientDoc = diff.patch @clientDoc, ops
 
           # update descendant outlets whose value may have changed because of this change
-          # patchOutlets @_outlets, ops, @clientDoc
+          patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
 
           @_clientOps.push ops...
-          pusher.modified()
-        return
+          makeIndex()
+        else
+          pusher.value
       )
 
       outlet.addOutflow pusher
@@ -544,4 +512,4 @@ module.exports = class Model
 
     o['_']
 
-  toString: -> "Model[#{@coll}][#{@id}][#{@clientDoc?['_v']}]"
+  toString: -> @id

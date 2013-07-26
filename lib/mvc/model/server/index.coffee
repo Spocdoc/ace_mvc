@@ -6,7 +6,9 @@ ObjectID = global.mongo.ObjectID
 DBRef = global.mongo.DBRef
 OJSON = require '../../../utils/ojson'
 diff = require '../../../utils/diff'
-Mediator = require './mediator'
+MediatorServer = require './mediator_server'
+MediatorClient = require './mediator_client'
+emptyFunction = ->
 
 db = undefined
 s = undefined
@@ -38,12 +40,15 @@ module.exports = (config, app) ->
 
   db = new Db(config, config.redis)
 
+  if makeMediator = config.mediator_factory && require(config.mediator_factory)
+    MediatorClient = makeMediator MediatorClient
+    MediatorServer = makeMediator MediatorServer
+
   # for server-side rendering
   global.io =
     connect: (path) ->
-      new SockioEmulator(db, (config.mediator && require config.mediator) || Mediator)
+      new SockioEmulator db, MediatorServer
 
-  s = sockio(db, config.redis, app.settings.server, (config.mediator && require config.mediator) || Mediator)
-
-
+  # socket remote clients connect to
+  s = sockio db, config.redis, app.settings.server, MediatorClient
 

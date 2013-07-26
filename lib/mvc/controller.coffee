@@ -1,11 +1,12 @@
 Base = require './base'
 View = require './view'
+Outlet = require '../utils/outlet'
 debugCascade = global.debug 'ace:cascade'
 debugMvc = global.debug 'ace:mvc'
 
 configs = new (require('./configs'))
 
-module.exports = class Controller extends Base
+module.exports = class ControllerBase extends Base
   @name = 'Controller'
 
   @add: (type, config) -> configs.add type, config
@@ -13,7 +14,6 @@ module.exports = class Controller extends Base
   @finish: ->
     configs.applyMixins()
 
-    ControllerBase = Controller
     types = {}
     for type,config of configs.configs
       types[type] = class Controller extends ControllerBase
@@ -35,7 +35,7 @@ module.exports = class Controller extends Base
     prev = Outlet.auto; Outlet.auto = null
     try
       @_buildOutlets()
-      @_buildView settings['view'] || @_config['view'] || type, settings
+      @_buildView settings['view'] || @_config['view'] || @_type, settings
       @_buildDollar()
       @_applyConstructors settings
       @_setOutlets settings
@@ -51,6 +51,9 @@ module.exports = class Controller extends Base
   'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
   'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
   'remove': -> @['view']['remove']()
+
+  'Controller': ControllerBase
+  'View': View
 
   _buildView: (arg, settings) ->
     if arg instanceof View

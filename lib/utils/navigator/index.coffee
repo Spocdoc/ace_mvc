@@ -2,17 +2,8 @@ Url = require '../url'
 debug = global.debug 'ace:navigator'
 
 class NavigatorUrl extends Url
-  hasHashPath: do ->
-    regex = /^#\//
-
-    (url=@) ->
-      if url.hash?
-        !!~url.hash.search(regex)
-      else
-        false
-
-  hasPath: (url=@) ->
-    url.path.length > 1
+  hasHashPath: -> @hash?.startsWith '#/'
+  hasPath: -> @path.length > 1
 
   hashPath: do ->
     regex = /^#(\/[^#]*)/
@@ -89,7 +80,7 @@ module.exports = (route, ctx) ->
     return
 
   useHash = !window.history || !window.history.pushState
-  useHash = true #TODO DEBUG
+  # useHash = true #TODO DEBUG
   navigator.url = new NavigatorUrl(window.location.href)
 
   replace navigator.url.stripHash() if navigator.url.hasHashPath()

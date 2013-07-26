@@ -1,6 +1,7 @@
 Ace = require '../index'
-Cookies = require '../../utils/cookies'
-router = require '../../router'
+Cookies = require '../../cookies'
+Outlet = require '../../utils/outlet'
+Router = require '../../router'
 
 module.exports = ->
 
@@ -18,7 +19,7 @@ module.exports = ->
       Template:
         $root: $container
 
+    sock.emit 'cookies', cookies.toJSON(), ->
     Model.init globals, sock, json
-    sock.emit 'cookies', cookies.toJSON()
 
     new Ace globals, new Router Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true

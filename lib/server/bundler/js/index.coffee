@@ -23,9 +23,9 @@ class Bundler extends BundlerBase
     loaderOptions.expose = mvcOptions.requires = []
 
     async.series
-      externs: (done) -> readExterns done
-      mvc: (done) -> makeMvc app, routes: @settings['routes'], mvcOptions, done
-      loader: (done) -> makeLoader app, globals, loaderOptions, done
+      externs: (done) => readExterns done
+      mvc: (done) => makeMvc app, routes: @settings['routes'], mvcOptions, done
+      loader: (done) => makeLoader app, globals, loaderOptions, done
       (err, obj) =>
         return cb(err) if err?
         @_bundleRelease obj unless @settings.debug

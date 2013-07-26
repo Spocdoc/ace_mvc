@@ -48,7 +48,6 @@ listApp = (ret, arr, root, pending, done, className) ->
     base = path.basename(file, extname)
     ext = extname[1..]
     type = arr.join('/')
-    reqPath = "#{root}/#{base}"
 
     continue unless base[0] isnt '.'
 
@@ -83,11 +82,11 @@ listApp = (ret, arr, root, pending, done, className) ->
     else if className
       type = formType type, base, 'index'
       debug "loaded #{className}\t\t #{type}"
-      ret[className][type] = reqPath
+      ret[className][type] = fullPath
 
     else if base in ['model','view','controller']
       debug "loaded #{base}\t\t #{type}"
-      ret[base][type] = reqPath
+      ret[base][type] = fullPath
 
 module.exports = do ->
   cache = {}

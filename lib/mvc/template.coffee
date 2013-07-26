@@ -2,46 +2,40 @@ $ = global.$
 debug = global.debug 'ace:mvc'
 utils = require './utils'
 
-class Config
-  constructor: (@dom, @_type) ->
+configs = new (require('./configs'))
 
-  lazy: ->
-    return if @$root
-    @$root = $(@dom)
-    if @$root.length > 1 or @$root.attr('id')? or @$root.attr('class')
-      @$root = $('<div></div>').append(@$root)
-    @ids = @constructor._getIds(@$root)
+getDomIds = do ->
+  helper = (ids, dom) ->
+    for child in dom.children()
+      child = $(child)
+      ids.push(id) if (id = child.attr('id'))?
+      helper(ids, child)
+    ids
 
-  @_getIds: do ->
-    helper = (ids, dom) ->
-      for child in dom.children()
-        child = $(child)
-        ids.push(id) if (id = child.attr('id'))?
-        helper(ids, child)
-      ids
+  (dom) -> helper [], dom
 
-    (dom) -> helper [], dom
-
-module.exports = class Template
+module.exports = class TemplateBase
   @name = 'Template'
 
-  @add: (type, domString) ->
-    throw new Error("Template: already added #{type}") if Config[type]?
-    Config[type] = new Config(domString, type)
-    return
+  @add: (type, domString) -> configs.add type, {domString}
 
   @finish: ->
-    TemplateBase = Template
-    for _type,_config of Config
-      TemplateBase[_type] = class Template extends TemplateBase
+    types = {}
+    for type,config of configs.configs
+      types[type] = class Template extends TemplateBase
         _type: type
-        _config: _config
+        _config: config
+    TemplateBase[k] = v for k,v of types
     return
 
   constructor: (@_parent, @_name) ->
     debug "Building #{@}"
 
-    (config = @_config).lazy()
+    unless (config = @_config).$root
+      $root = config.$root = $(config.domString)
+      if $root.length > 1 or $root.attr('id')? or $root.attr('class')
+        $root = config.$root = $('<div></div>').append($root)
+      config.ids = getDomIds $root
 
     path = []
     elem = this
@@ -57,7 +51,7 @@ module.exports = class Template
     prev = bootstrapped[@_prefix]
     bootstrapped[@_prefix] = true
 
-    unless !prev && (@['$root'] = @$['root'] = globals.$container.find("##{@_prefix}")).length
+    unless !prev && (@['$root'] = @$['root'] = globals.$root.find("##{@_prefix}")).length
       debug "Not bootstrapping template with prefix #{@_prefix}"
       @$['root'] = @['$root'] = config.$root.clone()
       @['$root'].attr('id',@_prefix)

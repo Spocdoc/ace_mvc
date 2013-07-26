@@ -20,8 +20,11 @@ module.exports = class Outlet
     return
 
   @closeBlock: ->
-    unless --Outlet.roots.depth
-      outlet._runSource() for outlet in Outlet.roots.splice(0)
+    unless --(roots = Outlet.roots).depth
+      ++roots.depth
+      `for (var i = 0, len = 0; (i < len) || (i < (len = roots.length)); ++i) roots[i]._runSource();`
+      --roots.depth
+      roots.length = 0
     return
 
   toString: -> @index
@@ -40,9 +43,10 @@ module.exports = class Outlet
     @value = value; @version = version
     Outlet.openBlock()
     equiv._setValue value, version for index, equiv of @equivalents
-    for index, outflow of @outflows when !outflow.pending
-      outflow._setPendingTrue()
+    for index, outflow of @outflows when !outflow.root
+      outflow.root = true
       Outlet.roots.push outflow
+      outflow._setPendingTrue()
     Outlet.closeBlock()
     return
 
@@ -60,6 +64,7 @@ module.exports = class Outlet
     context && @context = context
     @funcArgOutlets = []
     (@funcArgOutlets[i] = @context[name]).addOutflow this for name,i in argNames func
+    @root = true
     @_setPendingTrue()
     if Outlet.roots.depth
       Outlet.roots.push this
@@ -105,21 +110,16 @@ module.exports = class Outlet
     delete @equivalents[outlet]
     delete outlet.equivalents[this]
     if @pending
-      unless outlet._shouldPend()
+      unless outlet._shouldPend({})
         outlet._setPendingFalse()
-      else unless @_shouldPend()
+      else unless @_shouldPend({})
         @_setPendingFalse()
     return
 
-  equivalenceSet: (set) ->
-    unless set[this]
-      set[this] = 1
-      outlet.equivalenceSet set for index, outlet of @equivalents
-    return
-  
-  _shouldPend: ->
-    @equivalenceSet set = []
-    for index, outlet of set when outlet.changing.length or outlet in Outlet.roots
+  _shouldPend: (visited) ->
+    return true if @changing.length or @root
+    visited[this] = 1
+    for index, outlet of @equivalents when !visited[index] and outlet._shouldPend(visited)
       return true
     false
 
@@ -127,17 +127,20 @@ module.exports = class Outlet
     @changing[source] = ++@changing.length if source and !@changing[source]
     unless @pending
       @pending = true
-      equiv._setPendingTrue() for index, equiv of @equivalents
+      except = @funcOutlet if @changing.length or @root
+      equiv._setPendingTrue() for index, equiv of @equivalents when equiv isnt except
       outflow._setPendingTrue(this) for index, outflow of @outflows
     return
 
   _setPendingFalse: (source) ->
-    if source
-      if @changing[source]
+    if source and @changing[source]
         delete @changing[source]
         --@changing.length
-      return if @changing.length
-    if @pending
+    return if !@pending or @root or @changing.length
+    if source and outlet = @funcOutlet
+      unless outlet.pending
+        @_setFuncValue outlet.value, outlet.version
+    else
       @pending = false
       equiv._setPendingFalse() for index, equiv of @equivalents
       outflow._setPendingFalse(this) for index, outflow of @outflows
@@ -147,6 +150,8 @@ module.exports = class Outlet
     if source and @changing[source]
       delete @changing[source]
       --@changing.length
+    else
+      @root = false
     return unless @pending and !@changing.length
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto
@@ -164,7 +169,7 @@ module.exports = class Outlet
       Outlet.auto = prev
       Outlet.closeBlock()
     if outlet = @funcOutlet
-      return @_setPendingFalse() if value is outlet
+      return outlet.pending or @_setFuncValue outlet.value, outlet.version if value is outlet
       delete @equivalents[outlet]
       delete outlet.equivalents[this]
       delete @funcOutlet
@@ -173,9 +178,9 @@ module.exports = class Outlet
       value.equivalents[this] = this
       @funcOutlet = value
       return if value.pending
+      version = value.version
       value = value.value
-    @_setFuncValue value
-    outlet?._setPendingFalse()
+    @_setFuncValue value, version
     return
 
   _runFunc: ->
@@ -184,8 +189,9 @@ module.exports = class Outlet
       @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
     @func.apply @context, @funcArgs
 
-  _setFuncValue: (value) ->
-    if @value is value
+  _setFuncValue: (value, version) ->
+    return if @root or @changing.length
+    if @value is value and @version is version
       @_setPendingFalse()
     else
       @pending = false

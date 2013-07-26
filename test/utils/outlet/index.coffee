@@ -1,6 +1,6 @@
 Outlet = lib 'index'
 
-describe.only 'Outlet', ->
+describe 'Outlet', ->
   describe 'values', ->
     it 'should have initial value', ->
       a = new Outlet 42

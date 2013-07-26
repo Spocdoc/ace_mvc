@@ -5,6 +5,7 @@ express = require 'express'
 Url = require '../utils/url'
 OJSON = require '../utils/ojson'
 quote = require '../utils/quote'
+Ace = undefined
 
 # express sets route, parent
 class App
@@ -14,9 +15,12 @@ class App
     extend @settings, settings
 
   boot: (cb) ->
+    Ace = require '../ace'
     app = @settings.app
 
-    require('../mvc/template').add name, dom for name, dom of app['template']
+    Template = require('../mvc/template')
+    Template.add name, dom for name, dom of app['template']
+    Template.finish()
 
     for type in ['model','view','controller']
       clazz = require("../mvc/#{type}")
@@ -30,7 +34,7 @@ class App
 
     ### original wrongPage code
     var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
-    window['wrongPage'] = window.location.hash.match(/^#\\d+(.*)/);
+    window['wrongPage'] = window.location.hash.lastIndexOf('#/',0) == 0;
     if (window['wrongPage'] && window['wrongPage'][1] === window.location.pathname) window['wrongPage'] = false;
     a && (window['wrongPage'] && b) && (document.location.href = window['wrongPage'][1]);
     ###
@@ -40,7 +44,9 @@ class App
     <head>
     <title></title>
     <script type="text/javascript">
-    (function () {var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1);window.wrongPage=window.location.hash.match(/^#\\d+(.*)/);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);})();
+    (function (){
+      var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1);window.wrongPage=0==window.location.hash.lastIndexOf("#/",0);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);
+    }());
     </script>
     </head>
     <body></body>
@@ -56,7 +62,6 @@ class App
     cb()
 
   handle: (req, res, next) ->
-    Ace = require '../ace'
     $html = @$html.clone()
     $body = $html.find 'body'
     $head = $html.find 'head'

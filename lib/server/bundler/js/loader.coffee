@@ -3,6 +3,7 @@ path = require 'path'
 lib = path.resolve __dirname, '../../../'
 async = require 'async'
 closurify = require 'closurify'
+fs = require 'fs'
 
 quote = require '../../../utils/quote'
 
@@ -46,6 +47,7 @@ module.exports = makeLoader = (app, globals, options, cb) ->
       # build templates
       for name, dom of app['template']
         script.push "Template.add(#{quote(name)}, #{quote(dom)});"
+      script.push "Template.finish();"
 
       # build mvc
       mvc = []

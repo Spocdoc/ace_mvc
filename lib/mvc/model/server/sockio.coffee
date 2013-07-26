@@ -4,6 +4,7 @@ redis = require 'redis'
 RedisStore = require 'socket.io/lib/stores/redis'
 Db = require './db'
 callback = require './callback'
+debug = global.debug 'ace:error'
 
 # called with this = sock
 
@@ -38,15 +39,43 @@ module.exports = (db, redisInfo, server, Mediator) ->
 
   io.on 'connection', (sock) ->
     sock.mediator = mediator = new Mediator db, sock
-    for name of ['disconnect', 'cookies', 'create', 'read', 'update', 'delete', 'run', 'distinct']
+    cookiesQueue = null
+
+    sock.on 'cookies', ->
+      args = Array.apply null, arguments
+
+      for arg, i in args when typeof arg is 'object'
+        args[i] = OJSON.fromOJSON arg
+
+      for argFn,iFn in args when typeof argFn is 'function'
+        cookiesQueue = []
+
+        args[iFn] = new callback.Cookies ->
+          try
+            argFn.apply null, arguments
+          catch _error
+            debug _error?.stack
+          finally
+            queue = cookiesQueue; cookiesQueue = null
+            mediator[name].apply mediator, args for {name,args} in queue
+
+        break
+
+      mediator['cookies'].apply mediator, args
+
+    for name in ['disconnect', 'create', 'read', 'update', 'delete', 'run', 'distinct']
       Callback = callback[name.charAt(0).toUpperCase() + name[1..]]
       do (name, Callback) ->
         sock.on name, ->
-          for arg,i in arguments
+          args = Array.apply null, arguments
+          for arg,i in args
             switch typeof arg
-              when 'object' then arguments[i] = OJSON.fromOJSON arg
-              when 'function' then arguments[i] = new Callback arguments[i]
-          mediator[name].apply mediator, arguments
+              when 'object' then args[i] = OJSON.fromOJSON arg
+              when 'function' then args[i] = new Callback arg
+          if cookiesQueue
+            cookiesQueue.push {name,args}
+          else
+            mediator[name].apply mediator, args
     return
 
   io

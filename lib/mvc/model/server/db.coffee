@@ -92,6 +92,7 @@ class Db extends Mongo
         ok = callback.Read.ok()
         reject = callback.Read.reject()
         for docId, i in id
+          return unless id[i] = replaceId docId, cb
           reply[docId] = reject
           versions[docId] = version[i]
 
@@ -110,7 +111,7 @@ class Db extends Mongo
             if fullDocs.length
               @run 'find', coll, {'_id': '$in': fullDocs}, next
             else
-              next()
+              next null, []
           (docs, next) =>
             reply[doc._id] = callback.Read.doc doc for doc in docs
             cb.bulk reply

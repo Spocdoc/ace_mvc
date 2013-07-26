@@ -2,17 +2,16 @@
 makeIndex = require '../id'
 debugError = global.debug 'ace:error'
 
-class Outlet
+module.exports = class Outlet
   (@roots = []).depth = 0
 
   constructor: (value, @context, auto) ->
     @auto = if auto then this else null
     @index = makeIndex()
 
-    # these are all sparse arrays
-    @equivalents = []
-    @changing = []
-    @outflows = []
+    @equivalents = {}
+    (@changing = {}).length = 0
+    @outflows = {}
 
     @set value
 
@@ -101,7 +100,6 @@ class Outlet
       outflow._setPendingFalse this if @pending
     return
 
-
   unset: (outlet) ->
     return unless @equivalents[outlet]
     delete @equivalents[outlet]
@@ -126,7 +124,7 @@ class Outlet
     false
 
   _setPendingTrue: (source) ->
-    @changing[source] = 1 if source
+    @changing[source] = ++@changing.length if source and !@changing[source]
     unless @pending
       @pending = true
       equiv._setPendingTrue() for index, equiv of @equivalents
@@ -135,7 +133,9 @@ class Outlet
 
   _setPendingFalse: (source) ->
     if source
-      delete @changing[source]
+      if @changing[source]
+        delete @changing[source]
+        --@changing.length
       return if @changing.length
     if @pending
       @pending = false
@@ -144,7 +144,9 @@ class Outlet
     return
 
   _runSource: (source) ->
-    delete @changing[source] if source
+    if source and @changing[source]
+      delete @changing[source]
+      --@changing.length
     return unless @pending and !@changing.length
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto
@@ -178,7 +180,8 @@ class Outlet
 
   _runFunc: ->
     @funcArgs ||= []
-    @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
+    if @funcArgOutlets
+      @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
     @func.apply @context, @funcArgs
 
   _setFuncValue: (value) ->
@@ -190,5 +193,3 @@ class Outlet
       equiv._setFuncValue value for index, equiv of @equivalents
       outflow._runSource this for index, outflow of @outflows
     return
-
-module.exports = Outlet

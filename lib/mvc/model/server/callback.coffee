@@ -60,3 +60,12 @@ for type, methodNames of replies
         @cb.apply null, clazz[name].apply(null, arguments)
         @cb = undefined
         return
+
+# Read.doc has to be treated separately -- the database can call doc with an array full documents but we only want to send arrays of document ids over the wire
+module.exports.Read.prototype.doc = (docs) ->
+  if Array.isArray docs
+    newDocs = []
+    newDocs[i] = doc._id.toString() for doc,i in docs
+    docs = newDocs
+  @cb.apply null, methods.doc(docs)
+  @cb = undefined

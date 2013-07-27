@@ -42,7 +42,7 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, OJSON.toOJSON(@spec), @limit.value, @sort.value, (code, docs) =>
+    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, OJSON.toOJSON(@_spec), @limit.value, @sort.value, (code, docs) =>
       pending = false
       Outlet.openBlock()
       if code is 'd'
@@ -105,7 +105,7 @@ module.exports = class Query
     inverted = false
     math = undefined
 
-    obj = @spec
+    obj = @_spec
     for k in path
       inverted ||= k in ['$not','$nin','$nor','$ne']
       math = k if k in ['$gte','$lte','$gt','$lt']
@@ -147,7 +147,7 @@ module.exports = class Query
       unless pending
         pending = true
         serverVersion = @_clientVersion
-        @Model.prototype.sock.emit 'distinct', @Model.prototype.coll, OJSON.toOJSON(@spec), key, (code, docs) =>
+        @Model.prototype.sock.emit 'distinct', @Model.prototype.coll, OJSON.toOJSON(@_spec), key, (code, docs) =>
           pending = false
           outlet.set if code is 'd' then docs else empty
           distinctUpdater() unless serverVersion is @_clientVersion

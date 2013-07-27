@@ -171,7 +171,7 @@ class Db extends Mongo
         return cb.conflict doc['_v'] unless version is (doc['_v'] ? 1)
 
         orig = clone doc
-        to = diff.patch(to = doc, ops)
+        to = diff.patch(doc, ops)
         doc = orig
 
         if cb.validate?

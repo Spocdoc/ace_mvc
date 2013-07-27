@@ -103,39 +103,48 @@ fromArray = (res, ops, to, prefix) ->
 
 tomongo = (res, ops, to, prefix) ->
   for op in ops
-    k = op['k']
-    sk = (if prefix then prefix+'.' else '') + k
+    if k = op['k']
+      sk = (if prefix then prefix+'.' else '') + k
 
-    t = to
-    s = k.split '.'
-    `for (var j=0, je = s.length-1; j < je; ++j) t = t[s[j]];`
-    k = s[s.length-1]
+      t = to
+      s = k.split '.'
+      `for (var j=0, je = s.length-1; j < je; ++j) t = t[s[j]];`
+      k = s[s.length-1]
 
-    switch op['o']
-      when 1
-        set(res, sk, t[k])
-      when -1
-        return undefined unless k?
-        unset(res, sk)
-      else
-        switch typeof t[k]
-          when 'string'
-            set(res, sk, t[k])
-          when 'number'
-            if typeof (d = op['d']) is 'number'
+      switch op['o']
+        when 1
+          set(res, sk, t[k])
+        when -1
+          return undefined unless k?
+          unset(res, sk)
+        else
+          switch typeof t[k]
+            when 'string'
               set(res, sk, t[k])
-            else
-              v = +d.substr(1)
-              switch d[0]
-                when 'd' then inc(res, sk, v)
-                when 'o' then bitOr(res, sk, v)
-                when 'a' then bitAnd(res, sk, v)
-          else
-            if Array.isArray(t[k])
-              unless fromArray(res, op['d'], t[k], sk)
+            when 'number'
+              if typeof (d = op['d']) is 'number'
                 set(res, sk, t[k])
+              else
+                v = +d.substr(1)
+                switch d[0]
+                  when 'd' then inc(res, sk, v)
+                  when 'o' then bitOr(res, sk, v)
+                  when 'a' then bitAnd(res, sk, v)
             else
-              tomongo(res, op['d'], t[k], sk)
+              if Array.isArray(t[k])
+                unless fromArray(res, op['d'], t[k], sk)
+                  set(res, sk, t[k])
+              else
+                tomongo(res, op['d'], t[k], sk)
+    else
+      switch op['o']
+        when -1
+          unset(res, prefix)
+        when 1
+          set(res, prefix, op['v'])
+        else
+          tomongo(res, op['d'], to, prefix)
+
   return
 
 module.exports = (ops, to) ->

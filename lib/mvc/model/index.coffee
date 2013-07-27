@@ -173,7 +173,7 @@ module.exports = class Model
 
   constructor: (id, clientDoc) ->
     # this is for patching the serverDoc with DBRefs instead of models. clone calls it
-    return new DBRef @coll, id.id if id instanceof @constructor
+    return new DBRef @coll, new ObjectID(id.id) if id instanceof @constructor
 
     models = @constructor.models
     return model if model = models[id]

@@ -42,6 +42,8 @@ module.exports = (db, redisInfo, server, Mediator) ->
     cookiesQueue = null
 
     sock.on 'cookies', ->
+      return if cookiesQueue
+
       args = Array.apply null, arguments
 
       for arg, i in args when typeof arg is 'object'

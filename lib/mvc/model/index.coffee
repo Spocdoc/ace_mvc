@@ -290,7 +290,8 @@ module.exports = class Model
 
   patchClient: (ops) ->
     @clientDoc = diff.patch @clientDoc, ops
-    @present.set !!@clientDoc
+    @clientDoc['_v'] = @serverDoc['_v'] if present = !!@clientDoc
+    @present.set present
     if @_outlets
       Outlet.openBlock()
       patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
@@ -421,14 +422,16 @@ module.exports = class Model
 
   serverDelete: ->
     delete @serverDoc
-    @_pending.set @_pending.value & NOW
     @['reset']()
     return
 
-  'run': (name, args, cb) ->
-    return if @conflict.value or !@serverDoc
+  'run': (name, arg, cb) ->
+    return if @conflict.value
+    if typeof arg is 'function'
+      cb = arg
+      arg = null
     @runQueue ||= queue()
-    @runQueue [name, args, cb] if name
+    @runQueue [name, arg, cb] if name
     return @_pending.set pending | RUN_LATER if (pending = @_pending.value) & NOW
     @_pending.set pending | RUN_NOW
     @_run()
@@ -439,9 +442,9 @@ module.exports = class Model
       @_loop()
       return
 
-    [cmd, args, cb] = arr
+    [cmd, arg, cb] = arr
 
-    @sock.emit 'run', @coll, @id, @serverDoc['_v'], cmd, OJSON.toOJSON(args), (code) =>
+    @sock.emit 'run', @coll, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
       cb.apply this, arguments
       @_run()
       return

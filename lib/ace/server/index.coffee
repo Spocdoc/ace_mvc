@@ -13,7 +13,7 @@ module.exports = ->
     globals =
       app:
         'cookies': cookies = new Cookies req, res
-        'session': session = new Outlet
+        'session': session = new Outlet undefined, undefined, true
         'Model': class Model extends ModelBase
       Template:
         $root: $container

@@ -11,7 +11,7 @@ diff = (from, to, options = {}, key) ->
   return false if from is to
 
   # cumbersome because typeof null is "object"
-  if typeof from isnt typeof to or from is null or to is null
+  if typeof from isnt typeof to or !from? or !to?
     spec = {}
     if key?
       spec['k'] = key
@@ -39,7 +39,7 @@ diff = (from, to, options = {}, key) ->
     d
 
 patch = (obj, ops, options) ->
-  return false unless r = registry.find obj
+  return false unless r = registry.find(if obj? then obj else Object)
   r.patch obj, ops, options
 
 module.exports = ret = (from, to, options = {}) ->

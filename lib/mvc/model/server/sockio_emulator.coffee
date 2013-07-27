@@ -25,11 +25,11 @@ class SockioEmulator
       args[i] = OJSON.fromOJSON arg
 
     # separate loop to avoid having to create a do wrap just for the arg closure
-    for argFn,iFn in args when typeof argFn is 'function'
+    for argFn,i in args when typeof argFn is 'function'
       ++@pending
       @_cookiesQueue = [] if cookies
 
-      args[iFn] = new Callback =>
+      args[i] = new Callback =>
         try
           argFn.apply null, arguments
         catch _error

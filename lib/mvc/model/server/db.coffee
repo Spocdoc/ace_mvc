@@ -56,11 +56,11 @@ class Db extends Mongo
 
     @sub.on 'message', (channel, str) =>
       # use JSON, not OJSON, to avoid re-converting
-      args = JSON.parse message
+      args = JSON.parse str
       @emit channel, args
 
       # remove subscription if a deletion
-      if data[1] is 'delete' and @_emitter and @_emitter[channel]
+      if args[1] is 'delete' and @_emitter and @_emitter[channel]
         @sub.unsubscribe channel
         delete @_emitter[channel]
 
@@ -196,11 +196,11 @@ class Db extends Mongo
 
         if moreOps
           cb.update version+1, moreOps
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version,[]])
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version+1,ops])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version,[]])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version+1,ops])
         else
           cb.ok()
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id,version,ops])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version,ops])
 
     ], (err) -> cb.reject err.message if err?
 
@@ -213,7 +213,7 @@ class Db extends Mongo
     @run 'remove', coll, {_id: id}, (err) =>
       return unless checkErr(err, cb)
       cb.ok()
-      @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'delete',coll,id])
+      @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'delete',coll,id.toString()])
       return
     return
 

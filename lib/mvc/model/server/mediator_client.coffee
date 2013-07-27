@@ -1,29 +1,26 @@
 Db = require './db'
 Listener = require '../../../utils/events/listener'
-{include} = require '../../../utils/mixin'
+{extend} = require '../../../utils/mixin'
 MediatorServer = require './mediator_server'
 
 module.exports = class MediatorClient extends MediatorServer
-  include @, Listener
-
   constructor: (@db, @sock) ->
     @origin = @sock.id
+    extend sock, Listener unless sock.listenOn
 
   doSubscribe: (coll, id) ->
-    unless already = @isListening @db, channel=Db.channel(coll,id)
-      @listenOn @db, channel, @onevent
+    unless already = @sock.isListening @db, channel=Db.channel(coll,id)
+      @sock.listenOn @db, channel, (args) =>
+        return if args[0] == @origin
+        @sock.emit.apply @sock, args[1..]
     !already
 
   doUnsubscribe: (coll, id) ->
-    @listenOff @db, Db.channel(coll,id)
+    @sock.listenOff @db, Db.channel(coll,id)
 
-  onevent: (args) ->
-    return if args[0] == @origin
-    @sock.emit.apply @sock, args[1..]
+  isSubscribed: (coll, id) -> @sock.isListening Db.channel coll, id
 
-  isSubscribed: (coll, id) -> @isListening Db.channel coll, id
-
-  disconnect: -> @listenOff @db
+  disconnect: -> @sock.listenOff @db
 
   read: (coll, id, version, query, limit, sort, cb) ->
     proxy = Object.create cb
@@ -56,4 +53,4 @@ module.exports = class MediatorClient extends MediatorServer
           @doSubscribe coll, id
       cb.bulk reply
 
-    @db.read @origin, coll, id, version, query, limit, sort, cb
+    @dbRead coll, id, version, query, limit, sort, proxy

@@ -13,8 +13,8 @@ module.exports = ->
 
     globals =
       app:
-        'cookies': cookies = new Cookies
-        'session': new Outlet
+        'cookies': cookies = new Cookies sock
+        'session': session = new Outlet undefined, undefined, true
         'Model': class Model extends require('../../mvc/model')
       Template:
         $root: $container

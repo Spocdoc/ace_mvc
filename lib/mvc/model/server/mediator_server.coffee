@@ -11,12 +11,8 @@ module.exports = class MediatorServer
   @prototype[empty] = emptyFunc for empty in [
     'doSubscribe'
     'doUnsubscribe'
-    'onevent'
     'isSubscribed'
     'disconnect'
-    'listenOn'
-    'listenOff'
-    'listening'
   ]
 
   clientCreate: (coll, doc) ->
@@ -29,4 +25,4 @@ module.exports = class MediatorServer
 
   for method in ['create','read','update','delete','distinct']
     do (method) =>
-      @prototype[method] = -> @db[method].apply @db, [@origin, arguments...]
+      @prototype['db' + method[0].toUpperCase() + method[1..]] = @prototype[method] = -> @db[method].apply @db, [@origin, arguments...]

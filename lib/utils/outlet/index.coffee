@@ -75,7 +75,7 @@ module.exports = class Outlet
   modified: -> @set @value, makeIndex()
 
   get: ->
-    if out = Outlet.auto
+    if (out = Outlet.auto) and this != out
       a = out._autoInflows ||= {}
       if a[this]?
         a[this] = 1
@@ -150,8 +150,8 @@ module.exports = class Outlet
     if source and @changing[source]
       delete @changing[source]
       --@changing.length
-    else
-      @root = false
+      return if @root
+    @root = false
     return unless @pending and !@changing.length
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto

@@ -76,7 +76,7 @@ module.exports = (route, ctx) ->
 
       if newUrl.href isnt navigator.url.href
         debug "Got url change from #{navigator.url} to #{newUrl}"
-        route.call ctx, navigator.url.href
+        route.call ctx, (navigator.url = newUrl).href
     return
 
   useHash = !window.history || !window.history.pushState

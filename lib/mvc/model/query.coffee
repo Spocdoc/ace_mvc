@@ -12,7 +12,12 @@ arrayIsSubset = (sup, sub) ->
   }`
   j is sub.length
 
+CACHE_READ = 1
+CACHE_WRITE = 2
+
 module.exports = class Query
+  @useCache = 0
+
   constructor: (@Model, @_spec={}, limit, sort) ->
     @['limit'] = @limit = new Outlet limit || 20
     @['sort'] = @sort = new Outlet sort
@@ -20,8 +25,12 @@ module.exports = class Query
     @['error'] = @error = new Outlet
     @['results'] = @results = new Outlet []
 
+    @_useCache() if Query.useCache & CACHE_READ
+
     @_clientVersion = 0
     @_updater = new Outlet =>
+      @_useCache() if Query.useCache
+
       if @limit.value < 1
         @_updateResults [] if @results.value.length
         delete @_func
@@ -37,6 +46,14 @@ module.exports = class Query
                 @_update()
         @_updateResults results if results
       return makeId() # to trigger the 'distinct' calls
+
+  _useCache: ->
+    @_hash = OJSON.stringify @_spec
+    if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]
+      results = []
+      results[i] = @Model.read id for id, i in ids
+      @_updateResults results
+    return
 
   _update: ->
     @pending.set true
@@ -81,6 +98,11 @@ module.exports = class Query
     results
 
   _updateResults: (results) ->
+    if Query.useCache & CACHE_WRITE
+      idResults = []
+      idResults[i] = model.id for model,i in results
+      @Model.queryCache[@_hash] = idResults
+
     Outlet.openBlock()
     @results.set results
     outlet.set results[i] for i, outlet of @_peggedResults

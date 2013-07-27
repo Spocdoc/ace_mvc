@@ -8,12 +8,14 @@ OJSON = require '../../../utils/ojson'
 diff = require '../../../utils/diff'
 MediatorServer = require './mediator_server'
 MediatorClient = require './mediator_client'
+Query = require '../query'
 emptyFunction = ->
 
 db = undefined
 s = undefined
 
 module.exports = (config, app) ->
+  Query.useCache = 2
 
   OJSON.register 'ObjectID': ObjectID
   clone.register ObjectID, (other) -> new ObjectID(other.toString())

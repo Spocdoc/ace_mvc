@@ -67,10 +67,7 @@ module.exports = class Model
 
     sock.on 'create', (coll, doc) =>
       doc = OJSON.fromOJSON doc
-      if model = @[coll].models[doc._id]
-        model.serverCreate doc
-      else
-        new @[coll] doc._id, doc
+      (@[coll].models[doc._id] || new @[coll] doc._id).serverCreate doc
       return
 
     sock.on 'update', (coll, id, version, ops) =>
@@ -85,6 +82,7 @@ module.exports = class Model
     for type, config of configs.configs
       @[type] = class Model extends @[type]
         @models: {}
+        @queryCache: {}
         sock: sock
 
         Model: _this
@@ -119,20 +117,31 @@ module.exports = class Model
       return
 
     if json
-      for type, allDocs of OJSON.fromOJSON json
-        new @[type] doc._id, doc for doc in allDocs
+      for type, obj of OJSON.fromOJSON json
+        new @[type] doc._id, doc for doc in obj['m']
+        @[type].queryCache[hash] = results for hash, results of obj['q']
       @['reread']()
 
+    return
+
+  @clearQueryCache: ->
+    @[type].queryCache = {} for type of configs.configs
+    Query.useCache = 0
     return
 
   @toJSON: ->
     docs = {}
     for type of configs.configs
-      models = []
-      i = 0
-      for id, model of @[type].models when serverDoc = model.serverDoc
-        models[i++] = serverDoc
-      docs[type] = models if i
+      models = []; i = 0
+      models[i++] = serverDoc for id, model of @[type].models when serverDoc = model.serverDoc
+
+      queryCache = {}
+      (queryCache[hash] = results; ++i) for hash, results of @[type].queryCache when results.length
+
+      if i
+        docs[type] =
+          'm': models
+          'q': queryCache
     OJSON.toOJSON docs
 
   @_applyStatic: (config) ->

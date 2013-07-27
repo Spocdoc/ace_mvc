@@ -106,7 +106,7 @@ module.exports = class Model
         for id, model of clazz.models when model.canRead()
           ids[i] = id
           versions[i] = model.clientDoc?._v || 0
-          docs[id] = model.clientDoc
+          docs[id] = clone model.clientDoc
           ++i
         if ids[0]
           do (clazz, docs) ->

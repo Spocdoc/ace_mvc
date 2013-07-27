@@ -27,7 +27,7 @@ module.exports = class MediatorClient extends MediatorServer
 
     proxy.doc = (docs) =>
       if Array.isArray docs
-        @clientCreate coll, doc for doc,i in docs when @doSubscribe coll, doc._id
+        @clientCreate coll, doc for doc in docs when @doSubscribe coll, doc._id
       else
         @doSubscribe coll, id
 

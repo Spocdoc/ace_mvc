@@ -26,3 +26,13 @@ module.exports = class MediatorServer
   for method in ['create','read','update','delete','distinct']
     do (method) =>
       @prototype['db' + method[0].toUpperCase() + method[1..]] = @prototype[method] = -> @db[method].apply @db, [@origin, arguments...]
+
+
+  read: (coll, id, version, query, limit, sort, cb) ->
+    proxy = Object.create cb
+
+    proxy.doc = (docs) =>
+      @clientCreate coll, doc for doc in docs if Array.isArray docs
+      cb.doc docs
+
+    @dbRead coll, id, version, query, limit, sort, proxy

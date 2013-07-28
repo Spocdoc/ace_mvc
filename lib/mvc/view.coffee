@@ -50,41 +50,44 @@ module.exports = class ViewBase extends Base
 
   'insertAfter': ($elem) ->
     @remove()
-    $container = $elem.parent()
-    debugDom "insert #{@} after #{$elem}"
-    @$container = $container
-    $elem.after(@['$root'])
-    @_setInWindow $container
+    @$container = $elem.parent()
+    unless @['ace']['booting'] and @['template']['bootstrapped']
+      debugDom "insert #{@} after #{$elem}"
+      $elem.after(@['$root'])
+    @_setInWindow @$container
 
   'insertBefore': ($elem) ->
     @remove()
-    $container = $elem.parent()
-    debugDom "insert #{@} before #{$elem}"
-    @$container = $container
-    $elem.before(@['$root'])
-    @_setInWindow $container
+    @$container = $elem.parent()
+    unless @['ace']['booting'] and @['template']['bootstrapped']
+      debugDom "insert #{@} before #{$elem}"
+      $elem.before(@['$root'])
+    @_setInWindow @$container
 
   'prependTo': ($container) ->
     @remove()
-    debugDom "prepend #{@} to #{$container}"
     @$container = $container
-    $container.prepend(@['$root'])
+    unless @['ace']['booting'] and @['template']['bootstrapped']
+      debugDom "prepend #{@} to #{$container}"
+      $container.prepend(@['$root'])
     @_setInWindow $container
 
   'appendTo': ($container) ->
     @remove()
-    debugDom "append #{@} to #{$container}"
     @$container = $container
-    $container.append(@['$root'])
+    unless @['ace']['booting'] and @['template']['bootstrapped']
+      debugDom "append #{@} to #{$container}"
+      $container.append(@['$root'])
     @_setInWindow $container
 
   'remove': ->
     return unless @$container
-    debugDom "remove #{@} from #{@$container}"
     @$container = undefined
     @inWindow.unset()
     @inWindow.set(false)
-    @['$root'].remove()
+    unless @['ace']['booting'] and @['template']['bootstrapped']
+      debugDom "remove #{@} from #{@$container}"
+      @['$root'].remove()
     return
 
   _setInWindow: ($container) ->
@@ -102,13 +105,13 @@ module.exports = class ViewBase extends Base
     switch methName
       when 'toggleClass'
         outlet.addOutflow new Outlet =>
-          unless @['ace']['booting']
+          unless @['ace']['booting'] and @['template']['bootstrapped']
             debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
             e[methName](dollar.substr(1), ''+outlet.value)
 
       when 'text','html'
         outlet.addOutflow new Outlet =>
-          unless @['ace']['booting']
+          unless @['ace']['booting'] and @['template']['bootstrapped']
             if @['domCache'][dollar] isnt (v = ''+outlet.value)
               @['domCache'][dollar] = v
               debugDom "calling #{methName} in dom on #{dollar} with #{v}"
@@ -116,7 +119,7 @@ module.exports = class ViewBase extends Base
 
       else
         outlet.addOutflow new Outlet =>
-          unless @['ace']['booting']
+          unless @['ace']['booting'] and @['template']['bootstrapped']
             debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
             e[methName](outlet.value)
 

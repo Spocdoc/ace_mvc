@@ -41,7 +41,7 @@ module.exports = class TemplateBase
       path.push name if name = elem.aceName
       elem = elem.aceParent
     rootId = path.reverse().join('-') || 'ace'
-    @acePrefix = "#{rootId}--"
+    @acePrefix = "#{rootId}-"
 
     @$ = {}
 
@@ -52,12 +52,13 @@ module.exports = class TemplateBase
 
       for id in config.ids
         (@["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
-        .attr('id', "#{@acePrefix}#{id}")
+        .attr('id', "#{@acePrefix}-#{id}")
         .template = this
     else
+      @['bootstrapped'] = true
       debug "Bootstrapping template with rootId #{rootId}"
       for id in config.ids
-        (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}#{id}"))
+        (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}-#{id}"))
           .template = this
 
     @['$root'].addClass utils.makeClassName(@aceParent.aceType)

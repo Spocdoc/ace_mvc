@@ -92,7 +92,7 @@ module.exports = class Model
         @Query = @['Query'] = (spec, limit, sort) ->
           new Query _this[_type], spec, limit, sort
 
-        @prototype[k] = v for k,v of (@prototype.globals = globals).app
+        @prototype[k] = v for k,v of @prototype.globals = globals
 
     @['reread'] = ->
       for type of configs.configs

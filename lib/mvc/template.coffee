@@ -15,60 +15,57 @@ getDomIds = do ->
   (dom) -> helper [], dom
 
 module.exports = class TemplateBase
-  @name = 'Template'
-
   @add: (type, domString) -> configs.add type, {domString}
 
   @finish: ->
     types = {}
     for type,config of configs.configs
       types[type] = class Template extends TemplateBase
-        _type: type
-        _config: config
+        aceType: type
+        aceConfig: config
     TemplateBase[k] = v for k,v of types
     return
 
-  constructor: (@_parent, @_name) ->
+  constructor: (@aceParent) ->
     debug "Building #{@}"
 
-    unless (config = @_config).$root
+    unless (config = @aceConfig).$root
       $root = config.$root = $(config.domString)
       if $root.length > 1 or $root.attr('id')? or $root.attr('class')
         $root = config.$root = $('<div></div>').append($root)
       config.ids = getDomIds $root
 
     path = []
-    elem = this
+    elem = @aceParent
     while elem
-      path.push name if name = elem._name
-      elem = elem._parent
-    @_prefix = path.reverse().join('-') || 'ace'
-
-    globals = @_parent.globals.Template
-    bootstrapped = globals.bootstrapped ||= {}
+      path.push name if name = elem.aceName
+      elem = elem.aceParent
+    rootId = path.reverse().join('-') || 'ace'
+    @acePrefix = "#{rootId}--"
 
     @$ = {}
-    prev = bootstrapped[@_prefix]
-    bootstrapped[@_prefix] = true
 
-    unless !prev && (@['$root'] = @$['root'] = globals.$root.find("##{@_prefix}")).length
-      debug "Not bootstrapping template with prefix #{@_prefix}"
+    unless (br = TemplateBase.bootRoot) && (@['$root'] = @$['root'] = br.find("##{rootId}")).length
+      debug "Not bootstrapping template with rootId #{rootId}"
       @$['root'] = @['$root'] = config.$root.clone()
-      @['$root'].attr('id',@_prefix)
+      @['$root'].attr('id',rootId)
 
       for id in config.ids
         (@["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
-        .attr('id', "#{@_prefix}-#{id}")
+        .attr('id', "#{@acePrefix}#{id}")
         .template = this
     else
-      debug "Bootstrapping template with prefix #{@_prefix}"
+      debug "Bootstrapping template with rootId #{rootId}"
       for id in config.ids
-        (@["$#{id}"] = @$[id] = @['$root'].find("##{@_prefix}-#{id}"))
+        (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}#{id}"))
           .template = this
 
-    @['$root'].addClass utils.makeClassName(@_parent._type)
+    @['$root'].addClass utils.makeClassName(@aceParent.aceType)
+
+    # public
+    @['acePrefix'] = @acePrefix
+    @['aceParent'] = @aceParent
 
     debug "done building #{@}"
 
-  toString: ->
-    "#{@constructor.name} [#{@_type}] name [#{@_name}]"
+  toString: -> "Template [#{@aceType}][#{@acePrefix}]"

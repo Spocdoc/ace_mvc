@@ -7,8 +7,6 @@ debugMvc = global.debug 'ace:mvc'
 configs = new (require('./configs'))
 
 module.exports = class ViewBase extends Base
-  @name = 'View'
-
   @add: (type, config) -> configs.add type, config
 
   @finish: ->
@@ -17,8 +15,8 @@ module.exports = class ViewBase extends Base
     types = {}
     for type,config of configs.configs
       types[type] = class View extends ViewBase
-        _type: type
-        _config: config
+        aceType: type
+        aceConfig: config
 
         @_applyStatic config
         @_applyOutlets config
@@ -26,7 +24,7 @@ module.exports = class ViewBase extends Base
     ViewBase[k] = v for k, v of types
     return
 
-  constructor: (@_parent, @_name, settings={}) ->
+  constructor: (@aceParent, @aceName, settings={}) ->
     debugMvc "Building #{@}"
 
     super()
@@ -36,7 +34,7 @@ module.exports = class ViewBase extends Base
     try
       @_buildOutlets()
       @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet false, this, true
-      @_buildTemplate settings['template'] || @_config['template'] || @_type, settings
+      @_buildTemplate settings['template'] || @aceConfig['template'] || @aceType, settings
       @_buildDollar()
       @_applyConstructors settings
       @_setOutlets settings
@@ -47,6 +45,8 @@ module.exports = class ViewBase extends Base
     debugMvc "done building #{@}"
 
   'View': ViewBase
+
+  toString: -> "View [#{@aceType}][#{@aceName}]"
 
   'insertAfter': ($elem) ->
     @remove()
@@ -88,7 +88,7 @@ module.exports = class ViewBase extends Base
     return
 
   _setInWindow: ($container) ->
-    if other = $container.template?._parent?.inWindow
+    if other = $container.template?.aceParent?.inWindow
     else
       for parent in $container.parents()
         (break) if other = parent.template?.view?.inWindow
@@ -102,25 +102,28 @@ module.exports = class ViewBase extends Base
     switch methName
       when 'toggleClass'
         outlet.addOutflow new Outlet =>
-          debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-          e[methName](dollar.substr(1), ''+outlet.value)
+          unless @['ace']['booting']
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](dollar.substr(1), ''+outlet.value)
 
       when 'text','html'
         outlet.addOutflow new Outlet =>
-          if @['domCache'][dollar] isnt (v = ''+outlet.value)
-            @['domCache'][dollar] = v
-            debugDom "calling #{methName} in dom on #{dollar} with #{v}"
-            e[methName](v)
+          unless @['ace']['booting']
+            if @['domCache'][dollar] isnt (v = ''+outlet.value)
+              @['domCache'][dollar] = v
+              debugDom "calling #{methName} in dom on #{dollar} with #{v}"
+              e[methName](v)
 
       else
         outlet.addOutflow new Outlet =>
-          debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-          e[methName](outlet.value)
+          unless @['ace']['booting']
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](outlet.value)
 
     return
 
   _buildDollar: ->
-    for k,v of @_config when k.charAt(0) is '$'
+    for k,v of @aceConfig when k.charAt(0) is '$'
       if typeof v is 'string'
         @_buildDollarString k, v, @outlets[k.substr(1)]
       else # object

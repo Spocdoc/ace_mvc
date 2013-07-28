@@ -7,8 +7,6 @@ debugMvc = global.debug 'ace:mvc'
 configs = new (require('./configs'))
 
 module.exports = class ControllerBase extends Base
-  @name = 'Controller'
-
   @add: (type, config) -> configs.add type, config
 
   @finish: ->
@@ -17,8 +15,8 @@ module.exports = class ControllerBase extends Base
     types = {}
     for type,config of configs.configs
       types[type] = class Controller extends ControllerBase
-        _type: type
-        _config: config
+        aceType: type
+        aceConfig: config
 
         @_applyStatic config
         @_applyOutlets config
@@ -26,7 +24,7 @@ module.exports = class ControllerBase extends Base
     ControllerBase[k] = v for k, v of types
     return
 
-  constructor: (@_parent, @_name, settings={}) ->
+  constructor: (@aceParent, @aceName, settings={}) ->
     debugMvc "Building #{@}"
 
     super()
@@ -35,7 +33,7 @@ module.exports = class ControllerBase extends Base
     prev = Outlet.auto; Outlet.auto = null
     try
       @_buildOutlets()
-      @_buildView settings['view'] || @_config['view'] || @_type, settings
+      @_buildView settings['view'] || @aceConfig['view'] || @aceType, settings
       @_buildDollar()
       @_applyConstructors settings
       @_setOutlets settings
@@ -55,6 +53,8 @@ module.exports = class ControllerBase extends Base
   'Controller': ControllerBase
   'View': View
 
+  toString: -> "Controller [#{@aceType}][#{@aceName}]"
+
   _buildView: (arg, settings) ->
     if arg instanceof View
       @['view'] = arg
@@ -69,7 +69,7 @@ module.exports = class ControllerBase extends Base
     return
 
   _buildDollar: ->
-    for k,v of @_config when k.charAt(0) is '$'
+    for k,v of @aceConfig when k.charAt(0) is '$'
       v = new Outlet v, this, true if typeof v is 'function'
       (@['view'].outlets[name=k.substr(1)] || @['view']._buildOutlet(name)).set v
     return

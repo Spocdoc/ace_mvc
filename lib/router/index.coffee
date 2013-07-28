@@ -24,7 +24,7 @@ module.exports = class Router
 
     @vars = new Var
 
-    context = Object.create globals.app
+    context = Object.create globals
 
     for route in routes
       @[@length++] = route

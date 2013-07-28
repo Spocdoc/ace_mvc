@@ -6,18 +6,20 @@ reserved = ['constructor','static','view','outlets','outletMethods','template','
 
 module.exports = class Base
   constructor: ->
-    @vars = (if @_name then @_parent.vars[@_name] else @_parent.vars) || {}
-    @[k] = v for k,v of (@globals = @_parent.globals).app
+    @vars = (if @aceName then @aceParent.vars[@aceName] else @aceParent.vars) || {}
+    @[k] = v for k,v of @globals = @aceParent.globals
     @outlets = {}
 
+    # public
+    @['aceParent'] = @aceParent
+    @['aceName'] = @aceName
+
   'depute': (method, args...) ->
-    deputy = @outlets['deputy']?.get() || @_parent
+    deputy = @outlets['deputy']?.get() || @aceParent
     if fn = deputy[method]
       fn.apply(deputy, args)
     else if fn = deputy['depute']
       fn.apply(deputy, arguments)
-
-  toString: -> "#{@constructor.name} [#{@_type}] name [#{@_name}]"
 
   @_applyOutlet: (outlet) ->
     if typeof outlet isnt 'string'
@@ -57,7 +59,7 @@ module.exports = class Base
     return
 
   _applyConstructors: (settings) ->
-    constructors = @_config['constructor']
+    constructors = @aceConfig['constructor']
 
     if Array.isArray constructors
       for constructor in constructors

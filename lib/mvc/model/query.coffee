@@ -2,6 +2,7 @@ Outlet = require '../../utils/outlet'
 OJSON = require '../../utils/ojson'
 queryCompile = require './query_compile'
 makeId = require '../../utils/id'
+emptyArray = []
 
 arrayIsSubset = (sup, sub) ->
   sup = sup.concat().sort()
@@ -53,7 +54,7 @@ module.exports = class Query
 
   _readCache: ->
     @_hash = JSON.stringify @_ojSpec
-    if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]
+    if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]?.ids
       results = []
       results[i] = @Model.read id for id, i in ids
       @_updateResults results
@@ -105,7 +106,7 @@ module.exports = class Query
     if Query.useCache & CACHE_WRITE
       idResults = []
       idResults[i] = model.id for model,i in results
-      @Model.queryCache[@_hash] = idResults
+      (@Model.queryCache[@_hash] ||= {}).ids = idResults
 
     Outlet.openBlock()
     @results.set results
@@ -169,16 +170,24 @@ module.exports = class Query
   # field across all the documents matching the query (server side)
   'distinct': (key) ->
     return outlet if outlet = (@_distinct ||= {})[key]
-    @_distinct[key] = outlet = new Outlet empty = []
+    @_distinct[key] = outlet = new Outlet ((Query.useCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key]) || emptyArray
     serverVersion = pending = 0
     @_updater.addOutflow new Outlet distinctUpdater = =>
       unless pending
         pending = true
         serverVersion = @_clientVersion
+
+        if (Query.useCache & CACHE_READ) and cached = @Model.queryCache[@_hash]?.distinct?[key]
+          outlet.set cached
+
         @Model.prototype.sock.emit 'distinct', @Model.prototype.coll, OJSON.toOJSON(@_spec), key, (code, docs) =>
           pending = false
-          outlet.set if code is 'd' then docs else empty
-          distinctUpdater() unless serverVersion is @_clientVersion
+          docs = emptyArray unless code is 'd'
+          outlet.set docs
+          unless serverVersion is @_clientVersion
+            distinctUpdater()
+          else if Query.useCache & CACHE_WRITE
+            ((@Model.queryCache[@_hash] ||= {}).distinct ||= {})[key] = docs
           return
       return
     outlet

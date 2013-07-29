@@ -119,7 +119,7 @@ module.exports = class Model
     if json
       for type, obj of OJSON.fromOJSON json
         new @[type] doc._id, doc for doc in obj['m']
-        @[type].queryCache[hash] = results for hash, results of obj['q']
+        @[type].queryCache[hash] = {ids,distinct} for hash, {'i':ids,'d':distinct} of obj['q']
       @['reread']()
 
     return
@@ -136,7 +136,11 @@ module.exports = class Model
       models[i++] = serverDoc for id, model of @[type].models when serverDoc = model.serverDoc
 
       queryCache = {}
-      (queryCache[hash] = results; ++i) for hash, results of @[type].queryCache when results.length
+      for hash, {ids,distinct} of @[type].queryCache
+        queryCache[hash] =
+          'i': ids
+          'd': distinct
+        ++i
 
       if i
         docs[type] =

@@ -1,5 +1,6 @@
 deepEqual = require '../../utils/deep_equal'
 quote = require '../../utils/quote'
+debug = global.debug 'ace:model:query'
 
 joinerOp =
   '$and': '&&'
@@ -69,7 +70,7 @@ module.exports = (spec) ->
   func = []
   parseClause 'doc', spec, func
   func = """return #{func.join ''};"""
-  console.log func
+  debug "compiled query to #{func}"
   func = new Function 'deepEqual', 'match', 'indexOf', 'doc', func
   (model) ->
     return false unless doc = model.clientDoc

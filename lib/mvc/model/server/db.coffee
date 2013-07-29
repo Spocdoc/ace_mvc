@@ -229,6 +229,7 @@ class Db extends Mongo
     return
 
   distinct: (origin, coll, query, key, cb) ->
+    delete query.$text # not supported as a regular query type in mongoDB
     @run 'distinct', coll, key, query, (err, docs) ->
       return unless checkErr(err, cb)
       cb.doc docs

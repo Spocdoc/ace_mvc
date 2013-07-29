@@ -254,3 +254,13 @@
         $near
         $nearSphere
 
+# MongoDB
+
+ - MongoDB doesn't allow use of the full text index in basic queries
+
+    when it does, these will need to be updated:
+
+       - mongo.coffee
+       - db.coffee to not remove the text filter from distinct
+       - controllers that use $text field in queries
+

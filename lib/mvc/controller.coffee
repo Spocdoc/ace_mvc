@@ -53,6 +53,8 @@ module.exports = class ControllerBase extends Base
   'Controller': ControllerBase
   'View': View
 
+  varPrefix: ''
+
   toString: -> "Controller [#{@aceType}][#{@aceName}]"
 
   _buildView: (arg, settings) ->

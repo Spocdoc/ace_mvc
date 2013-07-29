@@ -70,7 +70,7 @@ module.exports = class Base
     return
 
   _buildOutlet: (name) ->
-    @[name] = @outlets[name] = @vars[name]?.outlet || new Outlet undefined, this, true
+    @[name] = @outlets[name] = @vars["#{@varPrefix}#{name}"]?.outlet || new Outlet undefined, this, true
 
   _buildOutlets: ->
     @_buildOutlet name for name of @constructor._outletDefaults
@@ -83,6 +83,6 @@ module.exports = class Base
       if typeof v is 'function'
         o.context = this
         o.set v
-      else unless @vars[k]?.outlet # i.e., can't set an outlet that's a routing var via defaults
+      else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
         o.set(if settings.hasOwnProperty k then settings[k] else v)
     return

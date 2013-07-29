@@ -44,6 +44,8 @@ module.exports = class ViewBase extends Base
 
     debugMvc "done building #{@}"
 
+  varPrefix: '$'
+
   'View': ViewBase
 
   toString: -> "View [#{@aceType}][#{@aceName}]"

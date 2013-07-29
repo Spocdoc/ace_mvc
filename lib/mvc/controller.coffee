@@ -48,7 +48,7 @@ module.exports = class ControllerBase extends Base
   'prependTo': ($container) -> @['view']['prependTo']($container)
   'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
   'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
-  'remove': -> @['view']['remove']()
+  'detach': -> @['view']['detach']()
 
   'Controller': ControllerBase
   'View': View

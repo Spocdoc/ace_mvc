@@ -4,7 +4,7 @@ extend = (obj, mixin) ->
   obj[name] = method for name, method of mixin
   obj
 
-extend global.$('').constructor.prototype,
+extend $prototype = global.$('').constructor.prototype,
 
   parents: ->
     e = this
@@ -13,6 +13,8 @@ extend global.$('').constructor.prototype,
   on: ->
   scrollLeft: ->
   scrollTop: ->
+
+  detach: $prototype.remove
 
   css: (prop, value) ->
     if undefined isnt style = @attr 'style'

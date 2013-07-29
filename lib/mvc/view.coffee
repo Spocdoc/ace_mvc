@@ -51,7 +51,7 @@ module.exports = class ViewBase extends Base
   toString: -> "View [#{@aceType}][#{@aceName}]"
 
   'insertAfter': ($elem) ->
-    @remove()
+    @['detach']()
     $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
     unless @['ace']['booting'] and @['template']['bootstrapped']
@@ -60,7 +60,7 @@ module.exports = class ViewBase extends Base
     @_setInWindow @$container
 
   'insertBefore': ($elem) ->
-    @remove()
+    @['detach']()
     $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
     unless @['ace']['booting'] and @['template']['bootstrapped']
@@ -69,7 +69,7 @@ module.exports = class ViewBase extends Base
     @_setInWindow @$container
 
   'prependTo': ($container) ->
-    @remove()
+    @['detach']()
     $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
     unless @['ace']['booting'] and @['template']['bootstrapped']
@@ -78,7 +78,7 @@ module.exports = class ViewBase extends Base
     @_setInWindow $container
 
   'appendTo': ($container) ->
-    @remove()
+    @['detach']()
     $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
     unless @['ace']['booting'] and @['template']['bootstrapped']
@@ -86,14 +86,14 @@ module.exports = class ViewBase extends Base
       $container.append(@['$root'])
     @_setInWindow $container
 
-  'remove': ->
+  'detach': ->
     return unless @$container
     @$container = undefined
     @inWindow.unset()
     @inWindow.set(false)
     unless @['ace']['booting'] and @['template']['bootstrapped']
-      debugDom "remove #{@} from #{@$container}"
-      @['$root'].remove()
+      debugDom "detach #{@} from #{@$container}"
+      @['$root'].detach()
     return
 
   _setInWindow: ($container) ->

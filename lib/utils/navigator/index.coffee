@@ -17,7 +17,7 @@ class NavigatorUrl extends Url
     (url=@) ->
       url.hash?.match(regex)?[1]
 
-  stripHash: ->
+  stripHashPath: ->
     @reform
       hash: @hashHash() || ''
       path: if @hasPath() then @path else @hashPath()
@@ -33,7 +33,10 @@ module.exports = (route, ctx) ->
   navigator = (url) ->
     url = new NavigatorUrl url, navigator.url unless url instanceof NavigatorUrl
     if url.href isnt navigator.url.href
-      if url.path is navigator.url.path then replace url else push url
+      if url.pathname is navigator.url.pathname
+        replace url
+      else
+        push url
     return
 
   formHashUrl = ->
@@ -72,7 +75,7 @@ module.exports = (route, ctx) ->
       --ignoreCount
     else
       newUrl = new NavigatorUrl(event.newURL || window.location.href)
-      newUrl.stripHash() if newUrl.hasHashPath()
+      newUrl.stripHashPath() if newUrl.hasHashPath()
 
       if newUrl.href isnt navigator.url.href
         debug "Got url change from #{navigator.url} to #{newUrl}"
@@ -83,7 +86,7 @@ module.exports = (route, ctx) ->
   # useHash = true #TODO DEBUG
   navigator.url = new NavigatorUrl(window.location.href)
 
-  replace navigator.url.stripHash() if navigator.url.hasHashPath()
+  replace navigator.url.stripHashPath() if navigator.url.hasHashPath()
   ignoreCount = 0
 
   if useHash

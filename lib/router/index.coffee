@@ -16,7 +16,7 @@ module.exports = class Router
   @getVars = (config) ->
     config['vars']
 
-  constructor: (routes, vars, globals, useNavigator) ->
+  constructor: (routes, vars, globals, makeNavigator) ->
     Outlet.openBlock()
 
     @uriOutlets = {}
@@ -42,27 +42,33 @@ module.exports = class Router
         outlet = v.outlet = varOutlets[path] = new Outlet value, context, true
       outlet
 
-    if useNavigator
-      @route url = (@navigator = navigator(@route, this)).url
-
-      @routeSearch = new Outlet
-      @routeSearch.value = @current
-      @routeSearch.func = (=>
-        for r in this when r.matchOutlets @uriOutlets
-          return @current = r)
-
-      @uriFormatter = new Outlet
-      @uriFormatter.value = url.href
-      @uriFormatter.func = (=> @current?.format @uriOutlets)
-
-      @routeSearch.addOutflow @uriFormatter
-      @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
-
-      for varName, outlet of @uriOutlets
-        outlet.addOutflow @routeSearch if outlet.affectsPath
-        outlet.addOutflow @uriFormatter
+    @navigator = navigator @route, this if makeNavigator
 
     vars.call context
+    Outlet.closeBlock()
+    return
+
+  useNavigator: ->
+    Outlet.openBlock()
+    @route url = @navigator.url
+
+    @routeSearch = new Outlet
+    @routeSearch.value = @current
+    @routeSearch.func = (=>
+      for r in this when r.matchOutlets @uriOutlets
+        return @current = r)
+
+    @uriFormatter = new Outlet
+    @uriFormatter.value = url.href
+    @uriFormatter.func = (=> @current?.format @uriOutlets)
+
+    @routeSearch.addOutflow @uriFormatter
+    @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
+
+    for varName, outlet of @uriOutlets
+      outlet.addOutflow @routeSearch if outlet.affectsPath
+      outlet.addOutflow @uriFormatter
+
     Outlet.closeBlock()
     return
 

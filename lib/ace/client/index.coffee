@@ -27,15 +27,21 @@ module.exports = ->
 
     Model.init globals, sock, json
 
-    ace.vars = new Router(Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true).vars
+    router = new Router Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true
+    ace.vars = router.vars
+
+    # route only the URL the server saw when it rendered (to bootstrap)
+    url = router.navigator.url.clone()
+    url.reform hash: null
+    router.route url
 
     Template.bootRoot = $container
-
     (new Controller['body'] ace)['appendTo'] $container
-
     ace['booting'] = false
 
     Model.clearQueryCache()
-
     delete Template.bootstrapRoot
+
+    # now route the entire URL
+    router.useNavigator()
 

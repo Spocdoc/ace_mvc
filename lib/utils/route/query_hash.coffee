@@ -4,11 +4,12 @@ class QueryHash
   constructor: (arg) ->
     @varNames = []
 
-    if arg.charAt(0) is ':'
+    if arg.charAt(0) is ':' and !~arg.indexOf('&')
       @varNames.push @name = arg.substr(1)
     else
       for k, v of @obj = querystring.parse arg
-        @varNames.push @obj[k] = v.substr(1)
+        @varNames.push @obj[k] = if v then v.substr(1) else k
+
 
   format: (outlets) ->
     try

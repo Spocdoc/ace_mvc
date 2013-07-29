@@ -4,10 +4,13 @@ debugError = global.debug 'ace:error'
 
 module.exports = class Outlet
   (@roots = []).depth = 0
+  @debug = {}
 
   constructor: (value, @context, auto) ->
     @auto = if auto then this else null
     @index = makeIndex()
+
+    Outlet.debug[this] = this
 
     @equivalents = {}
     (@changing = {}).length = 0
@@ -84,7 +87,9 @@ module.exports = class Outlet
       else unless @outflows[out]
         a[this] = (out.autoInflows ||= {})[this] = this
         @outflows[out] = out
-        throw 'pending' if @pending
+        if @pending
+          out.changing[this] = ++out.changing.length
+          throw 'pending'
 
     if @value and len = arguments.length
       if @value.get?.length > 0

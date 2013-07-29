@@ -52,6 +52,7 @@ module.exports = class ViewBase extends Base
 
   'insertAfter': ($elem) ->
     @remove()
+    $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "insert #{@} after #{$elem}"
@@ -60,6 +61,7 @@ module.exports = class ViewBase extends Base
 
   'insertBefore': ($elem) ->
     @remove()
+    $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "insert #{@} before #{$elem}"
@@ -68,6 +70,7 @@ module.exports = class ViewBase extends Base
 
   'prependTo': ($container) ->
     @remove()
+    $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "prepend #{@} to #{$container}"
@@ -76,6 +79,7 @@ module.exports = class ViewBase extends Base
 
   'appendTo': ($container) ->
     @remove()
+    $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "append #{@} to #{$container}"

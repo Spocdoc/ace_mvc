@@ -1,6 +1,11 @@
 queue = require '../../../utils/queue'
 mongodb = require 'mongodb'
 
+regexAllSpace = /\s/g
+regexCurlySingle = /[\u2018\u2019]/g
+regexCurlyDouble = /[\u201c\u201d]/g
+
+
 class Mongo
   constructor: (host, db) ->
     @server = new mongodb.Server(host)
@@ -37,11 +42,29 @@ class Mongo
 
     return
 
-  _run: (cmd, coll, args..., cb) ->
-    coll = @colls[coll] ||= @db.collection(coll)
-    switch cmd
-      when 'find' then coll[cmd](args...).toArray cb
-      else coll[cmd](args...,cb)
+  _run: (cmd, collName, args..., cb) ->
+    coll = @colls[collName] ||= @db.collection(collName)
+    if cmd is 'find'
+      coll[cmd](args...).toArray cb
+    else if coll[cmd]
+      coll[cmd](args...,cb)
+    else if cmd is 'text'
+      # ridiculous. the order of key traversal is important to mongo -- cmd has
+      # to be first key so an object has to be created every time
+      obj = {}
+      obj[cmd] = collName
+      obj[k] = v for k, v of args[0]
+
+      # search field won't filter properly with nonbreaking space, curly quotes
+      if search = obj['search']
+        obj['search'] = search.replace(regexAllSpace,' ').replace(regexCurlySingle,'\'').replace(regexCurlyDouble,'"')
+
+      @db.command obj, (err, result) ->
+        return cb err if err?
+        results[i] = result['obj'] for result,i in results if results = result?['results']
+        cb err, results
+    else
+      cb new Error("unhandled command [#{cmd}]")
     return
 
   run: (cmd, coll, args..., cb) ->

@@ -64,7 +64,7 @@ module.exports = class OJSON
     return v if v == null or typeof v isnt 'object'
     n = v.constructor['_ojson'] || v.constructor.name
     if not @registry[n]?
-      return undefined if v.constructor != Object
+      return v['toOJSON']?() if v.constructor != Object
       return v
     return @_toJSON v if OJSON.useArrays and Array.isArray v
     doc = {}

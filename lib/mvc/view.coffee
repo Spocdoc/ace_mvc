@@ -102,12 +102,15 @@ module.exports = class ViewBase extends Base
   _buildDollarString: (dollar, methName, outlet) ->
     e = @[dollar]
 
+    dollarOutflows = outlet._dollarOutflows ||= {}
+
     switch methName
       when 'toggleClass'
-        outlet.addOutflow new Outlet =>
-          unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-            e[methName](dollar.substr(1), ''+outlet.value)
+        unless dollarOutflows[methName]
+          outlet.addOutflow new Outlet =>
+            unless @['ace']['booting'] and @['template']['bootstrapped']
+              debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+              e[methName](dollar.substr(1), ''+outlet.value)
 
       when 'text','html'
         outlet.addOutflow new Outlet =>
@@ -122,6 +125,8 @@ module.exports = class ViewBase extends Base
           unless @['ace']['booting'] and @['template']['bootstrapped']
             debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
             e[methName](outlet.value)
+
+    dollarOutflows[methName] = 1
 
     return
 

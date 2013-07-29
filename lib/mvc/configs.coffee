@@ -20,7 +20,11 @@ class Configs
       @mixins[mixin](config)
 
     else if mixin?
-      @mixins[type](config, args...) for type, args of mixin
+      for type, args of mixin
+        if Array.isArray args
+          @mixins[type](config, args...)
+        else
+          @mixins[type](config, args)
 
     return
 

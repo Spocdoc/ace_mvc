@@ -25,11 +25,13 @@ module.exports = class Query
     @['error'] = @error = new Outlet
     @['results'] = @results = new Outlet []
 
-    @_useCache() if Query.useCache & CACHE_READ
+    @_ojSpec = OJSON.toOJSON @_spec
+    @_readCache() if Query.useCache & CACHE_READ
 
     @_clientVersion = 0
     @_updater = new Outlet =>
-      @_useCache() if Query.useCache
+      @_ojSpec = OJSON.toOJSON @_spec
+      @_readCache() if Query.useCache
 
       if @limit.value < 1
         @_updateResults [] if @results.value.length
@@ -47,8 +49,10 @@ module.exports = class Query
         @_updateResults results if results
       return makeId() # to trigger the 'distinct' calls
 
-  _useCache: ->
-    @_hash = OJSON.stringify @_spec
+    @_initOutlets @_spec
+
+  _readCache: ->
+    @_hash = JSON.stringify @_ojSpec
     if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]
       results = []
       results[i] = @Model.read id for id, i in ids
@@ -59,7 +63,7 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, OJSON.toOJSON(@_spec), @limit.value, @sort.value, (code, docs) =>
+    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
       pending = false
       Outlet.openBlock()
       if code is 'd'
@@ -116,48 +120,50 @@ module.exports = class Query
     @_update() unless @pending.value
     return
 
-  _compile: -> @_func = queryCompile @_spec
+  _compile: -> @_func = queryCompile @_ojSpec
 
   # analogous to RegExp.exec -- returns truthy if matches
   exec: (model) -> (@_func ||= @_compile())(model)
 
-  get: (key) ->
-    [path...,key] = split key '.'
+  _outletOutflowArray: (oldValue, outlet, inverted) ->
+    =>
+      @_subquery &&= inverted ^ arrayIsSubset(oldValue, outlet.value)
+      oldValue = outlet.value
 
-    inverted = false
-    math = undefined
+  _outletOutflowMath: (oldValue, outlet, inverted, math) ->
+    =>
+      if typeof oldValue is 'number' and typeof outlet.value is 'number'
+        @_subquery &&= inverted ^ (if math.charAt(1) is 'g' then outlet.value >= oldValue else outlet.value <= oldValue)
+      else
+        @_subquery = false
+      oldValue = outlet.value
 
-    obj = @_spec
-    for k in path
-      inverted ||= k in ['$not','$nin','$nor','$ne']
+  _initOutlets: (obj, inverted_) ->
+    for k, outlet of obj
+      inverted = inverted_ or (k in ['$not','$nin','$nor','$ne'])
       math = k if k in ['$gte','$lte','$gt','$lt']
-      obj = obj[k]
-
-    oldValue = obj[key]
-    outlet = new Outlet oldValue
-
-    if Array.isArray obj[key]
-      outflow = =>
-        @_isSubquery &&= inverted ^ arrayIsSubset(oldValue, outlet.value)
+      
+      if outlet instanceof Outlet
         oldValue = outlet.value
 
-    else if math and typeof obj[key] is number
-      if math.charAt(1) is 'g'
-        outflow = =>
-          @_isSubquery &&= inverted ^ (outlet.value >= oldValue)
-          oldValue = outlet.value
+        if Array.isArray oldValue
+          outflow = @_outletOutflowArray oldValue, outlet, inverted
+
+        else if math
+          outflow = @_outletOutflowMath oldValue, outlet, inverted, math
+
+        else
+          outflow = =>
+            @_subquery = false
+            outlet.value
+
+        outlet.addOutflow outflow = new Outlet outflow
+        outflow.addOutflow @_updater
+
       else
-        outflow = =>
-          @_isSubquery &&= inverted ^ (outlet.value <= oldValue)
-          oldValue = outlet.value
+        @_initOutlets v, inverted, math
 
-    outflow ||= =>
-      @_isSubquery = false
-      outlet.value
-
-    outlet.addOutflow outflow = new Outlet outflow
-    outflow.addOutflow @_updater
-    outlet
+    return
 
   # returns an outlet that contains an array of the unique values for the given
   # field across all the documents matching the query (server side)

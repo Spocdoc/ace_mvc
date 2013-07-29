@@ -139,16 +139,27 @@ class Db extends Mongo
       async.waterfall [
         (next) => if cb.validateQuery? then cb.validateQuery(spec, next) else next()
         (next) =>
-          if limit? and limit > 1
+          {query,sort,limit} = spec
+
+          # mongo treats full text searches totally differently from find commands that don't involve full text.
+          # $text is used here to normalize the client API. it's not a valid mongo field
+          if query.hasOwnProperty '$text'
+            search = query.$text
+            delete query.$text
+            @run 'text', coll,
+              search: search
+              limit: limit
+              filter: query
+              next
+          else if limit? and limit > 1
             @run 'find', coll, query, limit: limit, sort: sort, next
           else
             @run 'findOne', coll, query, next
-        (_doc, next) =>
-          if Array.isArray doc = _doc
-            return cb.reject() unless doc.length
+        (doc, next) =>
+          if doc?
+            doc = [doc] unless Array.isArray doc
           else
-            return cb.reject() unless doc
-            doc = [doc]
+            doc = []
           cb.doc doc
           return
       ], (err) -> cb.reject err.message if err?

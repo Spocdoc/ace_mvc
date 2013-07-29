@@ -28,6 +28,8 @@ module.exports = class Outlet
     return
 
   toString: -> @index
+  'toOJSON': ->
+    if @value? then @value else null
 
   set: (value, version) ->
     if typeof value is 'function'
@@ -64,9 +66,9 @@ module.exports = class Outlet
     context && @context = context
     @funcArgOutlets = []
     (@funcArgOutlets[i] = @context[name]).addOutflow this for name,i in argNames func
-    @root = true
     @_setPendingTrue()
     if Outlet.roots.depth
+      @root = true
       Outlet.roots.push this
     else
       @_runSource()
@@ -106,14 +108,22 @@ module.exports = class Outlet
     return
 
   unset: (outlet) ->
-    return unless @equivalents[outlet]
-    delete @equivalents[outlet]
-    delete outlet.equivalents[this]
-    if @pending
-      unless outlet._shouldPend({})
-        outlet._setPendingFalse()
-      else unless @_shouldPend({})
-        @_setPendingFalse()
+    unless outlet
+      for index, outlet of @equivalents
+        delete @equivalents[index]
+        delete outlet.equivalents[this]
+        outlet._setPendingFalse() unless outlet._shouldPend {}
+
+      @_setPendingFalse() unless @_shouldPend {}
+    else
+      return unless @equivalents[outlet]
+      delete @equivalents[outlet]
+      delete outlet.equivalents[this]
+      if @pending
+        unless outlet._shouldPend({})
+          outlet._setPendingFalse()
+        else unless @_shouldPend({})
+          @_setPendingFalse()
     return
 
   _shouldPend: (visited) ->
@@ -147,12 +157,17 @@ module.exports = class Outlet
     return
 
   _runSource: (source) ->
-    if source and @changing[source]
+    if source
       delete @changing[source]
       --@changing.length
       return if @root
+    else if @changing.length
+      Outlet.roots.push this
+      return
+
     @root = false
     return unless @pending and !@changing.length
+
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto
     try

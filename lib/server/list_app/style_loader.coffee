@@ -21,12 +21,19 @@ styleLoaders =
     (fullPath, type, content, cb) ->
       type = mvcUtils.makeClassName type
 
-      async.parallel
-        debug: (done) ->
-          stylus.render wrapInClass(content,type), filename: fullPath, compress: false, linenos:true, done
-        release: (done) ->
-          stylus.render wrapInClass(content,type), filename: fullPath, compress: true, linenos: false, done
-        cb
+      async.waterfall [
+        (next) -> stylus.render content, filename: fullPath, linenos:true, next
+        (css) ->
+          css = wrapInClass(css,type)
+
+          async.parallel
+            debug: (done) -> stylus.render css, done
+            release: (done) -> stylus.render css, compress: true, done
+            cb
+      ]
+
+
+
 
 module.exports =
   handles: (ext) -> styleLoaders[ext]?

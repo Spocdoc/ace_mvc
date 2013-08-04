@@ -123,13 +123,13 @@ module.exports = class ViewBase extends Base
       when 'toggleClass'
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet['value']}"
-            e[methName](dollar.substr(1), ''+outlet['value'])
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](dollar.substr(1), ''+outlet.value)
 
       when 'text','html'
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            if @['domCache'][dollar] isnt (v = ''+outlet['value'])
+            if @['domCache'][dollar] isnt (v = ''+outlet.value)
               @['domCache'][dollar] = v
               debugDom "calling #{methName} in dom on #{dollar} with #{v}"
               e[methName](v)
@@ -138,13 +138,13 @@ module.exports = class ViewBase extends Base
         oldView = undefined
         outlet.addOutflow new Outlet =>
           oldView?.detach()
-          (oldView = outlet['value'])['appendTo'] e
+          (oldView = outlet.value)['appendTo'] e
 
       else
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet['value']}"
-            e[methName](outlet['value'])
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+            e[methName](outlet.value)
 
 
     return

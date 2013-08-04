@@ -35,3 +35,10 @@
   - reduce number of clone calls in diff and apply. may also want to streamline the object representation
 
   - optimize query so it doesn't re-create the OJSON format every time the spec changes
+
+# Outlets
+
+  - functions with arguments should only be auto dependent on those args. if the auto flag is set, then when any get() is invoked on an Outlet that's pending, the current outlet is moved to the end of the outlet block, but no auto dependency is added
+
+    as a temporary workaround, when a function is set that has args, the auto flag is unset
+

@@ -34,16 +34,16 @@ module.exports = class Query
       @_ojSpec = OJSON.toOJSON @_spec
       @_readCache() if Query.useCache
 
-      if @limit.value < 1
-        @_updateResults [] if @results.value.length
+      if @limit['value'] < 1
+        @_updateResults [] if @results['value'].length
         delete @_func
       else
         @_compile()
 
-        unless @_subquery && (results = @_narrowLocally @results.value) && (@_full || @limit.value is 1)
+        unless @_subquery && (results = @_narrowLocally @results['value']) && (@_full || @limit['value'] is 1)
            ++@_clientVersion
-           unless @pending.value
-            if @limit.value is 1
+           unless @pending['value']
+            if @limit['value'] is 1
                 @_findOne()
               else
                 @_update()
@@ -64,14 +64,14 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
+    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, @_ojSpec, @limit['value'], @sort['value'], (code, docs) =>
       pending = false
       Outlet.openBlock()
       if code is 'd'
         @error.set ''
         results = []
         results[i] = @Model.read id for id, i in docs
-        @_full = results.length < @limit.value
+        @_full = results.length < @limit['value']
         if @_clientVersion != @_serverVersion
           results = if @_subquery then @_narrowLocally(results) else 0
           @_update() if pending = !@_subquery or !@_full
@@ -115,10 +115,10 @@ module.exports = class Query
     return
 
   'result': (n) ->
-    (@_peggedResults ||= {})[n] ||= new Outlet @results.value[n]
+    (@_peggedResults ||= {})[n] ||= new Outlet @results['value'][n]
 
   'refresh': ->
-    @_update() unless @pending.value
+    @_update() unless @pending['value']
     return
 
   _compile: -> @_func = queryCompile @_ojSpec
@@ -128,16 +128,16 @@ module.exports = class Query
 
   _outletOutflowArray: (oldValue, outlet, inverted) ->
     =>
-      @_subquery &&= inverted ^ arrayIsSubset(oldValue, outlet.value)
-      oldValue = outlet.value
+      @_subquery &&= inverted ^ arrayIsSubset(oldValue, outlet['value'])
+      oldValue = outlet['value']
 
   _outletOutflowMath: (oldValue, outlet, inverted, math) ->
     =>
-      if typeof oldValue is 'number' and typeof outlet.value is 'number'
-        @_subquery &&= inverted ^ (if math.charAt(1) is 'g' then outlet.value >= oldValue else outlet.value <= oldValue)
+      if typeof oldValue is 'number' and typeof outlet['value'] is 'number'
+        @_subquery &&= inverted ^ (if math.charAt(1) is 'g' then outlet['value'] >= oldValue else outlet['value'] <= oldValue)
       else
         @_subquery = false
-      oldValue = outlet.value
+      oldValue = outlet['value']
 
   _initOutlets: (obj, inverted_) ->
     for k, outlet of obj
@@ -145,7 +145,7 @@ module.exports = class Query
       math = k if k in ['$gte','$lte','$gt','$lt']
       
       if outlet instanceof Outlet
-        oldValue = outlet.value
+        oldValue = outlet['value']
 
         if Array.isArray oldValue
           outflow = @_outletOutflowArray oldValue, outlet, inverted
@@ -156,7 +156,7 @@ module.exports = class Query
         else
           outflow = =>
             @_subquery = false
-            outlet.value
+            outlet['value']
 
         outlet.addOutflow outflow = new Outlet outflow
         outflow.addOutflow @_updater

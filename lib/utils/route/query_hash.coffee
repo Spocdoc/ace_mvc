@@ -14,10 +14,10 @@ class QueryHash
   format: (outlets) ->
     try
       if @name
-        querystring.stringifyValue outlets[@name].value
+        querystring.stringifyValue outlets[@name]['value']
       else if @obj
         obj = {}
-        obj[k] = v for k,v of @obj when (v = outlets[v].value)?
+        obj[k] = v for k,v of @obj when (v = outlets[v]['value'])?
         querystring.stringify obj
     catch _error
 

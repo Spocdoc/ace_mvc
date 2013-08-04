@@ -42,6 +42,7 @@ class App
     @$html = $("""
     <html>
     <head>
+    <meta charset="UTF-8"/>
     <title></title>
     <script type="text/javascript">
     (function (){

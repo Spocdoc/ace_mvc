@@ -9,7 +9,7 @@ joinerOp =
 
 parsePart = (field, spec, func) ->
   if spec instanceof RegExp
-    func.push "match.call(#{field},#{spec}) != null"
+    func.push "#{spec}.test(#{field})"
   else if typeof spec is 'object'
     arr1 = []
 

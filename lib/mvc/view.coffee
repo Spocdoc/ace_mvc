@@ -7,7 +7,10 @@ debugMvc = global.debug 'ace:mvc'
 configs = new (require('./configs'))
 
 module.exports = class ViewBase extends Base
-  @add: (type, config) -> configs.add type, config
+  @add: (type, config) ->
+    if typeof config is 'object' and !Array.isArray constructor = config['constructor']
+      config['constructor'] = if constructor then [constructor] else []
+    configs.add type, config
 
   @finish: ->
     configs.applyMixins()
@@ -24,7 +27,15 @@ module.exports = class ViewBase extends Base
     ViewBase[k] = v for k, v of types
     return
 
-  constructor: (@aceParent, @aceName, settings={}) ->
+  constructor: (@aceParent, aceName, settings) ->
+    if aceName? and typeof aceName is 'object'
+      settings = aceName
+      aceName = ''
+    else unless settings?
+      settings = {}
+
+    @aceName = aceName
+
     debugMvc "Building #{@}"
 
     super()
@@ -112,13 +123,13 @@ module.exports = class ViewBase extends Base
       when 'toggleClass'
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-            e[methName](dollar.substr(1), ''+outlet.value)
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet['value']}"
+            e[methName](dollar.substr(1), ''+outlet['value'])
 
       when 'text','html'
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            if @['domCache'][dollar] isnt (v = ''+outlet.value)
+            if @['domCache'][dollar] isnt (v = ''+outlet['value'])
               @['domCache'][dollar] = v
               debugDom "calling #{methName} in dom on #{dollar} with #{v}"
               e[methName](v)
@@ -127,13 +138,13 @@ module.exports = class ViewBase extends Base
         oldView = undefined
         outlet.addOutflow new Outlet =>
           oldView?.detach()
-          (oldView = outlet.value)['appendTo'] e
+          (oldView = outlet['value'])['appendTo'] e
 
       else
         outlet.addOutflow new Outlet =>
           unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-            e[methName](outlet.value)
+            debugDom "calling #{methName} in dom on #{dollar} with #{outlet['value']}"
+            e[methName](outlet['value'])
 
 
     return

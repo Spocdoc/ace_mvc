@@ -32,4 +32,10 @@ extend $prototype = global.$('').constructor.prototype,
     existing[found] = "#{prop}: #{value}"
     @attr 'style', existing.join("; ")
 
+  contents: ->
+    nodes = []
+    nodes.push element.children... for element in this
+    @make nodes
+
+
 

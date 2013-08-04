@@ -7,7 +7,10 @@ debugMvc = global.debug 'ace:mvc'
 configs = new (require('./configs'))
 
 module.exports = class ControllerBase extends Base
-  @add: (type, config) -> configs.add type, config
+  @add: (type, config) ->
+    if typeof config is 'object' and !Array.isArray constructor = config['constructor']
+      config['constructor'] = if constructor then [constructor] else []
+    configs.add type, config
 
   @finish: ->
     configs.applyMixins()
@@ -24,7 +27,15 @@ module.exports = class ControllerBase extends Base
     ControllerBase[k] = v for k, v of types
     return
 
-  constructor: (@aceParent, @aceName, settings={}) ->
+  constructor: (@aceParent, aceName, settings) ->
+    if aceName? and typeof aceName is 'object'
+      settings = aceName
+      aceName = ''
+    else unless settings?
+      settings = {}
+
+    @aceName = aceName
+
     debugMvc "Building #{@}"
 
     super()

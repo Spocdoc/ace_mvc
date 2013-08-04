@@ -42,6 +42,16 @@ _.argNames = do ->
     else
       []
 
+unsafeEscape =
+ '&': '&amp;',
+ '<': '&lt;',
+ '>': '&gt;'
+
+_.unsafeHtmlEscape = do ->
+  escapeChar = (char) -> unsafeEscape[char] || char
+  (text) ->
+    text.replace /[&<>]/g, escapeChar
+
 _.htmlEscape = do ->
   p = global.$ '<p>'
   (text) ->

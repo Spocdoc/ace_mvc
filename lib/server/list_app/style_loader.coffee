@@ -22,7 +22,7 @@ styleLoaders =
       type = mvcUtils.makeClassName type
 
       async.waterfall [
-        (next) -> stylus.render content, filename: fullPath, linenos:true, next
+        (next) -> stylus.render content, filename: fullPath, linenos: true, next
         (css) ->
           css = wrapInClass(css,type)
 

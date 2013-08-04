@@ -34,7 +34,7 @@ module.exports = (path, keys) ->
           r.push("#{path.substr(lastI, fixedLen)}");
           """
       fn.push """
-        if (p.#{key} != null && (v = p.#{key}.value) != null) {
+        if (p.#{key} != null && (v = p.#{key}['value']) != null) {
           r.push("#{slash}#{format}");
           r.push(encodeURIComponent(v));
         }

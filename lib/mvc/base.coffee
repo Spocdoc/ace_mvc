@@ -59,14 +59,9 @@ module.exports = class Base
     return
 
   _applyConstructors: (settings) ->
-    constructors = @aceConfig['constructor']
-
-    if Array.isArray constructors
+    if constructors = @aceConfig['constructor']
       for constructor in constructors
         constructor.call this, settings
-    else
-      constructors.call this, settings
-
     return
 
   _buildOutlet: (name) ->

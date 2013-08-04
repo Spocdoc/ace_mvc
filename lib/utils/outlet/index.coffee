@@ -32,7 +32,7 @@ module.exports = class Outlet
 
   toString: -> @index
   'toOJSON': ->
-    if @value? then @value else null
+    if @['value']? then @['value'] else null
 
   set: (value, version) ->
     if typeof value is 'function'
@@ -44,8 +44,8 @@ module.exports = class Outlet
     return
 
   _setValue: (value, version=@version) ->
-    return if @pending or (@value is value and @version is version)
-    @value = value; @version = version
+    return if @pending or (@['value'] is value and @version is version)
+    @['value'] = value; @version = version
     Outlet.openBlock()
     equiv._setValue value, version for index, equiv of @equivalents
     for index, outflow of @outflows when !outflow.root
@@ -60,7 +60,7 @@ module.exports = class Outlet
     if outlet.pending
       @_setPendingTrue()
     else
-      @_setValue outlet.value, outlet.version
+      @_setValue outlet['value'], outlet.version
     @equivalents[outlet] = outlet
     outlet.equivalents[this] = this
     return
@@ -78,7 +78,7 @@ module.exports = class Outlet
       @_runSource()
     return
 
-  modified: -> @set @value, makeIndex()
+  modified: -> @set @['value'], makeIndex()
 
   get: ->
     if (out = Outlet.auto) and this != out
@@ -92,13 +92,13 @@ module.exports = class Outlet
           out.changing[this] = ++out.changing.length
           throw 'pending'
 
-    if @value and len = arguments.length
-      if @value.get?.length > 0
-        return @value.get(arguments...)
-      else if len is 1 and typeof @value is 'object'
-        return @value[arguments[0]]
+    if @['value'] and len = arguments.length
+      if @['value'].get?.length > 0
+        return @['value'].get(arguments...)
+      else if len is 1 and typeof @['value'] is 'object'
+        return @['value'][arguments[0]]
     
-    @value
+    @['value']
 
   addOutflow: (outflow) ->
     outflow = new Outlet outflow if typeof outflow is 'function'
@@ -155,7 +155,7 @@ module.exports = class Outlet
     return if !@pending or @root or @changing.length
     if source and outlet = @funcOutlet
       unless outlet.pending
-        @_setFuncValue outlet.value, outlet.version
+        @_setFuncValue outlet['value'], outlet.version
     else
       @pending = false
       equiv._setPendingFalse() for index, equiv of @equivalents
@@ -190,7 +190,7 @@ module.exports = class Outlet
       Outlet.auto = prev
       Outlet.closeBlock()
     if outlet = @funcOutlet
-      return outlet.pending or @_setFuncValue outlet.value, outlet.version if value is outlet
+      return outlet.pending or @_setFuncValue outlet['value'], outlet.version if value is outlet
       delete @equivalents[outlet]
       delete outlet.equivalents[this]
       delete @funcOutlet
@@ -200,23 +200,23 @@ module.exports = class Outlet
       @funcOutlet = value
       return if value.pending
       version = value.version
-      value = value.value
+      value = value['value']
     @_setFuncValue value, version
     return
 
   _runFunc: ->
     @funcArgs ||= []
     if @funcArgOutlets
-      @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
+      @funcArgs[i] = outlet['value'] for outlet, i in @funcArgOutlets
     @func.apply @context, @funcArgs
 
   _setFuncValue: (value, version) ->
     return if @root or @changing.length
-    if @value is value and @version is version
+    if @['value'] is value and @version is version
       @_setPendingFalse()
     else
       @pending = false
-      @value = value
+      @['value'] = value
       equiv._setFuncValue value for index, equiv of @equivalents
       outflow._runSource this for index, outflow of @outflows
     return

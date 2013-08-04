@@ -53,17 +53,17 @@ module.exports = class Router
     @route url = @navigator.url
 
     @routeSearch = new Outlet
-    @routeSearch.value = @current
+    @routeSearch['value'] = @current
     @routeSearch.func = (=>
       for r in this when r.matchOutlets @uriOutlets
         return @current = r)
 
     @uriFormatter = new Outlet
-    @uriFormatter.value = url.href
+    @uriFormatter['value'] = url.href
     @uriFormatter.func = (=> @current?.format @uriOutlets)
 
     @routeSearch.addOutflow @uriFormatter
-    @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
+    @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter['value'])
 
     for varName, outlet of @uriOutlets
       outlet.addOutflow @routeSearch if outlet.affectsPath

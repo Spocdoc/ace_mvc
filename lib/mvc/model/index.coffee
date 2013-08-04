@@ -182,7 +182,7 @@ module.exports = class Model
 
   @isValidId: do ->
     regex = /^[0-9a-f]{24}$/
-    (id) -> !!(''+id).match regex
+    (id) -> regex.test ''+id
 
   constructor: (id, clientDoc) ->
     # this is for patching the serverDoc with DBRefs instead of models. clone calls it
@@ -207,7 +207,7 @@ module.exports = class Model
     @incoming = [] # incoming ops when pending
 
     @_pending = new Outlet 0
-    @['pending'] = @pending = new Outlet => !!@_pending.value
+    @['pending'] = @pending = new Outlet => !!@_pending['value']
     @_pending.addOutflow @pending
 
     @['present'] = @present = new Outlet present
@@ -226,7 +226,7 @@ module.exports = class Model
 
   create: ->
     return if @serverDoc
-    return @_pending.set pending | CREATE_LATER if (pending = @_pending.value) & NOW
+    return @_pending.set pending | CREATE_LATER if (pending = @_pending['value']) & NOW
     @_pending.set pending | CREATE_NOW
 
     @clientDoc ||= '_id': id
@@ -238,7 +238,7 @@ module.exports = class Model
       Outlet.closeBlock()
 
   handleCreate: (code, doc, arg1, arg2) ->
-    @_pending.set @_pending.value & ~CREATE_NOW
+    @_pending.set @_pending['value'] & ~CREATE_NOW
 
     if code is 'r'
       @error.set arg1 || "can't create"
@@ -251,8 +251,8 @@ module.exports = class Model
     return
 
   canRead: ->
-    return if @conflict.value
-    return @_pending.set pending | READ_LATER if (pending = @_pending.value) & NOW
+    return if @conflict['value']
+    return @_pending.set pending | READ_LATER if (pending = @_pending['value']) & NOW
     @_pending.set pending | READ_NOW
     true
 
@@ -265,7 +265,7 @@ module.exports = class Model
       Outlet.closeBlock()
 
   handleRead: (code, arg, clientDoc) ->
-    @_pending.set @_pending.value & ~READ_NOW
+    @_pending.set @_pending['value'] & ~READ_NOW
 
     if code is 'r'
       @serverDelete()
@@ -278,7 +278,7 @@ module.exports = class Model
     return
 
   serverCreate: (doc) ->
-    return if @conflict.value
+    return if @conflict['value']
 
     newVersion = doc['_v']
 
@@ -320,7 +320,7 @@ module.exports = class Model
 
   # never called if conflicted
   update: (ops) ->
-    pending = @_pending.value
+    pending = @_pending['value']
     unless @serverDoc
       return @create unless pending & (CREATE | READ)
 
@@ -335,7 +335,7 @@ module.exports = class Model
     outgoing = @outgoing
     @outgoing = []
     unless outgoing[0]
-      @_pending.set @_pending.value & ~UPDATE_NOW
+      @_pending.set @_pending['value'] & ~UPDATE_NOW
       @_loop()
       return
 
@@ -354,7 +354,7 @@ module.exports = class Model
       else
         @error.set arg1 || "can't update"
         @patchClient diff @clientDoc, @serverDoc
-        @_pending.set @_pending.value & ~UPDATE_NOW
+        @_pending.set @_pending['value'] & ~UPDATE_NOW
         @_loop()
     else if code is 'c'
       if @serverDoc['_v'] > @clientDoc['_v']
@@ -362,7 +362,7 @@ module.exports = class Model
       else
         outgoing.push @outgoing...
         @outgoing = outgoing
-        @_pending.set @_pending.value & ~UPDATE_NOW
+        @_pending.set @_pending['value'] & ~UPDATE_NOW
         @_loop()
     else
       ++@serverDoc['_v']
@@ -379,7 +379,7 @@ module.exports = class Model
     @_serverUpdate()
 
   _serverUpdate: ->
-    return if (@_pending.value & NOW) or @conflict.value
+    return if (@_pending['value'] & NOW) or @conflict['value']
     ops = @patchServer()
     if @outgoing[0]
       @_conflict()
@@ -411,7 +411,7 @@ module.exports = class Model
     return
 
   'delete': ->
-    return @_pending.set pending | DELETE_LATER if (pending = @_pending.value) & NOW
+    return @_pending.set pending | DELETE_LATER if (pending = @_pending['value']) & NOW
     @_pending.set pending | DELETE_NOW
 
     unless @serverDoc
@@ -439,19 +439,19 @@ module.exports = class Model
     return
 
   'run': (name, arg, cb) ->
-    return if @conflict.value
+    return if @conflict['value']
     if typeof arg is 'function'
       cb = arg
       arg = null
     @runQueue ||= queue()
     @runQueue [name, arg, cb] if name
-    return @_pending.set pending | RUN_LATER if (pending = @_pending.value) & NOW
+    return @_pending.set pending | RUN_LATER if (pending = @_pending['value']) & NOW
     @_pending.set pending | RUN_NOW
     @_run()
 
   _run: ->
     unless arr = @runQueue()
-      @_pending.set @_pending.value & ~RUN_NOW
+      @_pending.set @_pending['value'] & ~RUN_NOW
       @_loop()
       return
 
@@ -464,7 +464,7 @@ module.exports = class Model
     return
 
   _loop: ->
-    pending = @_pending.value
+    pending = @_pending['value']
 
     if pending & DELETE_LATER
       @delete()
@@ -472,7 +472,7 @@ module.exports = class Model
       @create()
     else if pending & READ_LATER
       @read()
-    else unless @conflict.value
+    else unless @conflict['value']
       if pending & RUN_LATER
         @run()
       else if pending & UPDATE_LATER
@@ -511,7 +511,7 @@ module.exports = class Model
 
       (@_pushers ||= []).push pusher = new Outlet
       pusher.func = (=>
-        if @clientDoc and !@conflict.value and ops = diff(@clientDoc, outlet.value, path: path)
+        if @clientDoc and !@conflict['value'] and ops = diff(@clientDoc, outlet['value'], path: path)
           @clientDoc = diff.patch @clientDoc, ops
 
           # update descendant outlets whose value may have changed because of this change
@@ -520,7 +520,7 @@ module.exports = class Model
           @_clientOps.push ops...
           makeIndex()
         else
-          pusher.value
+          pusher['value']
       )
 
       outlet.addOutflow pusher

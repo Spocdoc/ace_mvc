@@ -30,10 +30,11 @@ module.exports = class TemplateBase
     debug "Building #{@}"
 
     unless (config = @aceConfig).$root
-      $root = config.$root = $(config.domString)
-      if $root.length > 1 or $root.attr('id')? or $root.attr('class')
-        $root = config.$root = $('<div></div>').append($root)
-      config.ids = getDomIds $root
+      unless ($root = $(config.domString)).length
+        $root = $('<div>')
+      else if $root.length > 1 or $root.attr('id')? or $root.attr('class')
+        $root = $('<div>').append($root)
+      config.ids = getDomIds config.$root = $root
 
     path = []
     elem = @aceParent

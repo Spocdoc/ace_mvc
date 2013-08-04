@@ -1,8 +1,11 @@
 # derived partly from node
+OJSON = require '../ojson'
 
 sep = '&'
 eq = '='
 rPlus = /\+/g
+regexAmp=/&/g
+regexHash=/#/g
 
 module.exports = {}
 
@@ -39,11 +42,13 @@ module.exports.parse = (qs) ->
 
 module.exports.stringifyValue = prim = (v) ->
   switch typeof v
-    when 'string' then encodeURI(v)
+    when 'string' then encodeURI(v).replace(regexAmp,'%26').replace(regexHash,'%23')
     when 'boolean'
       if v then 'true' else 'false'
     when 'number'
       if isFinite(v) then v else ''
+    when 'object'
+      encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
     else ''
 
 module.exports.stringify = do ->
@@ -62,7 +67,7 @@ module.exports.stringify = do ->
     return str(name, obj) if typeof obj isnt 'object'
     return strA(name, obj) if Array.isArray(obj)
 
-    ((if Array.isArray(v) then strA(k,v) else str(k,v)) for k,v of obj).join(sep)
+    ((if Array.isArray(v) and v.length < 3 then strA(k,v) else str(k,v)) for k,v of obj).join(sep)
 
 
 

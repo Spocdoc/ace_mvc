@@ -7,9 +7,9 @@ class Path
 
   matchOutlets: (outlets) ->
     for key in @keys when !key.optional
-      return false unless outlets[key.name].value
+      return false unless outlets[key.name]['value']
     for k,v of @outletHash
-      return false unless outlets[k].value is v
+      return false unless outlets[k]['value'] is v
     return true
 
   match: (url, outlets) ->

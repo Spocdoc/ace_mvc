@@ -78,7 +78,12 @@ module.exports = class Outlet
       @_runSource()
     return
 
-  modified: -> @set @value, makeIndex()
+  modified: ->
+    if @pending
+      @version = makeIndex()
+    else
+      @set @value, makeIndex()
+    @value
 
   get: ->
     if (out = Outlet.auto) and this != out

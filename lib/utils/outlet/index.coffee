@@ -69,6 +69,7 @@ module.exports = class Outlet
     context && @context = context
     @funcArgOutlets = []
     (@funcArgOutlets[i] = @context[name]).addOutflow this for name,i in argNames func
+    @auto = null if i # TODO this is a workaround in lieu of a yet unimplemented better alternative
     @_setPendingTrue()
     if Outlet.roots.depth
       @root = true

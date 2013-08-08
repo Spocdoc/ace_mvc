@@ -19,11 +19,11 @@ readExterns = (aGlob, cb) ->
 module.exports = (cb) ->
   async.parallel
     debug: (done) ->
-      async.concat ['./_*/client/**/!(release*).js', './_*/!(client|server)'], readExterns, (err, codes) ->
+      async.concat ['./_*/**/!(release*).js'], readExterns, (err, codes) ->
         return done err if err?
         done null, codes.join('\n')
     release: (done) ->
-      async.concat ['./_*/client/**/!(debug*).js', './_*/!(client|server)'], readExterns, (err, codes) ->
+      async.concat ['./_*/**/!(debug*).js'], readExterns, (err, codes) ->
         return done err if err?
         done null, codes.join('\n')
     cb

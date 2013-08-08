@@ -1,4 +1,4 @@
-dom = require '../dom'
+domUtils = require '../../../../utils/dom_utils'
 
 #
 # derived from selection.js Copyright (c) 2011-12 Tim Cameron Ryan. MIT licensed.
@@ -30,27 +30,22 @@ getBoundary = (textRange, atStart, result) ->
     
     # ...or an element.
     node = cursorNode.parentNode
-    offset = dom.getChildIndex(cursorNode)
+    offset = domUtils.getChildIndex(cursorNode)
   
   # Remove our dummy node and return the anchor.
   cursorNode.parentNode.removeChild cursorNode
-  if atStart
-    result.startContainer = node
-    result.startOffset = offset
-  else
-    result.endContainer = node
-    result.endOffset = offset
+  result[if atStart then 'start' else 'end'] = {'container': node, 'offset': offset}
 
   return
 
 moveBoundary = (textRange, atStart, node, offset) ->
   # Find the normalized node and parent of our anchor.
   textOffset = 0
-  anchorNode = (if dom.isText(node) then node else node.childNodes[offset])
-  anchorParent = (if dom.isText(node) then node.parentNode else node)
+  anchorNode = (if domUtils.isText(node) then node else node.childNodes[offset])
+  anchorParent = (if domUtils.isText(node) then node.parentNode else node)
   
   # Visible data nodes need an offset parameter.
-  textOffset = offset  if dom.isText(node)
+  textOffset = offset  if domUtils.isText(node)
   
   # We create another dummy anchor element, insert it at the anchor,
   # and create a text range to select the contents of that node.
@@ -66,21 +61,34 @@ moveBoundary = (textRange, atStart, node, offset) ->
   textRange[(if atStart then "moveStart" else "moveEnd")] "character", textOffset
   return
 
-module.exports =
-  get: ->
+module.exports = (start, end) ->
+  unless start?
     global.focus()
     if (range = global.document.selection.createRange()) and range.parentElement().document is global.document
       result = {}
       getBoundary range, true, result
       getBoundary range, false, result
       result
+  else
+    if start['start']
+      end = start['end']
+      start = start['start']
 
-  set: (anchor, anchorOffset, focus=anchor, focusOffset=anchorOffset) ->
-    range = global.document.body.createTextRange()
-    moveBoundary range, false, focus, focusOffset
-    moveBoundary range, true, anchor, anchorOffset
-    range.select()
+    try
+
+      end ||= start
+
+      range = global.document.body.createTextRange()
+      moveBoundary range, false, end['container'], end['offset']
+      moveBoundary range, true, start['container'], start['offset']
+      range.select()
+
+    catch _error
     return
 
-  'clear': ->
-    global.document.selection.empty()
+module.exports['clear'] = -> global.document.selection.empty()
+
+module.exports['isCollapsed'] = ->
+  sel = global.document.selection
+  0 is sel.compareEndPoints 'StartToEnd', sel
+

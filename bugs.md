@@ -264,3 +264,8 @@
        - db.coffee to not remove the text filter from distinct
        - controllers that use $text field in queries
 
+# Cheerio
+
+  - inserting an element that's already in the dom doesn't equate to a move -- it's a duplication (at least when toString() is invoked)
+
+

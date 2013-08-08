@@ -1,6 +1,7 @@
 path = require 'path'
 async = require 'async'
 mvcUtils = require '../../mvc/utils'
+nib = require 'nib'
 
 # note: in principle this could be modularized so each style type is in a
 # separate file that's `require`'d as needed
@@ -22,18 +23,15 @@ styleLoaders =
       type = mvcUtils.makeClassName type
 
       async.waterfall [
-        (next) -> stylus.render content, filename: fullPath, linenos: true, next
-        (css) ->
+        (next) -> stylus(content).set('filename',fullPath).set('linenos',true).use(nib()).import('nib').render next
+        (css, next) ->
           css = wrapInClass(css,type)
 
           async.parallel
             debug: (done) -> stylus.render css, done
             release: (done) -> stylus.render css, compress: true, done
-            cb
-      ]
-
-
-
+            next
+      ], cb
 
 module.exports =
   handles: (ext) -> styleLoaders[ext]?

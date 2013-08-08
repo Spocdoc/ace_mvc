@@ -14,6 +14,9 @@ extend $prototype = global.$('').constructor.prototype,
   scrollLeft: ->
   scrollTop: ->
 
+  appendTo: ($rhs) -> $rhs.append this
+  prependTo: ($rhs) -> $rhs.prepend this
+
   detach: $prototype.remove
 
   css: (prop, value) ->
@@ -36,6 +39,15 @@ extend $prototype = global.$('').constructor.prototype,
     nodes = []
     nodes.push element.children... for element in this
     @make nodes
+
+  contains: (arg) ->
+    return true if arg is node = @[0]
+    while arg = arg.parent when node is arg
+      return true
+    false
+
+
+
 
 
 

@@ -10,6 +10,7 @@ readExterns = (aGlob, cb) ->
   async.waterfall [
     (next) -> glob aGlob, cwd: lib, nonegate: true, next
     (files, next) ->
+      files = files.filter (filePath) -> !~filePath.indexOf '/server/'
       files.sort()
       files = files.map (filePath) -> path.resolve lib, filePath
       async.mapSeries files, readFile, next

@@ -8,7 +8,7 @@ configs = new (require('./configs'))
 
 module.exports = class ControllerBase extends Base
   @add: (type, config) ->
-    if typeof config is 'object' and !Array.isArray constructor = config['constructor']
+    if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
       config['constructor'] = if constructor then [constructor] else []
     configs.add type, config
 

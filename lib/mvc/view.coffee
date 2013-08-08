@@ -8,7 +8,7 @@ configs = new (require('./configs'))
 
 module.exports = class ViewBase extends Base
   @add: (type, config) ->
-    if typeof config is 'object' and !Array.isArray constructor = config['constructor']
+    if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
       config['constructor'] = if constructor then [constructor] else []
     configs.add type, config
 
@@ -138,7 +138,8 @@ module.exports = class ViewBase extends Base
         oldView = undefined
         outlet.addOutflow new Outlet =>
           oldView?.detach()
-          (oldView = outlet.value)['appendTo'] e
+          (oldView = outlet.value)?['appendTo'] e
+          return
 
       else
         outlet.addOutflow new Outlet =>
@@ -161,8 +162,8 @@ module.exports = class ViewBase extends Base
   _buildTemplate: (arg) ->
     if arg instanceof Template
       @['template'] = arg
-    else # string
-      @['template'] =  new Template[arg] this
+    else
+      @['template'] =  new (Template[arg] || Template) this
 
     @['domCache'] = {}
 

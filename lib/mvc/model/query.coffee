@@ -162,7 +162,7 @@ module.exports = class Query
         outflow.addOutflow @_updater
 
       else
-        @_initOutlets v, inverted, math
+        @_initOutlets outlet, inverted, math
 
     return
 

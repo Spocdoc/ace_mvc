@@ -40,11 +40,10 @@ parsePart = (field, spec, func) ->
           arr2 = []
           parsePart field, v, arr2
           arr1.push "!(#{arr2.join "&&"})"
-        when '$text' then # no-op. skip text search criteria -- they can't be done locally
         else
           arr1.push "deepEqual(#{field}[#{quote(k)}],#{quote(v)})"
 
-    func.push arr1.join '&&'
+    func.push str if str = arr1.join '&&'
   else
     func.push "#{field}===#{quote(spec)}"
 
@@ -59,7 +58,7 @@ parseClause = (doc, spec, func) ->
       arr2 = []
       parseClause doc, clause, arr2 for clause in v
       arr1.push "#{if k.charAt(1) is 'n' then '!' else ''}(#{arr2.join op})"
-    else
+    else unless k is '$text' # full text search is too complex to do locally
       parsePart "#{doc}[#{quote(k)}]", v, arr1
 
   func.push arr1.join '&&'
@@ -69,7 +68,7 @@ parseClause = (doc, spec, func) ->
 module.exports = (spec) ->
   func = []
   parseClause 'doc', spec, func
-  func = """return #{func.join ''};"""
+  func = "return #{func.join('')||true};"
   debug "compiled query to #{func}"
   func = new Function 'deepEqual', 'match', 'indexOf', 'doc', func
   (model) ->

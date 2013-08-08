@@ -42,3 +42,19 @@
 
     as a temporary workaround, when a function is set that has args, the auto flag is unset
 
+  - add shorthand for named parameters to get outlets of outlets, e.g..
+
+
+        (menu_activeRow) -> ...
+
+    instead of
+
+        activeRow: -> @menu.get().activeRow
+        outletMethods [
+          (activeRow) -> ...
+        ]
+
+    alternately, this could be
+
+        (menuActiveRow) -> ...
+

@@ -4,13 +4,10 @@ debugError = global.debug 'ace:error'
 
 module.exports = class Outlet
   (@roots = []).depth = 0
-  @debug = {}
 
   constructor: (value, @context, auto) ->
     @auto = if auto then this else null
     @index = makeIndex()
-
-    Outlet.debug[this] = this
 
     @equivalents = {}
     (@changing = {}).length = 0
@@ -216,7 +213,7 @@ module.exports = class Outlet
     @func.apply @context, @funcArgs
 
   _setFuncValue: (value, version) ->
-    return if @root or @changing.length
+    return if !@pending or @root or @changing.length
     if @value is value and @version is version
       @_setPendingFalse()
     else

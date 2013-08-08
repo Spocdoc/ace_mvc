@@ -59,7 +59,7 @@ module.exports = class Base
     return
 
   _applyConstructors: (settings) ->
-    if constructors = @aceConfig['constructor']
+    if Array.isArray constructors = @aceConfig['constructor']
       for constructor in constructors
         constructor.call this, settings
     return
@@ -73,11 +73,10 @@ module.exports = class Base
 
   _setOutlets: (settings) ->
     for k,v of @constructor._outletDefaults
-      o = @outlets[k]
-
-      if typeof v is 'function'
-        o.context = this
-        o.set v
-      else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
-        o.set(if settings.hasOwnProperty k then settings[k] else v)
+      if (o = @outlets[k]).value is undefined
+        if typeof v is 'function'
+          o.context = this
+          o.set v
+        else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
+          o.set(if settings.hasOwnProperty k then settings[k] else v)
     return

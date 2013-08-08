@@ -26,6 +26,9 @@ module.exports = class TemplateBase
     TemplateBase[k] = v for k,v of types
     return
 
+  aceConfig:
+    domString: ''
+
   constructor: (@aceParent) ->
     debug "Building #{@}"
 
@@ -62,7 +65,7 @@ module.exports = class TemplateBase
         (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}-#{id}"))
           .template = this
 
-    @['$root'].addClass utils.makeClassName(@aceParent.aceType)
+    @['$root'].attr 'class', "#{utils.makeClassName(@aceParent.aceType)} root"
 
     # public
     @['acePrefix'] = @acePrefix

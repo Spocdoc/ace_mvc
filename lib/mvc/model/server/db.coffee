@@ -11,6 +11,7 @@ Emitter = require '../../../utils/events/emitter'
 debug = global.debug 'ace:server:db'
 async = require 'async'
 callback = require './callback'
+fixQuery = require './fix_query'
 
 checkId = (id, cb) ->
   unless id instanceof mongodb.ObjectID
@@ -132,7 +133,7 @@ class Db extends Mongo
 
     else if query
       spec =
-        query: query
+        query: fixQuery(query)
         sort: sort
         limit: limit
 

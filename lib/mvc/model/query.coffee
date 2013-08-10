@@ -3,6 +3,7 @@ OJSON = require '../../utils/ojson'
 queryCompile = require './query_compile'
 makeId = require '../../utils/id'
 emptyArray = []
+debug = global.debug "ace:mvc:query"
 
 arrayIsSubset = (sup, sub) ->
   sup = sup.concat().sort()

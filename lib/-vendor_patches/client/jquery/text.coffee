@@ -198,6 +198,14 @@ $['fn']['extend']
       return
     text
 
+  'nextTextUntil': (start, fn) ->
+    text = ''
+    visitTextForwardFn @[0], start, fn, (node) ->
+      str = if node is start['container'] then (''+node.nodeValue).substring(start['offset']) else node.nodeValue
+      text += str
+      return
+    text
+
   'wordEndUntil': (start, fn) ->
     thisNode = @[0]
     endFn = (node, parent, index) -> {'container': parent, 'offset': index} if fn node

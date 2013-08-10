@@ -91,7 +91,7 @@ module.exports = class OJSON
 
     res
 
-  @parse: (str) -> @fromOJSON JSON.parse str
+  @parse: (str) -> str && @fromOJSON JSON.parse str
 
   @registry = {}
 

@@ -20,16 +20,12 @@ if global.getSelection
         start = start['start']
 
       try
-        if sel and sel.collapse and sel.extend
-          sel.collapse start['container'], start['offset']
-          sel.extend end['container'], end['offset'] if end
-        else
-          end ||= start
-          range = global.document.createRange()
-          range.setStart start['container'], start['offset']
-          range.setEnd end['container'], end['offset']
-          sel.removeAllRanges()
-          sel.addRange range
+        end ||= start
+        range = global.document.createRange()
+        range.setStart start['container'], start['offset']
+        range.setEnd end['container'], end['offset']
+        sel.removeAllRanges()
+        sel.addRange range
       catch _error
       return
 

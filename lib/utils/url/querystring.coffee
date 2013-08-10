@@ -9,7 +9,11 @@ regexHash=/#/g
 
 module.exports = {}
 
-module.exports.parseValue = parseValue = decodeURIComponent
+module.exports.stringifyValue = prim = (v) ->
+  encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
+
+module.exports.parseValue = parseValue = (v) ->
+  OJSON.parse decodeURIComponent(v)
 
 module.exports.parse = (qs) ->
   obj = {}
@@ -39,17 +43,6 @@ module.exports.parse = (qs) ->
       obj[k] = [obj[k], v]
 
   obj
-
-module.exports.stringifyValue = prim = (v) ->
-  switch typeof v
-    when 'string' then encodeURI(v).replace(regexAmp,'%26').replace(regexHash,'%23')
-    when 'boolean'
-      if v then 'true' else 'false'
-    when 'number'
-      if isFinite(v) then v else ''
-    when 'object'
-      encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
-    else ''
 
 module.exports.stringify = do ->
 

@@ -19,7 +19,7 @@ nonHostRegex = new RegExp("[#{RegExp.escape(nonHostChars.join())}]")
 autoEscape = ["'"].concat(delims)
 autoEscapeRepl = {}
 autoEscapeRepl[c] = escape(c) for c in autoEscape
-autoEscapeRegex = new RegExp("[#{RegExp.escape(autoEscape.join())}]",'g')
+autoEscapeRegex = new RegExp("[#{RegExp.escape(autoEscape.join(''))}]",'g')
 
 dupSlashesRegex = /\/+/g
 

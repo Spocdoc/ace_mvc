@@ -1,3 +1,5 @@
+Base = require '../base'
+Configs = require '../configs'
 ObjectID = global.mongo.ObjectID
 DBRef = global.mongo.DBRef
 Registry = require '../../utils/registry'
@@ -9,11 +11,7 @@ Outlet = require '../../utils/outlet'
 Query = require './query'
 patchOutlets = diff.toOutlets
 makeIndex = require '../../utils/id'
-
 debug = global.debug 'ace:mvc'
-
-configs = new (require('../configs'))
-reserved = ['constructor','static']
 
 NOW            = 0
 
@@ -42,27 +40,10 @@ OK_NOAUTH       = 2 << 2
 OK_CONFLICT     = 3 << 4
 
 
-module.exports = class Model
-  @name = 'Model'
+module.exports = class ModelBase extends Base
+  @configs = new Configs
 
-  @add: (type, config) -> configs.add type, config
-
-  @finish: ->
-    configs.applyMixins()
-
-    ModelBase = Model
-    types = {}
-    for type,config of configs.configs
-      types[type] = class Model extends ModelBase
-        coll: type
-        _config: config
-
-        @_applyStatic config
-        @_applyMethods config
-    ModelBase[k] = v for k, v of types
-    return
-
-  @init: (globals, sock, json) ->
+  @init: (ace, sock, json) ->
     _this = this
 
     sock.on 'create', (coll, doc) =>
@@ -79,11 +60,12 @@ module.exports = class Model
       model.serverDelete() if model = @[coll].models[id]
       return
 
-    for type, config of configs.configs
+    for type, config of @configs.configs
       @[type] = class Model extends @[type]
         @models: {}
         @queryCache: {}
         sock: sock
+        aceParent: ace
 
         Model: _this
         'Model': _this
@@ -92,10 +74,8 @@ module.exports = class Model
         @Query = @['Query'] = (spec, limit, sort) ->
           new Query _this[_type], spec, limit, sort
 
-        @prototype[k] = v for k,v of @prototype.globals = globals
-
     @['reread'] = ->
-      for type of configs.configs
+      for type of @configs.configs
         clazz = @[type]
         ids = []
         versions = []
@@ -116,54 +96,35 @@ module.exports = class Model
               return
       return
 
+    @toJSON = ->
+      docs = {}
+      for type of @configs.configs
+        models = []; i = 0
+        models[i++] = serverDoc for id, model of @[type].models when serverDoc = model.serverDoc
+
+        queryCache = {}
+        for hash, {ids,distinct} of @[type].queryCache
+          queryCache[hash] =
+            'i': ids
+            'd': distinct
+          ++i
+
+        if i
+          docs[type] =
+            'm': models
+            'q': queryCache
+      OJSON.toOJSON docs
+
+    @clearQueryCache = ->
+      @[type].queryCache = {} for type of @configs.configs
+      Query.useCache = 0
+      return
+
     if json
       for type, obj of OJSON.fromOJSON json
         new @[type] doc._id, doc for doc in obj['m']
         @[type].queryCache[hash] = {ids,distinct} for hash, {'i':ids,'d':distinct} of obj['q']
       @['reread']()
-
-    return
-
-  @clearQueryCache: ->
-    @[type].queryCache = {} for type of configs.configs
-    Query.useCache = 0
-    return
-
-  @toJSON: ->
-    docs = {}
-    for type of configs.configs
-      models = []; i = 0
-      models[i++] = serverDoc for id, model of @[type].models when serverDoc = model.serverDoc
-
-      queryCache = {}
-      for hash, {ids,distinct} of @[type].queryCache
-        queryCache[hash] =
-          'i': ids
-          'd': distinct
-        ++i
-
-      if i
-        docs[type] =
-          'm': models
-          'q': queryCache
-    OJSON.toOJSON docs
-
-  @_applyStatic: (config) ->
-    @[name] = fn for name, fn of config['static']
-    return
-
-  @_applyMethods: (config) ->
-    @prototype[name] = method for name, method of config when not (name in reserved)
-    return
-
-  _applyConstructors: ->
-    constructors = @_config['constructor']
-
-    if Array.isArray constructors
-      for constructor in constructors
-        constructor.call this
-    else
-      constructors.call this
 
     return
 
@@ -186,11 +147,13 @@ module.exports = class Model
 
   constructor: (id, clientDoc) ->
     # this is for patching the serverDoc with DBRefs instead of models. clone calls it
-    return new DBRef @coll, new ObjectID(id.id) if id instanceof @constructor
+    return new DBRef @aceType, new ObjectID(id.id) if id instanceof @constructor
 
     models = @constructor.models
     return model if model = models[id]
     models[id] = this
+
+    super()
 
     try
       id = new ObjectID id unless id instanceof ObjectID
@@ -214,15 +177,17 @@ module.exports = class Model
     @['error'] = @error = new Outlet ''
     @['conflict'] = @conflict = new Outlet false
 
-    debug "Building #{@coll}[#{@}]"
+    debug "Building #{@aceType}[#{@}]"
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = null
     try
-      @_applyConstructors @_config
+      @_buildOutlets()
+      @_runConstructors()
+      @_setOutlets()
     finally
       Outlet.auto = prev
       Outlet.closeBlock()
-    debug "done building #{@coll}[#{@}]"
+    debug "done building #{@aceType}[#{@}]"
 
   create: ->
     return if @serverDoc
@@ -232,7 +197,7 @@ module.exports = class Model
     @clientDoc ||= '_id': id
     @clientDoc['_v'] ||= 1
     clientDoc = clone @clientDoc
-    @sock.emit 'create', @coll, OJSON.toOJSON(clientDoc), (code, arg1, arg2) =>
+    @sock.emit 'create', @aceType, OJSON.toOJSON(clientDoc), (code, arg1, arg2) =>
       Outlet.openBlock()
       @handleCreate code, clientDoc, arg1, arg2
       Outlet.closeBlock()
@@ -259,7 +224,7 @@ module.exports = class Model
   read: ->
     return unless @canRead()
     clientDoc = clone @clientDoc
-    @sock.emit 'read', @coll, @id, (clientDoc && clientDoc['_v']), null, null, null, (code, arg) =>
+    @sock.emit 'read', @aceType, @id, (clientDoc && clientDoc['_v']), null, null, null, (code, arg) =>
       Outlet.openBlock()
       @handleRead code, arg, clientDoc
       Outlet.closeBlock()
@@ -339,7 +304,7 @@ module.exports = class Model
       @_loop()
       return
 
-    @sock.emit 'update', @coll, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2) =>
+    @sock.emit 'update', @aceType, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2) =>
       Outlet.openBlock()
       @handleUpdate code, arg1, arg2, outgoing
       Outlet.closeBlock()
@@ -418,7 +383,7 @@ module.exports = class Model
       @serverDelete()
     else
       @patchClient diff @clientDoc, null
-      @sock.emit 'delete', @coll, @id, (code, msg) =>
+      @sock.emit 'delete', @aceType, @id, (code, msg) =>
         Outlet.openBlock()
         @handleDelete code, msg
         Outlet.closeBlock()
@@ -457,7 +422,7 @@ module.exports = class Model
 
     [cmd, arg, cb] = arr
 
-    @sock.emit 'run', @coll, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
+    @sock.emit 'run', @aceType, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
       cb.apply this, arguments
       @_run()
       return

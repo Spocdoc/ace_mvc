@@ -5,9 +5,21 @@ Outlet = require '../utils/outlet'
 reserved = ['constructor','static','view','outlets','outletMethods','template','inWindow']
 
 module.exports = class Base
+  @add: (type, config) ->
+    if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
+      config['constructor'] = if constructor then [constructor] else []
+    @configs.add type, config
+    return this
+
+  @finish: ->
+    @configs.applyMixins()
+    @[type] = clazz for type, clazz of @configs.buildClasses this
+    return
+
   constructor: ->
     @vars = (if @aceName then @aceParent.vars[@aceName] else @aceParent.vars) || {}
     @[k] = v for k,v of @globals = @aceParent.globals
+
     @outlets = {}
 
     # public
@@ -21,44 +33,9 @@ module.exports = class Base
     else if fn = deputy['depute']
       fn.apply(deputy, arguments)
 
-  @_applyOutlet: (outlet) ->
-    if typeof outlet isnt 'string'
-      @_outletDefaults[k] = v for k,v of outlet
-    else
-      @_outletDefaults[outlet] = undefined
-    return
+  varPrefix: ''
 
-  @_applyOutlets: (config) ->
-    @_outletDefaults = {}
-
-    if outlets = config['outlets']
-      if Array.isArray outlets
-        @_applyOutlet k for k in outlets
-      else
-        @_applyOutlet outlets
-
-    if outletMethods = config['outletMethods']
-      @_outletDefaults["_#{i}"] = m for m,i in outletMethods
-
-  @_applyStatic: (config) ->
-    @[name] = fn for name, fn of config['static']
-    return
-
-  @_applyMethods: (config) ->
-    for name, method of config when name.charAt(0) isnt '$' and not (name in reserved)
-      if @_outletDefaults.hasOwnProperty name
-        @_outletDefaults[name] = method
-      else
-        do (method) =>
-          @prototype[name] = ->
-            Outlet.openBlock()
-            try
-              method.apply this, arguments
-            finally
-              Outlet.closeBlock()
-    return
-
-  _applyConstructors: (settings) ->
+  _runConstructors: (settings) ->
     if Array.isArray constructors = @aceConfig['constructor']
       for constructor in constructors
         constructor.call this, settings

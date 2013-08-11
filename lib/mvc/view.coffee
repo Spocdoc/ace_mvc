@@ -3,29 +3,10 @@ Template = require './template'
 Outlet = require '../utils/outlet'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
-
-configs = new (require('./configs'))
+Configs = require './configs'
 
 module.exports = class ViewBase extends Base
-  @add: (type, config) ->
-    if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
-      config['constructor'] = if constructor then [constructor] else []
-    configs.add type, config
-
-  @finish: ->
-    configs.applyMixins()
-
-    types = {}
-    for type,config of configs.configs
-      types[type] = class View extends ViewBase
-        aceType: type
-        aceConfig: config
-
-        @_applyStatic config
-        @_applyOutlets config
-        @_applyMethods config
-    ViewBase[k] = v for k, v of types
-    return
+  @configs: new Configs
 
   constructor: (@aceParent, aceName, settings) ->
     if aceName? and typeof aceName is 'object'
@@ -47,7 +28,7 @@ module.exports = class ViewBase extends Base
       @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet false, this, true
       @_buildTemplate settings['template'] || @aceConfig['template'] || @aceType, settings
       @_buildDollar()
-      @_applyConstructors settings
+      @_runConstructors settings
       @_setOutlets settings
     finally
       Outlet.auto = prev
@@ -56,7 +37,6 @@ module.exports = class ViewBase extends Base
     debugMvc "done building #{@}"
 
   varPrefix: '$'
-
   'View': ViewBase
 
   toString: -> "View [#{@aceType}][#{@aceName}]"

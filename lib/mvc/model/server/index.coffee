@@ -32,8 +32,8 @@ module.exports = (config, app) ->
   diff.register DBRef,
     ((from, to, options) ->
       unless to instanceof DBRef
-        return false unless to.id and to.coll
-        to = new DBRef to.coll, if to.id instanceof ObjectID then to.id else new ObjectID(to.id)
+        return false unless to.id and to.aceType
+        to = new DBRef to.aceType, if to.id instanceof ObjectID then to.id else new ObjectID(to.id)
 
       return false if to.namespace is from.namespace and to.oid?.toString() is from.oid?.toString()
       [{'o':1, 'v':to}]

@@ -1,3 +1,5 @@
+buildClasses = require './build_classes'
+
 class Configs
   constructor: ->
     @configs = Object.create null
@@ -33,5 +35,8 @@ class Configs
       @_applyMixin config, mixin
       delete config['mixins']
     return
+
+  buildClasses: (base) ->
+    buildClasses @configs, base
 
 module.exports = Configs

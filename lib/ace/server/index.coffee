@@ -19,10 +19,11 @@ module.exports = ->
         'Model': class Model extends ModelBase
       ace = globals['ace'] =
         aceName: 'ace'
+        vars: {}
         'aceName': 'ace'
         'globals': globals
 
-      Model.init globals, sock
+      Model.init ace, sock
 
       router = new Router routes, vars, globals, false
       router.route req.url

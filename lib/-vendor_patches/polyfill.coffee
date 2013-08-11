@@ -39,6 +39,9 @@
     String.prototype['startsWith'] ?= (str) ->
       @lastIndexOf(str,0) is 0
 
+    String.prototype['endsWith'] ?= (str) ->
+      @indexOf(str, @length - str.length) isnt -1
+
 # Date.now
 
     Date['now'] ?= (new Date()).getTime()

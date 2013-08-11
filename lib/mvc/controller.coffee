@@ -3,29 +3,10 @@ View = require './view'
 Outlet = require '../utils/outlet'
 debugCascade = global.debug 'ace:cascade'
 debugMvc = global.debug 'ace:mvc'
+Configs = require './configs'
 
-configs = new (require('./configs'))
-
-module.exports = class ControllerBase extends Base
-  @add: (type, config) ->
-    if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
-      config['constructor'] = if constructor then [constructor] else []
-    configs.add type, config
-
-  @finish: ->
-    configs.applyMixins()
-
-    types = {}
-    for type,config of configs.configs
-      types[type] = class Controller extends ControllerBase
-        aceType: type
-        aceConfig: config
-
-        @_applyStatic config
-        @_applyOutlets config
-        @_applyMethods config
-    ControllerBase[k] = v for k, v of types
-    return
+module.exports = class Controller extends Base
+  @configs: new Configs
 
   constructor: (@aceParent, aceName, settings) ->
     if aceName? and typeof aceName is 'object'
@@ -46,7 +27,7 @@ module.exports = class ControllerBase extends Base
       @_buildOutlets()
       @_buildView settings['view'] || @aceConfig['view'] || @aceType, settings
       @_buildDollar()
-      @_applyConstructors settings
+      @_runConstructors settings
       @_setOutlets settings
     finally
       Outlet.auto = prev
@@ -54,17 +35,14 @@ module.exports = class ControllerBase extends Base
 
     debugMvc "done building #{@}"
 
-
   'appendTo': ($container) -> @['view']['appendTo']($container)
   'prependTo': ($container) -> @['view']['prependTo']($container)
   'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
   'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
   'detach': -> @['view']['detach']()
 
-  'Controller': ControllerBase
+  'Controller': Controller
   'View': View
-
-  varPrefix: ''
 
   toString: -> "Controller [#{@aceType}][#{@aceName}]"
 

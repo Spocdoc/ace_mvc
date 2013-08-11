@@ -65,7 +65,7 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.coll, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
+    @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
       pending = false
       Outlet.openBlock()
       if code is 'd'
@@ -181,7 +181,7 @@ module.exports = class Query
         if (Query.useCache & CACHE_READ) and cached = @Model.queryCache[@_hash]?.distinct?[key]
           outlet.set cached
 
-        @Model.prototype.sock.emit 'distinct', @Model.prototype.coll, OJSON.toOJSON(@_spec), key, (code, docs) =>
+        @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, OJSON.toOJSON(@_spec), key, (code, docs) =>
           pending = false
           docs = emptyArray unless code is 'd'
           outlet.set docs

@@ -12,6 +12,7 @@ routeCtx = null
 index = 0
 ignoreCount = 0
 useHash = null
+iframe = null
 
 class NavigatorUrl extends Url
   hasHashPath: do ->
@@ -73,9 +74,11 @@ doReplace = (now=new Date) ->
     if prev.path != next.path
       ++ignoreCount
       window.location.replace next.href
+      iframe?.location.replace next.href
     else if prev.hash != next.hash
       ++ignoreCount
       window.location.replace next.hash
+      iframe?.location.replace next.href
 
   else
     window.history.replaceState index, '', replaceUrl.href
@@ -110,7 +113,9 @@ push = (url) ->
 
   if useHash
     ++ignoreCount
+    iframe?.document.open().close()
     window.location.href = url.formHashUrl().href
+    iframe?.location.href = window.location.href
   else
     window.history.pushState index, '', url.href
 
@@ -159,6 +164,9 @@ module.exports = (route, ctx) ->
     routeFn = route
     routeCtx = ctx
 
+    if /msie [\w.]+/.exec(window.navigator.userAgent.toLowerCase()) and (document.documentMode || 0) <= 7
+      iframe = $('<iframe src="javascript:0" tabindex="-1" />').hide().appendTo('body')[0].contentWindow
+
     navigator.url = new NavigatorUrl(window.location.href)
 
     # TODO DEBUG
@@ -175,7 +183,14 @@ module.exports = (route, ctx) ->
 
     ignoreCount = 0
 
-    if useHash
+    if iframe
+      setInterval (->
+        if iframe.location.href isnt window.location.href
+          window.location.href = iframe.location.href
+          urlchange()
+      ), 300
+
+    else if useHash
       listen 'hashchange', urlchange
     else
       ignoreCount = 1

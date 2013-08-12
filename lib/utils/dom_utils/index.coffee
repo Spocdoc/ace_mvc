@@ -16,4 +16,5 @@ module.exports = dom =
     k++ while e = e.previousSibling
     k
 
-
+  'isElement': (d) ->
+    d?.nodeType is ELEMENT_NODE

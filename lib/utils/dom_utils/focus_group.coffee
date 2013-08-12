@@ -1,13 +1,13 @@
 Emitter = require '../events/emitter'
 {include} = require '../mixin'
-makeIndex = require '../id'
+makeId = require '../id'
 
 module.exports = class FocusGroup
   include this, Emitter
 
   constructor: ->
     @['add'] $elem for $elem in arguments
-    @id = makeIndex()
+    @id = makeId()
 
   'focus': ($elem) -> @focused = $elem
 

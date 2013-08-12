@@ -75,11 +75,9 @@ module.exports = class OJSON
     return obj if typeof obj isnt 'object' or obj == null
 
     res = if Array.isArray obj then [] else {}
-    keys = Object.keys(obj)
-    keys.sort(numSort)
 
-    for k in keys
-      v = @fromOJSON obj[k]
+    for k,v of obj
+      v = @fromOJSON v
       if k.charAt(0) is '$' and 'A' <= k.charAt(1) <= 'Z'
         if (constructor = @registry[k.substr(1)])?
           if constructor.fromJSON?

@@ -2,6 +2,7 @@ Outlet = require '../../utils/outlet'
 OJSON = require '../../utils/ojson'
 queryCompile = require './query_compile'
 makeId = require '../../utils/id'
+hash = require '../../utils/hash'
 emptyArray = []
 debug = global.debug "ace:mvc:query"
 
@@ -21,7 +22,7 @@ module.exports = class Query
   @useCache = 0
 
   constructor: (@Model, @_spec={}, limit, sort) ->
-    @['limit'] = @limit = new Outlet limit || 20
+    @['limit'] = @limit = new Outlet limit ? 20
     @['sort'] = @sort = new Outlet sort
     @['pending'] = @pending = new Outlet false
     @['error'] = @error = new Outlet
@@ -54,7 +55,7 @@ module.exports = class Query
     @_initOutlets @_spec
 
   _readCache: ->
-    @_hash = JSON.stringify @_ojSpec
+    @_hash = hash @_ojSpec
     if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]?.ids
       results = []
       results[i] = @Model.read id for id, i in ids
@@ -119,7 +120,9 @@ module.exports = class Query
     (@_peggedResults ||= {})[n] ||= new Outlet @results.value[n]
 
   'refresh': ->
-    @_update() unless @pending.value
+    unless @pending.value
+      @_updater.set makeId()
+      @_update() if @limit.value > 0
     return
 
   _compile: -> @_func = queryCompile @_ojSpec

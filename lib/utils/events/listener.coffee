@@ -5,9 +5,8 @@ uniqueId = ->
 
 module.exports = Listener =
   listenOn: (emitter, event, fn) ->
-    obj = [emitter, {}]
+    obj = (@_listener ?= {})[emitter.cid ?= uniqueId()] ||= [emitter, {}]
     obj[1][event] = 1
-    (@_listener ?= {})[emitter.cid ?= uniqueId()] = obj
     emitter.on event, fn, this
 
   isListening: (emitter, event) ->

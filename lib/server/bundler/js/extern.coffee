@@ -21,10 +21,10 @@ module.exports = (cb) ->
     debug: (done) ->
       async.concat ['./_*/**/!(release*).js'], readExterns, (err, codes) ->
         return done err if err?
-        done null, codes.join('\n')
+        done null, codes.join(';\n')
     release: (done) ->
       async.concat ['./_*/**/!(debug*).js'], readExterns, (err, codes) ->
         return done err if err?
-        done null, codes.join('\n')
+        done null, codes.join(';\n')
     cb
 

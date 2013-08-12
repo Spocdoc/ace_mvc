@@ -6,15 +6,15 @@ DOCUMENT_NODE = 9
 DOCUMENT_TYPE_NODE = 10
 DOCUMENT_FRAGMENT_NODE = 11
 
-module.exports = dom =
+module.exports = dom = {}
 
-  'isText': (d) ->
-    d?.nodeType is TEXT_NODE
+dom.isText = dom['isText'] = (d) ->
+  d?.nodeType is TEXT_NODE
 
-  'getChildIndex': (e) ->
-    k = 0
-    k++ while e = e.previousSibling
-    k
+dom.getChildIndex = dom['getChildIndex'] = (e) ->
+  k = 0
+  k++ while e = e.previousSibling
+  k
 
-  'isElement': (d) ->
-    d?.nodeType is ELEMENT_NODE
+dom.isElement = dom['isElement'] = (d) ->
+  d?.nodeType is ELEMENT_NODE

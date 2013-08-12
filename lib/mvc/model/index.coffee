@@ -48,7 +48,7 @@ module.exports = class ModelBase extends Base
 
     sock.on 'create', (coll, doc) =>
       doc = OJSON.fromOJSON doc
-      (@[coll].models[doc._id] || new @[coll] doc._id).serverCreate doc
+      (@[coll].models[doc['_id']] || new @[coll] doc['_id']).serverCreate doc
       return
 
     sock.on 'update', (coll, id, version, ops) =>
@@ -83,7 +83,7 @@ module.exports = class ModelBase extends Base
         i = 0
         for id, model of clazz.models when model.canRead()
           ids[i] = id
-          versions[i] = model.clientDoc?._v || 0
+          versions[i] = model.clientDoc?['_v'] || 0
           docs[id] = clone model.clientDoc
           ++i
         if ids[0]
@@ -122,7 +122,7 @@ module.exports = class ModelBase extends Base
 
     if json
       for type, obj of OJSON.fromOJSON json
-        new @[type] doc._id, doc for doc in obj['m']
+        new @[type] doc['_id'], doc for doc in obj['m']
         @[type].queryCache[hash] = {ids,distinct} for hash, {'i':ids,'d':distinct} of obj['q']
       @['reread']()
 
@@ -141,7 +141,7 @@ module.exports = class ModelBase extends Base
     (model = new this id).read() unless model = @models[id]
     model
 
-  @isValidId: do ->
+  @['isValidId'] = do ->
     regex = /^[0-9a-f]{24}$/
     (id) -> regex.test ''+id
 
@@ -439,7 +439,7 @@ module.exports = class ModelBase extends Base
       @read()
     else unless @conflict.value
       if pending & RUN_LATER
-        @run()
+        @['run']()
       else if pending & UPDATE_LATER
         @update()
       else

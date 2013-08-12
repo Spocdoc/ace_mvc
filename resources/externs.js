@@ -17,6 +17,12 @@ window.console = {
   "log": function () {}
 };
 
+window.String.prototype = {
+  "startsWith": function () {},
+  "endsWith": function () {},
+  "trim": function () {}
+};
+
 window.$ = {
     "fn": {
         "jquery": {},

@@ -4,6 +4,7 @@ stream = require 'stream'
 async = require 'async'
 {defaults} = require '../../../utils/mixin'
 EventEmitter = require('events').EventEmitter
+# beautify = require('js-beautify').js_beautify
 
 readExterns = require './extern'
 makeMvc = require './mvc'
@@ -35,7 +36,7 @@ class Bundler extends BundlerBase
   _bundleRelease: (obj) ->
     prod = []
     prod.push obj.externs.release, obj.loader.release, obj.mvc.release
-    prod = prod.join('\n')
+    prod = prod.join(';\n')
     @release = [prod]
     return
 

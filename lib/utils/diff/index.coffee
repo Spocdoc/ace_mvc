@@ -67,9 +67,9 @@ module.exports = ret = (from, to, options = {}) ->
 
   diff(from, to, options)
 
-ret['register'] = (constructor, fn) -> registry.add constructor, fn
+ret.register = ret['register'] = (constructor, fn) -> registry.add constructor, fn
 
-ret['patch'] = (obj, ops, options = {}) ->
+ret.patch = ret['patch'] = (obj, ops, options = {}) ->
   options['deep'] = patch
 
   if options.hasOwnProperty('clone')
@@ -82,6 +82,6 @@ ret['patch'] = (obj, ops, options = {}) ->
 # Register standard types
 require('./register')(ret)
 
-ret['toMongo'] = require './to_mongo'
-ret['toOutlets'] = require './to_outlets'
+ret.toMongo = ret['toMongo'] = require './to_mongo'
+ret.toOutlets = ret['toOutlets'] = require './to_outlets'
 

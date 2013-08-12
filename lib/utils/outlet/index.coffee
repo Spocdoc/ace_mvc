@@ -15,11 +15,11 @@ module.exports = class Outlet
 
     @set value
 
-  @openBlock: ->
+  @['openBlock'] = @openBlock = ->
     ++Outlet.roots.depth
     return
 
-  @closeBlock: ->
+  @['closeBlock'] = @closeBlock = ->
     unless --(roots = Outlet.roots).depth
       ++roots.depth
       `for (var i = 0, len = 0; (i < len) || (i < (len = roots.length)); ++i) roots[i]._runSource();`
@@ -75,7 +75,7 @@ module.exports = class Outlet
       @_runSource()
     return
 
-  modified: ->
+  @prototype['modified'] = @prototype.modified = ->
     if @pending
       @version = makeIndex()
     else
@@ -115,7 +115,7 @@ module.exports = class Outlet
       outflow._setPendingFalse this if @pending
     return
 
-  unset: (outlet) ->
+  @prototype['unset'] = @prototype.unset = (outlet) ->
     unless outlet
       for index, outlet of @equivalents
         delete @equivalents[index]

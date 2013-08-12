@@ -2,7 +2,7 @@ class Cookies
   constructor: (args...) ->
     @_build args...
 
-  unset: (name) ->
+  @prototype.unset = @prototype['unset'] = (name) ->
     @set name, 0, new Date(0)
 
   set: (name, value, expires) ->

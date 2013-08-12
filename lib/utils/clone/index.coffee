@@ -7,12 +7,12 @@ module.exports = clone = (obj) ->
   return r.clone(obj) if r = registry.find obj
   new obj.constructor(obj)
 
-clone.copyKeys = (obj) ->
+clone['copyKeys'] = clone.copyKeys = (obj) ->
   dst = new obj.constructor
   dst[k] = clone(v) for k,v of obj
   dst
 
-clone.register = register = (constructor, fn) ->
+clone.register = clone['register'] = register = (constructor, fn) ->
   registry.add constructor,
     clone: fn
   return

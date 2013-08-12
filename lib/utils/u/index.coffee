@@ -1,7 +1,7 @@
 module.exports = _ = {}
 
 # from lodash
-_.debounce = `function (func, wait, immediate) {
+_['debounce'] = _.debounce = `function (func, wait, immediate) {
   var args,
       result,
       thisArg,
@@ -28,7 +28,7 @@ _.debounce = `function (func, wait, immediate) {
   };
 }`
 
-_.throttle = `function (func, wait) {
+_['throttle'] = _.throttle = `function (func, wait) {
   var args,
       result,
       thisArg,
@@ -60,7 +60,7 @@ _.throttle = `function (func, wait) {
   };
 }`
 
-_.argNames = do ->
+_['argNames'] = _.argNames = do ->
   regexComments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg
   regexFunction = /^function\s*[^\(]*\(([^\)]*)\)\s*\{([\s\S]*)\}$/m
   regexTrim = /^\s*|\s*$/mg
@@ -79,12 +79,12 @@ unsafeEscape =
  '<': '&lt;',
  '>': '&gt;'
 
-_.unsafeHtmlEscape = do ->
-  escapeChar = (char) -> unsafeEscape[char] || char
+_['unsafeHtmlEscape'] = _.unsafeHtmlEscape = do ->
+  escapeChar = (ch) -> unsafeEscape[ch] || ch
   (text) ->
     text.replace /[&<>]/g, escapeChar
 
-_.htmlEscape = do ->
+_['htmlEscape'] = _.htmlEscape = do ->
   p = global.$ '<p>'
   (text) ->
     p.text(text).html()

@@ -8,7 +8,7 @@ ModelBase = require '../../mvc/model'
 
 module.exports = ->
   Ace['newClient'] = (json, $container) ->
-    routesConfig = Ace.routes
+    routesConfig = Ace['routes']
     Ace.initMVC()
 
     sock = global.io.connect '/'
@@ -24,7 +24,7 @@ module.exports = ->
       vars: {}
       'aceName': 'ace'
       'booting': true
-      'globals': globals
+      globals: globals
 
     Model.init ace, sock, json
 

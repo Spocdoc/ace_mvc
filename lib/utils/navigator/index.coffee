@@ -121,7 +121,7 @@ push = (url) ->
 
   return
 
-urlchange = (event) ->
+urlchange = ->
   if ignoreCount
     --ignoreCount
   else
@@ -130,7 +130,7 @@ urlchange = (event) ->
       replaceTimeoutId = null
       urls[index] = replaceUrl
 
-    newUrl = new NavigatorUrl(event.newURL || window.location.href)
+    newUrl = new NavigatorUrl(window.location.href)
 
     if newUrl.hasHashPath()
       newIndex = newUrl.index()
@@ -166,6 +166,7 @@ module.exports = (route, ctx) ->
 
     if /msie [\w.]+/.exec(window.navigator.userAgent.toLowerCase()) and (document.documentMode || 0) <= 7
       iframe = $('<iframe src="javascript:0" tabindex="-1" />').hide().appendTo('body')[0].contentWindow
+      iframe.location.href = window.location.href
 
     navigator.url = new NavigatorUrl(window.location.href)
 

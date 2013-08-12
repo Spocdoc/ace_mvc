@@ -117,7 +117,7 @@ module.exports = class ViewBase extends Base
       when 'view'
         oldView = undefined
         outlet.addOutflow new Outlet =>
-          oldView?.detach()
+          oldView?['detach']()
           (oldView = outlet.value)?['appendTo'] e
           return
 

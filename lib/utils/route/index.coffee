@@ -21,17 +21,15 @@ class Route
 
     push = Array.prototype.push
 
+    @varNames = {}
+
     @pathVarNames = {}
-    @pathVarNames[key.name] = 1 for key in @path.keys
-    @pathVarNames[name] = 1 for name of outletHash
+    @varNames[key.name] = @pathVarNames[key.name] = 1 for key in @path.keys
+    @varNames[name] = @pathVarNames[name] = 1 for name of outletHash
 
     @otherVarNames = {}
-    @otherVarNames[name] = 1 for name in @query.varNames if @query
-    @otherVarNames[name] = 1 for name in @hash.varNames if @hash
-
-    @varNames = {}
-    @varNames[k] = 1 for k of @pathVarNames
-    @varNames[k] = 1 for k of @otherVarNames
+    @varNames[name] = @otherVarNames[name] = 1 for name in @query.varNames if @query
+    @varNames[name] = @otherVarNames[name] = 1 for name in @hash.varNames if @hash
 
     debug "Built route with path regex #{@path.regexp}"
 
@@ -39,8 +37,8 @@ class Route
 
   match: (url, outlets) ->
     return false unless @path.match url, outlets
-    @query?.apply search.substr(1), outlets if search = url.search
-    @hash?.apply hash.substr(1), outlets if hash = url.hash
+    @query?.setOutlets url.search.substr(1), outlets
+    @hash?.setOutlets url.hash?.substr(1), outlets
     outlet.set undefined for k,outlet of outlets when !@varNames[k]
     true
 

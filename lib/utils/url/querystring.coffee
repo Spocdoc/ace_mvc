@@ -13,7 +13,13 @@ module.exports.stringifyValue = prim = (v) ->
   encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
 
 module.exports.parseValue = parseValue = (v) ->
-  OJSON.parse decodeURIComponent(v)
+  if v
+    try
+      OJSON.parse decodeURIComponent(v)
+    catch _error
+      undefined
+  else
+    undefined
 
 module.exports.parse = (qs) ->
   obj = {}

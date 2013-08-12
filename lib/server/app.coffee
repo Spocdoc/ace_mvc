@@ -33,8 +33,10 @@ class App
     @_vars = router.getVars routes
 
     ### original wrongPage code
-    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1);
-    window['wrongPage'] = window.location.hash.lastIndexOf('#/',0) == 0;
+    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1), hash;
+    if (hash = window.location.hash) {
+      window['wrongPage'] = /^#\d+(\/[^#]*)/.exec(hash);
+    }
     if (window['wrongPage'] && window['wrongPage'][1] === window.location.pathname) window['wrongPage'] = false;
     a && (window['wrongPage'] && b) && (document.location.href = window['wrongPage'][1]);
     ###
@@ -46,7 +48,7 @@ class App
     <title></title>
     <script type="text/javascript">
     (function (){
-      var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1);window.wrongPage=0==window.location.hash.lastIndexOf("#/",0);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);
+      var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1),c;if(c=window.location.hash)window.wrongPage=/^#\\d+(\\/[^#]*)/.exec(c);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);
     }());
     </script>
     </head>

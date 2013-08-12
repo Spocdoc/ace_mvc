@@ -30,7 +30,7 @@ module.exports = class Router
       @[@length++] = route
       for varName of route.pathVarNames
         context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
-        outlet.affectsPath = true
+        outlet.affectsRouteChoice = true
       for varName of route.otherVarNames
         context[varName] = @uriOutlets[varName] ||= new Outlet undefined, context, true
 
@@ -66,7 +66,7 @@ module.exports = class Router
     @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
 
     for varName, outlet of @uriOutlets
-      outlet.addOutflow @routeSearch if outlet.affectsPath
+      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
       outlet.addOutflow @uriFormatter
 
     Outlet.closeBlock()

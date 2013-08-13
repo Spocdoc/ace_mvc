@@ -29,6 +29,9 @@ ace = new Ace
     cookies:
       domain: '127.0.0.1'
       secure: false
+    categories:
+      standard: ['ie8']
+      nonstandard: ['ie6']
   mvc:
     mediator_factory: path.resolve './app/mediator_factory'
     host: '/tmp/mongodb-27017.sock'

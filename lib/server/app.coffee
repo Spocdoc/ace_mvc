@@ -90,18 +90,36 @@ class App
       </script>
       """)
 
-      # add client-side script
-      for uri in uris.js
-        $body.append $("""<script type="text/javascript" src="#{uri}"></script>""")
+      # IE 6 script: by default, not supported with scripting (just server-side
+      # render). all scripts are excluded unless explicitly added to ie6
+      # category
+      if uris.js.ie6
+        cond = """<!--[if lte IE 7]>"""
+        for uri in uris.js.ie6
+          cond += """<script type="text/javascript" src="#{uri}"></script>"""
+        cond += """<![endif]-->"""
+        $body.append cond
 
-      for uri in uris.css
+      if uris.js.ie8
+        cond = """<!--[if IE 8]>"""
+        for uri in uris.js.ie8
+          cond += """<script type="text/javascript" src="#{uri}"></script>"""
+        cond += """<![endif]-->"""
+        $body.append cond
+
+      cond = """<![if gt IE 8]>"""
+      cond += """<script type="text/javascript" src="#{uri}"></script>""" for uri in uris.js.standard
+      cond += """<![endif]>"""
+      $body.append cond
+
+      for uri in uris.css.standard
         $head.prepend $("""<link href="#{uri}" rel="stylesheet" type="text/css"/>""")
 
       $body.append $("""
       <script type="text/javascript">
       (function () {
         var restore = window.wrongPage ? null : #{JSON.stringify json};
-        window.ace = window.Ace.newClient(restore, $('body'));
+        if (window.Ace) window.ace = window.Ace.newClient(restore, $('body'));
       }());
       </script>
       """)

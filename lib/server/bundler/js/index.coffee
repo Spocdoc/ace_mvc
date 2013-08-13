@@ -24,24 +24,45 @@ class Bundler extends BundlerBase
     loaderOptions.expose = mvcOptions.requires = []
 
     async.series
-      externs: (done) => readExterns done
+      externs: (done) => readExterns @settings.categories, done
       mvc: (done) => makeMvc app, routes: @settings['routes'], mvcOptions, done
       loader: (done) => makeLoader app, globals, loaderOptions, done
       (err, obj) =>
         return cb(err) if err?
+
+        @_nonstandard = {}
+        @_nonstandard[category] = 1 for category in (@settings.categories?.nonstandard ? [])
+
         @_bundleRelease obj unless @settings.debug
         @_bundleDebug obj
         cb(null)
 
   _bundleRelease: (obj) ->
-    prod = []
-    prod.push obj.externs.release, obj.loader.release, obj.mvc.release
-    prod = prod.join(';\n')
-    @release = [prod]
+    prod = {}
+    tmp = []
+
+    for category, externCode of obj.externs.release
+      if @_nonstandard[category]
+        prod[category] = [externCode]
+      else
+        i = 0
+        tmp[i++] = externCode
+        tmp[i++] = obj.loader.release
+        tmp[i++] = obj.mvc.release
+        prod[category] = [tmp.join ';\n']
+
+    @release = prod
     return
 
   _bundleDebug: (obj) ->
-    @debug = [obj.externs.debug, obj.loader.debug, obj.mvc.debug]
+    @debug = {}
+
+    for category, externCode of obj.externs.debug
+      if @_nonstandard[category]
+        @debug[category] = [externCode]
+      else
+        @debug[category] = [externCode, obj.loader.debug, obj.mvc.debug]
+
     return
 
 module.exports = Bundler

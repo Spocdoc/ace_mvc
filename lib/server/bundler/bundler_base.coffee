@@ -6,12 +6,11 @@ hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 class BundlerBase extends EventEmitter
   constructor: (@settings) ->
 
-  writeDebug: (number, stream) ->
-    stream.end @debug[number]
-    return
-
-  writeRelease: (number, stream) ->
-    stream.end @release[number]
+  write: (debugRelease, category, number, stream) ->
+    if code = @[debugRelease][category]?[number]
+      stream.end code
+    else
+      stream.end()
     return
 
   didBundle: ->
@@ -27,9 +26,13 @@ class BundlerBase extends EventEmitter
         console.error err
         @bundling = false
       else
-        @hashes = {}
-        @hashes.release = @release.map hash if @release?
-        @hashes.debug = @debug.map hash
+        @hashes =
+          debug: {}
+          release: {}
+
+        @hashes.release[k] = arr.map hash for k,arr of @release
+        @hashes.debug[k] = arr.map hash for k,arr of @debug
+
         @bundling = false
         @didBundle()
 

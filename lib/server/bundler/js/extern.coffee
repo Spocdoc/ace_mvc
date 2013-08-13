@@ -3,28 +3,28 @@ path = require 'path'
 lib = path.resolve __dirname, '../../../'
 async = require 'async'
 fs = require 'fs'
+fileMemoize = require 'file_memoize'
+categorize = require './categorize'
 
-readFile = (filePath, cb) -> fs.readFile filePath, 'utf-8', cb
+readFile = fileMemoize (filePath, cb) -> fs.readFile filePath, 'utf-8', cb
 
-readExterns = (aGlob, cb) ->
-  async.waterfall [
-    (next) -> glob aGlob, cwd: lib, nonegate: true, next
-    (files, next) ->
-      files = files.filter (filePath) -> !~filePath.indexOf '/server/'
-      files.sort()
-      files = files.map (filePath) -> path.resolve lib, filePath
-      async.mapSeries files, readFile, next
-  ], cb
+readExterns = (debugReleaseObj, cb) ->
+  readCategory = (category, next) ->
+    filePaths = debugReleaseObj[category].sort()
+    async.mapSeries filePaths, readFile, (err, codes) ->
+      debugReleaseObj[category] = codes.join ';\n' unless err?
+      next err
+  async.eachSeries Object.keys(debugReleaseObj), readCategory, cb
 
-module.exports = (cb) ->
-  async.parallel
-    debug: (done) ->
-      async.concat ['./_*/**/!(release*).js'], readExterns, (err, codes) ->
-        return done err if err?
-        done null, codes.join(';\n')
-    release: (done) ->
-      async.concat ['./_*/**/!(debug*).js'], readExterns, (err, codes) ->
-        return done err if err?
-        done null, codes.join(';\n')
-    cb
+module.exports = (categories, cb) ->
+
+  glob "#{lib}/_*/**/*.js", (err, filePaths) ->
+    return cb err if err?
+    filePaths = filePaths.filter (filePath) -> filePath.charAt(0) isnt '.' and -1 is filePath.indexOf '/server/'
+    output = categorize categories, filePaths
+    async.series [
+      (next) -> readExterns output.debug, next
+      (next) -> readExterns output.release, next
+    ], (err) -> cb err, output
+
 

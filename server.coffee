@@ -20,14 +20,14 @@ ace = new Ace
   server: server
   root: path.resolve('./app')
   cookies:
-    domain: '127.0.0.1'
+    # domain: '192.168.1.107'
     secure: false
   bundler:
     closure:
       jar: path.resolve './resources/compiler.jar'
       externs: path.resolve './resources/externs.js'
     cookies:
-      domain: '127.0.0.1'
+      # domain: '192.168.1.107'
       secure: false
     categories:
       standard: ['ie8']

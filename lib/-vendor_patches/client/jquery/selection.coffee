@@ -41,7 +41,6 @@ if (rangy = global['rangy'] || global.document) and typeof rangy.getSelection is
     rangy.getSelection()?.isCollapsed
 
   $['fn']['extend']
-    # can't call "select" b/c jQuery redundantly uses it to attach an event handler
     'selectNode': ->
       return unless sel = rangy.getSelection()
       sel.removeAllRanges()

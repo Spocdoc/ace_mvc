@@ -1,4 +1,4 @@
-debug = global.debug 'ace:error'
+debugError = global.debug 'ace:error'
 
 class Cookies
   constructor: (args...) ->
@@ -32,9 +32,9 @@ class Cookies
 
   _parseValue: (value) ->
     try
-      JSON.parse decodeURIComponent value
+      value && JSON.parse decodeURIComponent value
     catch _error
-      debug "Error decoding cookie value: #{value}"
+      debugError "Error decoding cookie value [#{value}]"
       undefined
 
 

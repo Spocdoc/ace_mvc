@@ -7,7 +7,7 @@ reserved = ['constructor','static','view','outlets','outletMethods','template','
 module.exports = class Base
   @add: (type, config) ->
     if config? and typeof config is 'object' and !Array.isArray constructor = config['constructor']
-      config['constructor'] = if constructor then [constructor] else []
+      config['constructor'] = if config.hasOwnProperty('constructor') then [constructor] else []
     @configs.add type, config
     return this
 
@@ -20,9 +20,7 @@ module.exports = class Base
     @vars = (if @aceName then @aceParent.vars[@aceName] else @aceParent.vars) || {}
     @[k] = v for k,v of @globals = @aceParent.globals
 
-    @outlets = {}
-
-    # public
+    @['outlets'] = @outlets = {}
     @['aceParent'] = @aceParent
     @['aceName'] = @aceName
 
@@ -45,15 +43,32 @@ module.exports = class Base
     @[name] = @outlets[name] = @vars["#{@varPrefix}#{name}"]?.outlet || new Outlet undefined, this, true
 
   _buildOutlets: ->
-    @_buildOutlet name for name of @constructor._outletDefaults
+    @_buildOutlet name for name of @constructor.outletDefaults
+    return
+
+  _setOutletsFromDefaults: (defaults, settings) ->
+    for k,v of defaults when (o = @outlets[k]).value is undefined
+      if typeof v is 'function'
+        o.context = this
+        o.set v
+      else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
+        if settings.hasOwnProperty k
+          v = settings[k]
+        else if @_outletDefaults and @_outletDefaults.hasOwnProperty k
+          v = @_outletDefaults[k]
+        o.set v
+
+      delete @_outletDefaults[k] if @_outletDefaults
     return
 
   _setOutlets: (settings) ->
-    for k,v of @constructor._outletDefaults
-      if (o = @outlets[k]).value is undefined
-        if typeof v is 'function'
-          o.context = this
-          o.set v
-        else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
-          o.set(if settings.hasOwnProperty k then settings[k] else v)
+    @_setOutletsFromDefaults @constructor.outletDefaults, settings
+    @_setOutletsFromDefaults @_outletDefaults, settings if @_outletDefaults
+    delete @_outletDefaults
     return
+
+  'addOutlet': (name, value) ->
+    @_buildOutlet name
+    (@_outletDefaults ||= {})[name] = value
+    return
+

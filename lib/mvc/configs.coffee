@@ -31,7 +31,7 @@ class Configs
     return
 
   applyMixins: ->
-    for type, config of @configs when mixin = config['mixins']
+    for type, config of @configs when mixin = config['mixins'] || config['mixin']
       @_applyMixin config, mixin
       delete config['mixins']
     return

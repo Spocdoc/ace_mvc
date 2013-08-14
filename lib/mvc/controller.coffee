@@ -8,13 +8,16 @@ Configs = require './configs'
 module.exports = class Controller extends Base
   @configs: new Configs
 
-  constructor: (@aceParent, aceName, settings) ->
+  constructor: (aceParent, aceName, settings) ->
+    return new @constructor[aceParent.aceType] aceParent, aceName, settings unless @aceConfig
+
     if aceName? and typeof aceName is 'object'
       settings = aceName
       aceName = ''
     else unless settings?
       settings = {}
 
+    @aceParent = aceParent
     @aceName = aceName
 
     debugMvc "Building #{@}"

@@ -5,13 +5,13 @@ special = ['constructor','static','view','outlets','outletMethods','template','i
 addOutlets = do ->
   addOutlet = (clazz, outlet) ->
     if typeof outlet isnt 'string'
-      clazz._outletDefaults[k] = v for k,v of outlet
+      clazz.outletDefaults[k] = v for k,v of outlet
     else
-      clazz._outletDefaults[outlet] = undefined
+      clazz.outletDefaults[outlet] = undefined
     return
 
   (config, clazz) ->
-    clazz._outletDefaults = {}
+    clazz['outletDefaults'] = clazz.outletDefaults = {}
 
     if outlets = config['outlets']
       if Array.isArray outlets
@@ -20,7 +20,7 @@ addOutlets = do ->
         addOutlet clazz, outlets
 
     if outletMethods = config['outletMethods']
-      clazz._outletDefaults["_#{i}"] = m for m,i in outletMethods
+      clazz.outletDefaults["_#{i}"] = m for m,i in outletMethods
 
     return
 
@@ -40,8 +40,8 @@ addMethods = do ->
 
   (config, clazz) ->
     for name, method of config when name.charAt(0) isnt '$' and not (name in special)
-      if clazz._outletDefaults.hasOwnProperty name
-        clazz._outletDefaults[name] = method
+      if clazz.outletDefaults.hasOwnProperty name
+        clazz.outletDefaults[name] = method
       else
         addMethod clazz, name, method
     return

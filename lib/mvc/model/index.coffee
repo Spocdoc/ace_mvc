@@ -48,16 +48,19 @@ module.exports = class ModelBase extends Base
     _this = this
 
     sock.on 'create', (coll, doc) =>
+      debug "got create on #{coll}, #{doc['_id']}"
       doc = OJSON.fromOJSON doc
       (@[coll].models[doc['_id']] || new @[coll] doc['_id']).serverCreate doc
       return
 
     sock.on 'update', (coll, id, version, ops) =>
+      debug "got update on #{coll}, #{id}"
       if model = @[coll].models[id]
         model.serverUpdate version, OJSON.fromOJSON ops
       return
 
     sock.on 'delete', (coll, id) =>
+      debug "got delete on #{coll}, #{id}"
       model.serverDelete() if model = @[coll].models[id]
       return
 

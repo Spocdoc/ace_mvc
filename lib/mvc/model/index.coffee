@@ -11,7 +11,8 @@ Outlet = require '../../utils/outlet'
 Query = require './query'
 patchOutlets = diff.toOutlets
 makeIndex = require '../../utils/id'
-debug = global.debug 'ace:mvc'
+debug = global.debug 'ace:mvc:model'
+debugSock = global.debug 'ace:sock'
 
 NOW            = 0
 
@@ -448,7 +449,7 @@ module.exports = class ModelBase extends Base
 
   get: (key) ->
     @_clientOps ||= []
-    (@_clientUpdater = new Outlet).func = (=> @update @_clientOps?.splice(0)) unless @_clientUpdater
+    (@_clientUpdater = new Outlet).func = (=> @update @_clientOps?.splice(0,@_clientOps.length)) unless @_clientUpdater
     unless @_patchRegistry
       @_patchRegistry = new Registry
       @_patchRegistry.add DBRef,

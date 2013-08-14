@@ -61,3 +61,8 @@
       regex = /[-\/\\^$*+?.()|[\]{}]/g
       (str) -> return str.replace(regex, '\\$&')
 
+    # IE considers \u00a0 to be non-space
+    RegExp['whitespace'] = spaceChars = " \t\r\n\u00a0"
+    RegExp['_s'] = "[#{spaceChars}]"
+    RegExp['_S'] = "[^#{spaceChars}]"
+

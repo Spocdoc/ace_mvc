@@ -6,7 +6,8 @@ DOCUMENT_NODE = 9
 DOCUMENT_TYPE_NODE = 10
 DOCUMENT_FRAGMENT_NODE = 11
 
-regexSpace = /\s/
+regexSpace = new RegExp RegExp['_s']
+debug = global.debug 'ace:dom'
 
 visitText = do ->
   inRange = false
@@ -303,3 +304,43 @@ $['fn']['extend']
         node.parentNode.appendChild tnode
 
     tnode
+
+if debug
+  $['fn']['extend']
+    'pointToString': do ->
+      regex = /^(<.*?>)(<\/[^>]*>)$/
+      visit = (node, point) ->
+        str = ""
+
+        if node.nodeType is TEXT_NODE
+          str += "<t>"
+          if point.container is node
+            str += node.nodeValue.substr(0,point.offset) + "|" + node.nodeValue.substr(point.offset)
+          else
+            str += node.nodeValue
+          str += "</t>"
+        else unless m = regex.exec html = node.cloneNode(false).outerHTML.trim()
+          str += html
+          throw new Error "closed outerHTML but has childNodes? [#{html}]" if node.childNodes?.length
+        else
+          str += m[1]
+
+          if node is point.container
+            for child, i in node.childNodes
+              if i is point.offset
+                str += "|"
+              str += visit child, point
+            str += "|" if i is point.offset
+          else
+            str += visit child, point for child in node.childNodes
+
+          str += m[2]
+
+        str
+
+      (point) ->
+        return ''+point unless point?.container
+        visit @[0], point
+
+      
+

@@ -41,7 +41,7 @@ Emitter =
       case 2: while (++i < l) (ev = events[i]).fn.call(ev.ctx, a1); return;
       case 3: while (++i < l) (ev = events[i]).fn.call(ev.ctx, a1, a2); return;
       case 4: while (++i < l) (ev = events[i]).fn.call(ev.ctx, a1, a2, a3); return;
-      default: while (++i < l) (ev = events[i]).fn.apply(ev.ctx, [].splice.call(arguments, 1));
+      default: while (++i < l) (ev = events[i]).fn.apply(ev.ctx, [].slice.call(arguments, 1));
     }`
     return
 

@@ -1,3 +1,5 @@
+debug = global.debug 'ace:error'
+
 class Cookies
   constructor: (args...) ->
     @_build args...

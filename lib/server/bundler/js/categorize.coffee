@@ -26,8 +26,8 @@ setIncludes = do ->
       matches = (n = catMatch.exec category) and (!m[NUM]? or opMatch? n[1])
       if m[NEG]
         categoryIncludes[category] = 0 if matches
-      else
-        categoryIncludes[category] = (current ? true) and !!matches
+      else if current isnt 0
+        categoryIncludes[category] ||= !!matches
     return
 
 addFilePath = (debugReleaseObj, categoryIncludes, filePath) ->

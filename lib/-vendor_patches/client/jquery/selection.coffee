@@ -1,4 +1,6 @@
-if (rangy = global.rangy || global.document) and typeof rangy.getSelection is 'function'
+domUtils = require '../../../utils/dom_utils'
+
+if (rangy = global['rangy'] || global.document) and typeof rangy.getSelection is 'function'
 
   # or can pass two points or a single range
   $['selection'] = (start, end) ->
@@ -38,3 +40,12 @@ if (rangy = global.rangy || global.document) and typeof rangy.getSelection is 'f
   $['selection']['isCollapsed'] = ->
     rangy.getSelection()?.isCollapsed
 
+  $['fn']['extend']
+    # can't call "select" b/c jQuery redundantly uses it to attach an event handler
+    'selectNode': ->
+      return unless sel = rangy.getSelection()
+      sel.removeAllRanges()
+      range = rangy.createRange()
+      range.selectNode @[0]
+      sel.addRange range
+      this

@@ -6,6 +6,12 @@ hash = require '../../utils/hash'
 emptyArray = []
 debug = global.debug "ace:mvc:query"
 
+arraysDiffer = (lhs, rhs) ->
+  return true if lhs.length isnt rhs.length
+  for entry, i in rhs
+    return true if lhs[i] isnt entry
+  false
+
 arrayIsSubset = (sup, sub) ->
   sup = sup.concat().sort()
   sub = sub.concat().sort()
@@ -110,10 +116,12 @@ module.exports = class Query
       idResults[i] = model.id for model,i in results
       (@Model.queryCache[@_hash] ||= {}).ids = idResults
 
-    Outlet.openBlock()
-    @results.set results
-    outlet.set results[i] for i, outlet of @_peggedResults
-    Outlet.closeBlock()
+    if arraysDiffer results, @results.value
+      Outlet.openBlock()
+      @results.set results
+      outlet.set results[i] for i, outlet of @_peggedResults
+      Outlet.closeBlock()
+
     return
 
   'result': (n) ->
@@ -187,7 +195,7 @@ module.exports = class Query
         @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, OJSON.toOJSON(@_spec), key, (code, docs) =>
           pending = false
           docs = emptyArray unless code is 'd'
-          outlet.set docs
+          outlet.set docs if !outlet.value or arraysDiffer outlet.value, docs
           unless serverVersion is @_clientVersion
             distinctUpdater()
           else if Query.useCache & CACHE_WRITE

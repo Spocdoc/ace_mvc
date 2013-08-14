@@ -10,8 +10,8 @@ module.exports = (ret) ->
 
   newArrayDiff.patch = newArrayDiff['patch'] = (obj, diff, options) ->
     res = arrayDiff.patch(obj, diff, options)
-    obj.splice(0)
     obj[k] = v for v,k in res
+    obj.length = k
     obj
 
   register Array, newArrayDiff

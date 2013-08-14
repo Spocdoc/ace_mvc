@@ -187,7 +187,7 @@ module.exports = class Outlet
         delete @autoInflows[index]
     catch _error
       return if _error is 'pending'
-      debugError _error.stack if _error
+      debugError "#{_error.name}: #{_error.message}\n #{_error.stack}" if _error
     finally
       Outlet.auto = prev
       Outlet.closeBlock()

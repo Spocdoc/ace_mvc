@@ -28,23 +28,13 @@ addStatic = (config, clazz) ->
   clazz[name] = fn for name, fn of config['static']
   return
 
-addMethods = do ->
-  addMethod = (clazz, name, method) ->
-    clazz.prototype[name] = ->
-      Outlet.openBlock()
-      try
-        method.apply this, arguments
-      finally
-        Outlet.closeBlock()
-    return
-
-  (config, clazz) ->
-    for name, method of config when name.charAt(0) isnt '$' and not (name in special)
-      if clazz.outletDefaults.hasOwnProperty name
-        clazz.outletDefaults[name] = method
-      else
-        addMethod clazz, name, method
-    return
+addMethods = (config, clazz) ->
+  for name, method of config when name.charAt(0) isnt '$' and not (name in special)
+    if clazz.outletDefaults.hasOwnProperty name
+      clazz.outletDefaults[name] = method
+    else
+      clazz.prototype[name] = wrapFunction method
+  return
 
 module.exports = (configs, base) ->
   types = {}
@@ -52,9 +42,20 @@ module.exports = (configs, base) ->
     types[type] = class Component extends base
       aceType: type
       aceConfig: config
+      'aceType': type
+      'aceConfig': config
 
       addStatic config, this
       addOutlets config, this
       addMethods config, this
 
   types
+
+module.exports.wrapFunction = wrapFunction = (fn, ctx) ->
+  ->
+    Outlet.openBlock()
+    try
+      fn.apply (ctx || this), arguments
+    finally
+      Outlet.closeBlock()
+

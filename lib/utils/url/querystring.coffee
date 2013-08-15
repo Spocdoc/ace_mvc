@@ -9,7 +9,7 @@ regexHash=/#/g
 
 module.exports = {}
 
-module.exports.stringifyValue = prim = (v) ->
+module.exports.stringifyValue = stringValue = (v) ->
   encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
 
 module.exports.parseValue = parseValue = (v) ->
@@ -20,6 +20,11 @@ module.exports.parseValue = parseValue = (v) ->
       undefined
   else
     undefined
+
+module.exports.stringifyKey = stringKey = (k) ->
+  encodeURI(''+k).replace(regexAmp,'%26').replace(regexHash,'%23')
+
+module.exports.parseKey = parseKey = (k) -> k and decodeURIComponent(k)
 
 module.exports.parse = (qs) ->
   obj = {}
@@ -36,7 +41,7 @@ module.exports.parse = (qs) ->
       vstr = ""
 
     try
-      k = parseValue(kstr)
+      k = parseKey(kstr)
       v = parseValue(vstr)
     catch e
       return {}
@@ -53,13 +58,11 @@ module.exports.parse = (qs) ->
 module.exports.stringify = do ->
 
   str = (k,v) ->
-    return '' unless k
-    "#{prim(k)}#{eq}#{prim(v)}"
+    "#{stringKey(k)}#{eq}#{stringValue(v)}"
 
   strA = (name, arr) ->
-    return '' unless name
-    ks = "#{prim(name)}#{eq}"
-    ("#{ks}#{prim(v)}" for v in arr).join(sep)
+    ks = "#{stringKey(name)}#{eq}"
+    ("#{ks}#{stringValue(v)}" for v in arr).join(sep)
 
   (obj, name='') ->
     return '' unless obj?

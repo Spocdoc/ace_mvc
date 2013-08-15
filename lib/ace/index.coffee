@@ -1,1 +1,3 @@
+require './link'
+
 module.exports = {}

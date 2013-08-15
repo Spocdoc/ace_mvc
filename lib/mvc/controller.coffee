@@ -18,11 +18,16 @@ module.exports = class Controller extends Base
       settings = {}
 
     @aceParent = aceParent
-    @aceName = aceName
+    @aceName = aceName || ''
 
     debugMvc "Building #{@}"
 
     super()
+
+    @acePath = "#{@aceParent.acePath}/#{@aceName}"
+    if components = @['ace'].aceComponents
+      throw new Error "MVC components with the same parent must have distinct names." if components[@acePath]
+      components[@acePath] = this
 
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = null

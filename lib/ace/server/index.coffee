@@ -5,6 +5,7 @@ Router = require '../../router'
 debug = global.debug 'ace:error'
 ModelBase = require '../../mvc/model'
 Controller = require '../../mvc/controller'
+Url = require '../../utils/url'
 
 module.exports = ->
 
@@ -20,6 +21,8 @@ module.exports = ->
       ace = globals['ace'] =
         aceName: 'ace'
         vars: {}
+        acePath: ''
+        aceComponents: {}
         'aceName': 'ace'
         'globals': globals
 
@@ -28,11 +31,33 @@ module.exports = ->
       router = new Router routes, vars, globals, false
       router.route req.url
       ace.vars = router.vars
+      url = new Url req.url, slashes: false
+      ace.currentUrl = -> url
 
       (new Controller['body'] ace)['appendTo'] $container
     catch _error
       debug _error?.stack
 
-    sock.onIdle ->
-      sock.emit 'disconnect'
-      cb null, Model.toJSON()
+    sock.onIdle idleFn = ->
+      unless arr = url?.query?['']
+        try
+          sock.emit 'disconnect'
+          json = Model.toJSON()
+        catch _error
+          debug _error?.stack
+        cb null, json
+        return
+
+      try
+        delete url.query['']
+        return idleFn unless (pathName = arr?[0]) and (methName = arr[1])
+        if component = ace.aceComponents[arr[0]]
+          component[methName].apply component, arr[2..]
+      catch _error
+        debug _error?.stack
+
+      sock.onIdle idleFn
+      return
+
+
+

@@ -4,15 +4,36 @@ extend = (obj, mixin) ->
   obj[name] = method for name, method of mixin
   obj
 
-extend $prototype = global.$('').constructor.prototype,
+$prototype = global.$('').constructor.prototype
 
-  parents: ->
-    e = this
-    e = e.parent() while e[0].parent && e[0].parent.type isnt 'root'
+global.$.fn =
+  extend: (obj) ->
+    extend $prototype, obj
+    return
+
+extend $prototype,
+
+  click: ->
+  submit: ->
+
+  select: ->
+    @attr 'autofocus', true
+    return
+
+  focus: ->
+    @attr 'autofocus', true
+    return
 
   on: ->
   scrollLeft: ->
   scrollTop: ->
+
+  type: ->
+    @[0].name.toLowerCase()
+
+  parents: ->
+    e = this
+    e = e.parent() while e[0].parent && e[0].parent.type isnt 'root'
 
   appendTo: ($rhs) -> $rhs.append this
   prependTo: ($rhs) -> $rhs.prepend this

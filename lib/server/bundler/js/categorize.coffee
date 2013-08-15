@@ -43,7 +43,7 @@ categorize = (filePath) ->
     if word is 'debug'
       mode = 'debug'
     else if word is 'release'
-      mode = release
+      mode = 'release'
     else if i > 0
       setIncludes categoryIncludes, word
 

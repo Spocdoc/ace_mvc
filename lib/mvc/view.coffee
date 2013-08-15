@@ -4,6 +4,7 @@ Outlet = require '../utils/outlet'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
 Configs = require './configs'
+buildClasses = require './build_classes'
 
 module.exports = class ViewBase extends Base
   @configs: new Configs
@@ -18,11 +19,16 @@ module.exports = class ViewBase extends Base
       settings = {}
 
     @aceParent = aceParent
-    @aceName = aceName
+    @aceName = aceName || ''
 
     debugMvc "Building #{@}"
 
     super()
+
+    @acePath = "#{@aceParent.acePath}/#{@aceName}"
+    if components = @['ace'].aceComponents
+      throw new Error "MVC components with the same parent must have distinct names." if components[@acePath]
+      components[@acePath] = this
 
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = null
@@ -99,39 +105,67 @@ module.exports = class ViewBase extends Base
     @inWindow.set(other || true)
     return
 
-  _buildDollarString: (dollar, methName, outlet) ->
-    e = @[dollar]
+  _buildDollarString: do ->
+    outletValueMethods = [
+      'toggleClass'
+      'text'
+      'html'
+      'view'
+      'val'
+    ]
 
-    switch methName
-      when 'toggleClass'
-        outlet.addOutflow new Outlet =>
-          unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-            e[methName](dollar.substr(1), ''+outlet.value)
+    (dollar, methName, arg) ->
+      e = @[dollar]
 
-      when 'text','html'
-        outlet.addOutflow new Outlet =>
-          unless @['ace']['booting'] and @['template']['bootstrapped']
-            if @['domCache'][dollar] isnt (v = ''+outlet.value)
-              @['domCache'][dollar] = v
-              debugDom "calling #{methName} in dom on #{dollar} with #{v}"
-              e[methName](v)
+      if methName in outletValueMethods
+        outlet = if arg instanceof Outlet then arg else new Outlet arg, this, true
 
-      when 'view'
-        oldView = undefined
-        outlet.addOutflow new Outlet =>
-          oldView?['detach']()
-          (oldView = outlet.value)?['appendTo'] e
-          return
+        switch methName
+          when 'toggleClass'
+            outlet.addOutflow new Outlet =>
+              unless @['ace']['booting'] and @['template']['bootstrapped']
+                debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+                e[methName](dollar.substr(1), ''+outlet.value) if outlet.value
 
+          when 'text','html'
+            outlet.addOutflow new Outlet =>
+              unless @['ace']['booting'] and @['template']['bootstrapped']
+                if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
+                  @['domCache'][dollar] = v
+                  debugDom "calling #{methName} in dom on #{dollar} with #{v}"
+                  e[methName](v)
+
+          when 'view'
+            oldView = undefined
+            outlet.addOutflow new Outlet =>
+              oldView?['detach']()
+              (oldView = outlet.value)?['appendTo'] e
+              return
+
+          else
+            outlet.addOutflow new Outlet =>
+              unless @['ace']['booting'] and @['template']['bootstrapped']
+                if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
+                  debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
+                  e[methName](outlet.value)
       else
-        outlet.addOutflow new Outlet =>
-          unless @['ace']['booting'] and @['template']['bootstrapped']
-            debugDom "calling #{methName} in dom on #{dollar} with #{outlet.value}"
-            e[methName](outlet.value)
+        switch methName
+          when 'link'
+            if typeof arg[0] is 'string'
+              e['link'].apply e, [this].concat arg
+            else
+              e['link'].apply e, arg
 
-
-    return
+          else
+            if Array.isArray arg
+              for arg, i in args = arg when typeof arg is 'function'
+                args[i] = buildClasses.wrapFunction arg, this
+              e[methName].apply e, args
+            else
+              if typeof arg is 'function'
+                arg = buildClasses.wrapFunction arg, this
+              e[methName].call e, arg
+      return
 
   _buildDollar: ->
     for k,v of @aceConfig when k.charAt(0) is '$'
@@ -139,7 +173,7 @@ module.exports = class ViewBase extends Base
         @_buildDollarString k, v, @outlets[k.substr(1)]
       else # object
         for str, method of v
-          @_buildDollarString k, str, new Outlet method, this, true
+          @_buildDollarString k, str, method #new Outlet method, this, true
     return
 
   _buildTemplate: (arg) ->

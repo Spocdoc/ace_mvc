@@ -22,6 +22,8 @@ module.exports = ->
     ace = globals['ace'] =
       aceName: 'ace'
       vars: {}
+      acePath: ''
+      aceComponents: {}
       'aceName': 'ace'
       'booting': true
       globals: globals
@@ -30,6 +32,7 @@ module.exports = ->
 
     router = new Router Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true
     ace.vars = router.vars
+    ace.currentUrl = -> router.navigator.url
 
     # route only the URL the server saw when it rendered (to bootstrap)
     url = router.navigator.url.clone()

@@ -427,7 +427,12 @@ module.exports = class ModelBase extends Base
     [cmd, arg, cb] = arr
 
     @sock.emit 'run', @aceType, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
-      cb.apply this, arguments
+      Outlet.openBlock()
+      try
+        cb.apply this, arguments
+      finally
+        Outlet.closeBlock()
+
       @_run()
       return
     return

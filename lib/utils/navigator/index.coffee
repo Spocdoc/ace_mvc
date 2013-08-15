@@ -1,10 +1,10 @@
 Url = require '../url'
 debug = global.debug 'ace:navigator'
+{include} = require '../mixin'
 
 replaceInterval = 2000
 replaceLastCall = 0
 replaceTimeoutId = 0
-replaceUrl = null
 
 urls = {}
 routeFn = null
@@ -14,7 +14,8 @@ ignoreCount = 0
 useHash = null
 iframe = null
 
-class NavigatorUrl extends Url
+include Url,
+
   hasHashPath: do ->
     regex = /^#\d+/
     -> @hash and regex.test @hash
@@ -53,7 +54,7 @@ listen = (event, fn) ->
   return
 
 navigator = (url) ->
-  url = new NavigatorUrl url, navigator.url unless url instanceof NavigatorUrl
+  url = new Url url, navigator.url unless url instanceof Url
   if url.href isnt navigator.url.href
     if url.pathname is navigator.url.pathname
       replaceThrottled url
@@ -65,11 +66,9 @@ doReplace = (now=new Date) ->
   replaceLastCall = now
   replaceTimeoutId = null
 
-  urls[index] = navigator.url = replaceUrl
-
   if useHash
-    prev = new NavigatorUrl window.location.href
-    next = replaceUrl.formHashUrl()
+    prev = new Url window.location.href
+    next = navigator.url.formHashUrl()
 
     if prev.path != next.path
       ++ignoreCount
@@ -87,24 +86,28 @@ doReplace = (now=new Date) ->
 
 replace = (url) ->
   clearTimeout replaceTimeoutId if replaceTimeoutId?
-  replaceUrl = url
+  urls[index] = navigator.url = url
   doReplace()
   return
 
 replaceThrottled = (url) ->
+  url = new Url url unless url instanceof Url
+  urls[index] = navigator.url = url
+
   now = new Date
   remaining = replaceInterval - (now - replaceLastCall)
-  replaceUrl = url
 
   if remaining <= 0
-    clearTimeout replaceTimeoutId
+    clearTimeout replaceTimeoutId if replaceTimeoutId?
     doReplace now
-  else
-    replaceTimeoutId = setTimeout doReplace, replaceInterval unless replaceTimeoutId?
+  else unless replaceTimeoutId?
+    replaceTimeoutId = setTimeout doReplace, replaceInterval
 
   return
 
 push = (url) ->
+  url = new Url url unless url instanceof Url
+
   if replaceTimeoutId?
     clearTimeout replaceTimeoutId
     doReplace()
@@ -128,9 +131,8 @@ urlchange = ->
     if replaceTimeoutId?
       clearTimeout replaceTimeoutId
       replaceTimeoutId = null
-      urls[index] = replaceUrl
 
-    newUrl = new NavigatorUrl(window.location.href)
+    newUrl = new Url(window.location.href)
 
     if newUrl.hasHashPath()
       newIndex = newUrl.index()
@@ -168,10 +170,9 @@ module.exports = (route, ctx) ->
       iframe = $('<iframe src="javascript:0" tabindex="-1" />').hide().appendTo('body')[0].contentWindow
       iframe.location.href = window.location.href
 
-    navigator.url = new NavigatorUrl(window.location.href)
+    navigator.url = new Url(window.location.href)
 
-    # TODO DEBUG
-    if useHash = true #!window.history || !window.history.pushState
+    if useHash = !window.history || !window.history.pushState
       index = navigator.url.index()
     else
       index = window.history.state

@@ -15,6 +15,8 @@ vendor = path.resolve __dirname, '../lib/_vendor/server/'
 for file in fs.readdirSync vendor
   require "#{vendor}/#{file}"
 
+require '../lib/-vendor_patches/server'
+
 # from http://stackoverflow.com/questions/13227489/how-can-one-get-the-file-path-of-the-caller-function-in-node-js
 getStack = ->
   origPrepareStackTrace = Error.prepareStackTrace

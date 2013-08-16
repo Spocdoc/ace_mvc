@@ -80,7 +80,7 @@ doReplace = (now=new Date) ->
       iframe?.location.replace next.href
 
   else
-    window.history.replaceState index, '', replaceUrl.href
+    window.history.replaceState index, '', navigator.url.href
 
   return
 

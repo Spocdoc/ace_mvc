@@ -1,6 +1,7 @@
 {argNames} = require '../u'
 makeIndex = require '../id'
 debugError = global.debug 'ace:error'
+errPending = {}
 
 module.exports = class Outlet
   (@roots = []).depth = 0
@@ -15,6 +16,13 @@ module.exports = class Outlet
 
     @set value
 
+  @['block'] = (fn) ->
+    @openBlock()
+    try
+      fn()
+    finally
+      @closeBlock()
+
   @['openBlock'] = @openBlock = ->
     ++Outlet.roots.depth
     return
@@ -28,38 +36,66 @@ module.exports = class Outlet
     return
 
   toString: -> @index
+
   'toOJSON': ->
     if @value? then @value else null
 
   set: (value, version) ->
+    Outlet.openBlock()
     if typeof value is 'function'
       @_setFunc value, version
     else if value instanceof Outlet
       @_setOutlet value
     else
-      @_setValue value, version
-    return
-
-  _setValue: (value, version=@version) ->
-    return if @pending or (@value is value and @version is version)
-    @['value'] = @value = value; @version = version
-    Outlet.openBlock()
-    equiv._setValue value, version for index, equiv of @equivalents
-    for index, outflow of @outflows when !outflow.root
-      outflow.root = true
-      Outlet.roots.push outflow
-      outflow._setPendingTrue()
+      @_setFA value, version
     Outlet.closeBlock()
     return
 
-  _setOutlet: (outlet) ->
-    return if @equivalents[outlet]
-    if outlet.pending
-      @_setPendingTrue()
+  _setFA: (value, version, source, immediate) ->
+    if @root or @changing.length
+
+      if !(except = @funcOutlet) or source isnt except
+        return if @hasOwnProperty('_fA') and @['_fA'] is value and @['_fE'] is version
+        @['_fA'] = value
+        @['_fE'] = version
+        except?._setPendingTrue()
+      else
+        return
+
     else
-      @_setValue outlet.value, outlet.version
-    @equivalents[outlet] = outlet
-    outlet.equivalents[this] = this
+
+      if @value is value and @version is version
+        return @_setPendingFalse()
+
+      @pending = false
+
+      @['value'] = @value = value
+      @version = version
+
+      if immediate
+        outflow._runSource this for index, outflow of @outflows
+      else
+        for index, outflow of @outflows
+          if outflow.changing[this]
+            delete outflow.changing[this]
+            --outflow.changing.length
+          unless outflow.root
+            outflow.root = true
+            Outlet.roots.push outflow
+            outflow._setPendingTrue()
+
+    equiv._setFA value, version, this for index, equiv of @equivalents when equiv isnt except
+
+    return
+
+  _setOutlet: (outlet) ->
+    unless @equivalents[outlet]
+      @equivalents[outlet] = outlet
+      outlet.equivalents[this] = this
+      if outlet.pending
+        @_setPendingTrue()
+      else
+        @_setFA outlet.value, outlet.version
     return
 
   _setFunc: (@func, context) ->
@@ -68,11 +104,8 @@ module.exports = class Outlet
     (@funcArgOutlets[i] = @context[name]).addOutflow this for name,i in argNames func
     @auto = null if i # TODO this is a workaround in lieu of a yet unimplemented better alternative
     @_setPendingTrue()
-    if Outlet.roots.depth
-      @root = true
-      Outlet.roots.push this
-    else
-      @_runSource()
+    @root = true
+    Outlet.roots.push this
     return
 
   @prototype['modified'] = @prototype.modified = ->
@@ -92,7 +125,7 @@ module.exports = class Outlet
         @outflows[out] = out
         if @pending
           out.changing[this] = ++out.changing.length
-          throw 'pending'
+          throw errPending
 
     if @value and len = arguments.length
       if @value.get?.length > 0
@@ -116,6 +149,7 @@ module.exports = class Outlet
     return
 
   @prototype['unset'] = @prototype.unset = (outlet) ->
+    Outlet.openBlock()
     unless outlet
       for index, outlet of @equivalents
         delete @equivalents[index]
@@ -132,6 +166,7 @@ module.exports = class Outlet
           outlet._setPendingFalse()
         else unless @_shouldPend({})
           @_setPendingFalse()
+    Outlet.closeBlock()
     return
 
   _shouldPend: (visited) ->
@@ -152,22 +187,28 @@ module.exports = class Outlet
 
   _setPendingFalse: (source) ->
     if source and @changing[source]
-        delete @changing[source]
-        --@changing.length
+      delete @changing[source]
+      --@changing.length
+
     return if !@pending or @root or @changing.length
-    if source and outlet = @funcOutlet
-      unless outlet.pending
-        @_setFuncValue outlet.value, outlet.version
-    else
+
+    if @hasOwnProperty '_fA'
+      value = @['_fA']; delete @['_fA']
+      version = @['_fE']; delete @['_fE']
+      @_setFA value, version, source, true
+
+    else unless @funcOutlet?.pending
       @pending = false
       equiv._setPendingFalse() for index, equiv of @equivalents
       outflow._setPendingFalse(this) for index, outflow of @outflows
+
     return
 
   _runSource: (source) ->
     if source
-      delete @changing[source]
-      --@changing.length
+      if @changing[source]
+        delete @changing[source]
+        --@changing.length
       return if @root
     else if @changing.length
       Outlet.roots.push this
@@ -176,7 +217,6 @@ module.exports = class Outlet
     @root = false
     return unless @pending and !@changing.length
 
-    Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = @auto
     try
       @_autoInflows[index] = 0 for index of @_autoInflows
@@ -186,24 +226,33 @@ module.exports = class Outlet
         delete @autoInflows[index].outflows[this]
         delete @autoInflows[index]
     catch _error
-      return if _error is 'pending'
+      return if _error is errPending
       debugError "#{_error.name}: #{_error.message}\n #{_error.stack}" if _error
     finally
       Outlet.auto = prev
-      Outlet.closeBlock()
-    if outlet = @funcOutlet
-      return outlet.pending or @_setFuncValue outlet.value, outlet.version if value is outlet
-      delete @equivalents[outlet]
-      delete outlet.equivalents[this]
-      delete @funcOutlet
-    if value instanceof Outlet
-      @equivalents[value] = value
-      value.equivalents[this] = this
-      @funcOutlet = value
-      return if value.pending
+
+    if value isnt outlet = @funcOutlet
+      if outlet
+        @root = true
+        delete @equivalents[outlet]
+        delete outlet.equivalents[this]
+        outlet._setPendingFalse() if outlet.pending and !outlet._shouldPend {}
+        @root = false
+        delete @funcOutlet
+      if value instanceof Outlet
+        @funcOutlet = value
+        @equivalents[value] = value
+        value.equivalents[this] = this
+
+    if @hasOwnProperty '_fA'
+      @funcOutlet?._setPendingTrue()
+      value = @['_fA']; delete @['_fA']
+      version = @['_fE']; delete @['_fE']
+    else if value instanceof Outlet
       version = value.version
       value = value.value
-    @_setFuncValue value, version
+
+    @_setFA value, version, this, true
     return
 
   _runFunc: ->
@@ -211,14 +260,3 @@ module.exports = class Outlet
     if @funcArgOutlets
       @funcArgs[i] = outlet.value for outlet, i in @funcArgOutlets
     @func.apply @context, @funcArgs
-
-  _setFuncValue: (value, version) ->
-    return if !@pending or @root or @changing.length
-    if @value is value and @version is version
-      @_setPendingFalse()
-    else
-      @pending = false
-      @['value'] = @value = value
-      equiv._setFuncValue value for index, equiv of @equivalents
-      outflow._runSource this for index, outflow of @outflows
-    return

@@ -1,6 +1,6 @@
 qs = lib 'querystring'
 
-describe 'querystring#parse', ->
+describe.skip 'querystring#parse', ->
   it 'should parse simple key values', ->
     str = 'foo=bar&baz=bo'
     obj = {'foo': 'bar', 'baz': 'bo' }
@@ -23,7 +23,7 @@ describe 'querystring#parse', ->
     result = qs.parse str
     expect(result).deep.eq {'bool': ['true', 'false'], 'num': ['1','2']}
 
-describe 'querystring#stringify', ->
+describe.skip 'querystring#stringify', ->
   it 'should stringify simple key values', ->
     str = 'foo=bar&baz=bo'
     obj = {'foo': 'bar', 'baz': 'bo' }

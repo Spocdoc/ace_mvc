@@ -223,6 +223,52 @@ describe 'Outlet', ->
       expect(b.value).eq g.value
       expect(a.value).eq b.value
 
+    it 'should allow changing the value and the proxy in the same block', ->
+      a = new Outlet first = {foo: new Outlet 42}
+
+      b = new Outlet (-> 2*first.foo.get()), null, true
+
+      proxy = new Outlet 0, null, true
+      proxy.set -> a.get().foo
+
+      expect(proxy.value).eq 42
+      a.set second = {foo: new Outlet 43}
+      expect(proxy.value).eq 43
+
+      Outlet.openBlock()
+      a.set first
+      proxy.set 44
+      Outlet.closeBlock()
+
+      expect(first.foo.value).eq 44
+      expect(second.foo.value).eq 43
+      expect(proxy.value).eq 44
+      expect(b.value).eq 88
+
+      Outlet.openBlock()
+      proxy.set 45
+      a.set second
+      Outlet.closeBlock()
+
+      expect(first.foo.value).eq 45
+      expect(second.foo.value).eq 43
+      expect(proxy.value).eq 43
+
+    it 'should allow changing the value and the proxy in the same block via a function', ->
+
+      content = new Outlet 0, null, true
+      view = new Outlet 0, null, true
+      error = new Outlet 0, null, true
+
+      error.set -> content.get()?.outlets.error
+      aView = outlets: error: new Outlet 42
+
+      Outlet.block ->
+        content.set aView
+        error.set 45
+      expect(aView.outlets.error.value).eq 45
+
+
   ###
   describe 'interrupts', ->
     it 'should keep the interrupted calc pending and add it as an outflow', ->

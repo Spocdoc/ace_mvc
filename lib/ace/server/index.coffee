@@ -2,7 +2,8 @@ Ace = require '../index'
 Cookies = require '../../cookies'
 Outlet = require '../../utils/outlet'
 Router = require '../../router'
-debug = global.debug 'ace:error'
+debugError = global.debug 'ace:error'
+debug = global.debug 'ace:server'
 ModelBase = require '../../mvc/model'
 Controller = require '../../mvc/controller'
 Url = require '../../utils/url'
@@ -12,6 +13,7 @@ module.exports = ->
   Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
     cookies = new Cookies req, res
     (sock = global.io.connect '/').emit 'cookies', cookies.toJSON(), ->
+    debug "New request for #{req.originalUrl}"
 
     try
       globals =
@@ -36,7 +38,7 @@ module.exports = ->
 
       (new Controller['body'] ace)['appendTo'] $container
     catch _error
-      debug _error?.stack
+      debugError _error?.stack
 
     sock.onIdle idleFn = ->
       unless arr = url?.query?['']
@@ -44,7 +46,7 @@ module.exports = ->
           sock.emit 'disconnect'
           json = Model.toJSON()
         catch _error
-          debug _error?.stack
+          debugError _error?.stack
         cb null, json
         return
 
@@ -54,7 +56,7 @@ module.exports = ->
         if component = ace.aceComponents[arr[0]]
           component[methName].apply component, arr[2..]
       catch _error
-        debug _error?.stack
+        debugError _error?.stack
 
       sock.onIdle idleFn
       return

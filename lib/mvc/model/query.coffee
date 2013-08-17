@@ -190,6 +190,8 @@ module.exports = class Query
   'distinct': (key) ->
     return outlet if outlet = (@_distinct ||= {})[key]
     @_distinct[key] = outlet = new Outlet ((Query.useBootCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key]) || emptyArray
+
+    navCache = new NavCache
     serverVersion = pending = 0
     @_updater.addOutflow new Outlet distinctUpdater = =>
       unless pending
@@ -197,6 +199,8 @@ module.exports = class Query
         serverVersion = @_clientVersion
 
         if (Query.useBootCache & CACHE_READ) and cached = @Model.queryCache[@_hash]?.distinct?[key]
+          outlet.set cached
+        else if cached = navCache.get @_hash
           outlet.set cached
 
         @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, OJSON.toOJSON(@_spec), key, (code, docs) =>

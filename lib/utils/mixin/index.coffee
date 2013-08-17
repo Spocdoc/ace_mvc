@@ -9,7 +9,7 @@ include = (class_..., mixin) ->
 
 defaults = (obj, others...) ->
   for other in others
-    obj[k] = v for k,v of other when obj[k] is undefined
+    obj[k] = v for k,v of other when !obj.hasOwnProperty(k)
   obj
 
 module.exports =

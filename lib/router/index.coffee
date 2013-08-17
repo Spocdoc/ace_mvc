@@ -1,7 +1,7 @@
 Url = require '../utils/url'
 Route = require '../utils/route'
 Outlet = require '../utils/outlet'
-navigator = require '../utils/navigator'
+navigate = require '../utils/navigate'
 debug = global.debug 'ace:router'
 
 class Var
@@ -21,7 +21,7 @@ module.exports = class Router
   @getVars = (config) ->
     config['vars']
 
-  constructor: (routes, vars, globals, makeNavigator) ->
+  constructor: (routes, vars, globals, useNavigate) ->
     Outlet.openBlock()
 
     @uriOutlets = {}
@@ -47,15 +47,15 @@ module.exports = class Router
         outlet = v.outlet = varOutlets[path] = new Outlet value, context, true
       outlet
 
-    @navigator = navigator @route, this if makeNavigator
+    @navigate = navigate.listen @route, this if useNavigate
 
     vars.call context
     Outlet.closeBlock()
     return
 
-  useNavigator: ->
+  useNavigate: ->
     Outlet.openBlock()
-    @route url = @navigator.url
+    @route url = @navigate.url
 
     @routeSearch = new Outlet
     @routeSearch.value = @routeSearch['value'] = @current
@@ -68,7 +68,7 @@ module.exports = class Router
     @uriFormatter.func = (=> @current?.format @uriOutlets)
 
     @routeSearch.addOutflow @uriFormatter
-    @uriFormatter.addOutflow new Outlet => @navigator(@uriFormatter.value)
+    @uriFormatter.addOutflow new Outlet => @navigate(@uriFormatter.value)
 
     for varName, outlet of @uriOutlets
       outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
@@ -78,8 +78,8 @@ module.exports = class Router
     return
 
   matchOutlets: ->
-    if @navigator
-      @navigator.url.href
+    if @navigate
+      @navigate.url.href
     else
       for r in this when r.matchOutlets @uriOutlets
         return r.format @uriOutlets

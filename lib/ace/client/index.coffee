@@ -5,6 +5,7 @@ Router = require '../../router'
 Template = require '../../mvc/template'
 Controller = require '../../mvc/controller'
 ModelBase = require '../../mvc/model'
+navigate = require '../../utils/navigate'
 
 module.exports = ->
   Ace['newClient'] = (json, $container) ->
@@ -30,10 +31,10 @@ module.exports = ->
 
     router = new Router Router.getRoutes(routesConfig), Router.getVars(routesConfig), globals, true
     ace.vars = router.vars
-    ace.currentUrl = -> router.navigator.url
+    ace.currentUrl = -> navigate.url
 
     # route only the URL the server saw when it rendered (to bootstrap)
-    url = router.navigator.url.clone()
+    url = navigate.url.clone()
     url.reform hash: null
     router.route url
 
@@ -45,6 +46,6 @@ module.exports = ->
     delete Template.bootstrapRoot
 
     # now route the entire URL
-    router.useNavigator()
+    router.useNavigate()
     console.log "DONE WITH EVENT LOOP"
 

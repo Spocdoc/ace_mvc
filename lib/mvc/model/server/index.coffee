@@ -15,7 +15,7 @@ db = undefined
 s = undefined
 
 module.exports = (config, app) ->
-  Query.useCache = 2
+  Query.useBootCache = 2
 
   OJSON.register 'ObjectID': ObjectID
   clone.register ObjectID, (other) -> new ObjectID(other.toString())

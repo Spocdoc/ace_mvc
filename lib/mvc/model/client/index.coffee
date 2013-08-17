@@ -7,7 +7,7 @@ ObjectID = global.mongo.ObjectID
 OJSON.register 'ObjectID': ObjectID
 clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
-Query.useCache = 1
+Query.useBootCache = 1
 
 DBRef = global.mongo.DBRef
 OJSON.register 'DBRef': DBRef

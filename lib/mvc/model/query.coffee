@@ -3,6 +3,7 @@ OJSON = require '../../utils/ojson'
 queryCompile = require './query_compile'
 makeId = require '../../utils/id'
 hash = require '../../utils/hash'
+NavCache = require '../../utils/nav_cache'
 emptyArray = []
 debug = global.debug "ace:mvc:query"
 
@@ -25,7 +26,7 @@ CACHE_READ = 1
 CACHE_WRITE = 2
 
 module.exports = class Query
-  @useCache = 0
+  @useBootCache = 0
 
   constructor: (@Model, @_spec={}, limit, sort) ->
     @['limit'] = @limit = new Outlet limit ? 20
@@ -33,14 +34,19 @@ module.exports = class Query
     @['pending'] = @pending = new Outlet false
     @['error'] = @error = new Outlet
     @['results'] = @results = new Outlet []
+    @navCache = new NavCache
 
-    @_ojSpec = OJSON.toOJSON @_spec
-    @_readCache() if Query.useCache & CACHE_READ
+    @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
+    @_readBootCache() if Query.useBootCache & CACHE_READ
 
     @_clientVersion = 0
     @_updater = new Outlet =>
-      @_ojSpec = OJSON.toOJSON @_spec
-      @_readCache() if Query.useCache
+      @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
+
+      if Query.useBootCache & CACHE_READ
+        @_readBootCache()
+      else if results = @navCache.get @_hash
+        @_updateResults results
 
       if @limit.value < 1
         @_updateResults [] if @results.value.length
@@ -60,9 +66,8 @@ module.exports = class Query
 
     @_initOutlets @_spec
 
-  _readCache: ->
-    @_hash = hash @_ojSpec
-    if (Query.useCache & CACHE_READ) and ids = @Model.queryCache[@_hash]?.ids
+  _readBootCache: ->
+    if ids = @Model.queryCache[@_hash]?.ids
       results = []
       results[i] = @Model.read id for id, i in ids
       @_updateResults results
@@ -111,10 +116,12 @@ module.exports = class Query
     results
 
   _updateResults: (results) ->
-    if Query.useCache & CACHE_WRITE
+    if Query.useBootCache & CACHE_WRITE
       idResults = []
       idResults[i] = model.id for model,i in results
       (@Model.queryCache[@_hash] ||= {}).ids = idResults
+
+    @navCache.set @_hash, results
 
     if arraysDiffer results, @results.value
       Outlet.openBlock()
@@ -182,14 +189,14 @@ module.exports = class Query
   # field across all the documents matching the query (server side)
   'distinct': (key) ->
     return outlet if outlet = (@_distinct ||= {})[key]
-    @_distinct[key] = outlet = new Outlet ((Query.useCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key]) || emptyArray
+    @_distinct[key] = outlet = new Outlet ((Query.useBootCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key]) || emptyArray
     serverVersion = pending = 0
     @_updater.addOutflow new Outlet distinctUpdater = =>
       unless pending
         pending = true
         serverVersion = @_clientVersion
 
-        if (Query.useCache & CACHE_READ) and cached = @Model.queryCache[@_hash]?.distinct?[key]
+        if (Query.useBootCache & CACHE_READ) and cached = @Model.queryCache[@_hash]?.distinct?[key]
           outlet.set cached
 
         @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, OJSON.toOJSON(@_spec), key, (code, docs) =>
@@ -198,7 +205,7 @@ module.exports = class Query
           outlet.set docs if !outlet.value or arraysDiffer outlet.value, docs
           unless serverVersion is @_clientVersion
             distinctUpdater()
-          else if Query.useCache & CACHE_WRITE
+          else if Query.useBootCache & CACHE_WRITE
             ((@Model.queryCache[@_hash] ||= {}).distinct ||= {})[key] = docs
           return
       return

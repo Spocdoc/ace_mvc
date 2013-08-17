@@ -151,6 +151,8 @@ urlchange = ->
         navigate.url = urls[newIndex] = newUrl
 
       routeFn.call routeCtx, navigate.url.href, navigate.index
+
+      debug "Done with urlchange"
   return
 
 module.exports.listen = (route, ctx) ->

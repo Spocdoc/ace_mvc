@@ -121,7 +121,7 @@ module.exports = class ModelBase extends Base
 
     @clearQueryCache = ->
       @[type].queryCache = {} for type of @configs.configs
-      Query.useCache = 0
+      Query.useBootCache = 0
       return
 
     if json

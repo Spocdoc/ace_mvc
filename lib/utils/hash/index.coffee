@@ -10,9 +10,9 @@ stringify = (obj) ->
   str + "}"
 
 
-module['exports'] = (obj, full) ->
+module['exports'] = (obj) ->
   switch typeof obj
     when 'number' then return obj
-    when 'string' then return obj if obj.length <= 40
+    when 'string' then return obj
 
   str = stringify obj

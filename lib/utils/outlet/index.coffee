@@ -51,6 +51,12 @@ module.exports = class Outlet
     Outlet.closeBlock()
     return
 
+  initProxy: (func, context) ->
+    @['_fA'] = @value
+    @['_fE'] = @version
+    @_setFunc func, context
+    return
+
   _setFA: (value, version, source, immediate) ->
     if @root or @changing.length
 
@@ -197,9 +203,15 @@ module.exports = class Outlet
       version = @['_fE']; delete @['_fE']
       @_setFA value, version, source, true
 
-    else unless @funcOutlet?.pending
+    else unless @funcOutlet?.pending and @funcOutlet._shouldPend {}
       @pending = false
-      equiv._setPendingFalse() for index, equiv of @equivalents
+
+      for index, equiv of @equivalents
+        if equiv.value is @value and equiv.version is @version
+          equiv._setPendingFalse()
+        else
+          equiv._setFA @value, @version, this, true
+
       outflow._setPendingFalse(this) for index, outflow of @outflows
 
     return

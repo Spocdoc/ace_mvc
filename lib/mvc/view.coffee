@@ -151,7 +151,7 @@ module.exports = class ViewBase extends Base
       else
         switch methName
           when 'link'
-            if typeof arg[0] is 'string'
+            if typeof arg is 'string' or typeof arg[0] is 'string'
               e['link'].apply e, [this].concat arg
             else
               e['link'].apply e, arg

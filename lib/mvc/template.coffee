@@ -3,6 +3,22 @@ debug = global.debug 'ace:mvc'
 utils = require './utils'
 
 configs = new (require('./configs'))
+NAME_ELEMS = [
+  "a"
+  "applet"
+  "button"
+  "form"
+  "frame"
+  "iframe"
+  "img"
+  "input"
+  "map"
+  "meta"
+  "object"
+  "param"
+  "select"
+  "textarea"
+]
 
 getDomIds = do ->
   helper = (ids, dom) ->
@@ -55,9 +71,11 @@ module.exports = class TemplateBase
       @['$root'].attr('id',rootId)
 
       for id in config.ids
-        (@["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
+        ($elem = @["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
         .attr('id', "#{@acePrefix}-#{id}")
         .template = this
+        if $elem.name() in NAME_ELEMS
+          $elem.attr 'name', "#{@acePrefix}-#{id}"
     else
       @['bootstrapped'] = true
       debug "Bootstrapping template with rootId #{rootId}"

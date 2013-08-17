@@ -7,6 +7,7 @@ debug = global.debug 'ace:server'
 ModelBase = require '../../mvc/model'
 Controller = require '../../mvc/controller'
 Url = require '../../utils/url'
+setFormValues = require './set_form_values'
 hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 
 module.exports = ->
@@ -58,6 +59,7 @@ module.exports = ->
         return
 
       doRedirect = true
+      setFormValues $container, req.body if req.body
 
       try
         delete url.query['']

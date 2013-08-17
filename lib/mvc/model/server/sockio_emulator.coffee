@@ -40,7 +40,7 @@ class SockioEmulator
             @mediator[name].apply @mediator, args for {name,args} in queue
 
           unless --@pending
-            cb() for cb in @_idleCallbacks
+            cb() for cb in @_idleCallbacks.splice(0)
       break
 
     if !cookies and queue = @_cookiesQueue

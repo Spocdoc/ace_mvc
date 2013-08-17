@@ -67,7 +67,9 @@ class App
     $head = $html.find 'head'
 
     Ace.newServer req, res, next, $body, @_routes, @_vars, (err, json, redirect) =>
-      return res.redirect 301, redirect if redirect
+      if redirect
+        res.status 301
+        res.setHeader "Location", redirect
 
       uris = (if @settings['debug'] then @bundler.debugUris else @bundler.releaseUris)
 

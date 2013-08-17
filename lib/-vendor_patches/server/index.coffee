@@ -1,1 +1,2 @@
 require '../polyfill'
+require './cheerio'

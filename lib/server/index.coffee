@@ -1,6 +1,7 @@
 fs = require 'fs'
 path = require 'path'
 express = require 'express'
+connect = require 'connect'
 glob = require 'glob'
 async = require 'async'
 {extend} = require '../utils/mixin'
@@ -51,6 +52,7 @@ class Server
           'globals':
             'Ace': path.resolve(__dirname, "#{lib}/ace")
 
+        @parent.use connect.multipart()
         @parent.use @bundler = new Bundler @settings['bundler']
         @bundler.boot done
 

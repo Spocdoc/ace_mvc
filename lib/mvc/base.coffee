@@ -47,16 +47,20 @@ module.exports = class Base
     return
 
   _setOutletsFromDefaults: (defaults, settings) ->
-    for k,v of defaults when (o = @outlets[k]).value is undefined
-      if typeof v is 'function'
-        o.context = this
-        o.set v
-      else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
-        if settings.hasOwnProperty k
-          v = settings[k]
-        else if @_outletDefaults and @_outletDefaults.hasOwnProperty k
-          v = @_outletDefaults[k]
-        o.set v
+    for k,v of defaults
+      if (o = @outlets[k]).value isnt undefined
+        if typeof v is 'function'
+          o.initProxy v, this
+      else
+        if typeof v is 'function'
+          o.context = this
+          o.set v
+        else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
+          if settings.hasOwnProperty k
+            v = settings[k]
+          else if @_outletDefaults and @_outletDefaults.hasOwnProperty k
+            v = @_outletDefaults[k]
+          o.set v
 
       delete @_outletDefaults[k] if @_outletDefaults
     return

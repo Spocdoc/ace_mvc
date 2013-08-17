@@ -73,5 +73,5 @@ module.exports.stringify = do ->
     return str(name, obj) if typeof obj isnt 'object'
     return strA(name, obj) if Array.isArray(obj)
 
-    ((if Array.isArray(v) and v.length < 3 then strA(k,v) else str(k,v)) for k,v of obj).join(sep)
+    ((if Array.isArray(v) and 2 < v.length < 4 then strA(k,v) else str(k,v)) for k,v of obj).join(sep)
 

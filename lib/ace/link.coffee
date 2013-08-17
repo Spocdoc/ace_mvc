@@ -35,6 +35,8 @@ global.$['fn']['extend']
       @attr 'href', updateUrl(ace, allArgs)
     else if canAction = nodeName is 'form'
       @attr 'action', updateUrl(ace, allArgs)
+      @attr 'method', 'post'
+      @attr 'enctype', 'multipart/form-data'
       hook = 'submit'
 
     @[hook] (event) ->

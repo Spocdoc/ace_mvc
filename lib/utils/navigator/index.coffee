@@ -6,7 +6,7 @@ replaceInterval = 2000
 replaceLastCall = 0
 replaceTimeoutId = 0
 
-urls = {}
+urls = []
 routeFn = null
 routeCtx = null
 index = 0
@@ -39,12 +39,11 @@ include Url,
   stripHashPath: ->
     @reform
       hash: @hashHash() || ''
-      path: if @hasPath() then @path else @hashPath()
+      path: if @hasHashPath() then @hashPath() else @path
 
-  formHashUrl: ->
-    @clone().reform
-      path: '/'
-      hash: "##{index}#{@path}#{@hash || ''}"
+  hashHref: ->
+    "##{index}#{@path}#{@hash || ''}"
+
 
 listen = (event, fn) ->
   if window.addEventListener
@@ -67,17 +66,11 @@ doReplace = (now=new Date) ->
   replaceTimeoutId = null
 
   if useHash
-    prev = new Url window.location.href
-    next = navigator.url.formHashUrl()
+    hash = navigator.url.hashHref()
 
-    if prev.path != next.path
-      ++ignoreCount
-      window.location.replace next.href
-      iframe?.location.replace next.href
-    else if prev.hash != next.hash
-      ++ignoreCount
-      window.location.replace next.hash
-      iframe?.location.replace next.href
+    ++ignoreCount
+    window.location.replace hash
+    iframe?.location.replace hash
 
   else
     window.history.replaceState index, '', navigator.url.href
@@ -117,7 +110,7 @@ push = (url) ->
   if useHash
     ++ignoreCount
     iframe?.document.open().close()
-    window.location.href = url.formHashUrl().href
+    window.location.hash = url.hashHref()
     iframe?.location.href = window.location.href
   else
     window.history.pushState index, '', url.href
@@ -141,7 +134,7 @@ urlchange = ->
       newIndex = window.history.state
 
     if !newIndex? or (newIndex is index and newUrl.href isnt navigator.url.href)
-      newIndex = index + 1
+      newIndex = urls.length
       urls[newIndex] = newUrl
       replaceWith = newUrl if useHash
 
@@ -177,11 +170,11 @@ module.exports = (route, ctx) ->
     else
       index = window.history.state
 
-    if navigator.url.hasHashPath() or (useHash and !index?)
-      index ||= 0
-      replace navigator.url.stripHashPath()
-    else
-      urls[index||=0] = navigator.url
+    index ||= 0
+    urls[index] = navigator.url
+
+    navigator.url.stripHashPath() if navigator.url.hasHashPath()
+    doReplace() unless useHash
 
     ignoreCount = 0
 

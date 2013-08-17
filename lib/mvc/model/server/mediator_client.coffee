@@ -5,13 +5,12 @@ MediatorServer = require './mediator_server'
 
 module.exports = class MediatorClient extends MediatorServer
   constructor: (@db, @sock) ->
-    @origin = @sock.id
     extend sock, Listener unless sock.listenOn
 
   doSubscribe: (coll, id) ->
     unless already = @sock.isListening @db, channel=Db.channel(coll,id)
       @sock.listenOn @db, channel, (args) =>
-        return if args[0] == @origin
+        return if args[0] is @sock.id
         @sock.emit.apply @sock, args[1..]
     !already
 

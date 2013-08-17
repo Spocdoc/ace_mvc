@@ -7,12 +7,14 @@ debug = global.debug 'ace:server'
 ModelBase = require '../../mvc/model'
 Controller = require '../../mvc/controller'
 Url = require '../../utils/url'
+hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 
 module.exports = ->
 
   Ace.newServer = (req, res, next, $container, routes, vars, cb) ->
-    cookies = new Cookies req, res
-    (sock = global.io.connect '/').emit 'cookies', cookies.toJSON(), ->
+    sock = global.io.connect '/'
+    cookies = new Cookies req, res, sock.serverSock
+    sock.emit 'cookies', cookies.toJSON(), ->
     debug "New request for #{req.originalUrl}"
 
     try
@@ -21,12 +23,13 @@ module.exports = ->
         'session': session = new Outlet undefined, undefined, true
         'Model': class Model extends ModelBase
       ace = globals['ace'] =
-        aceName: 'ace'
         vars: {}
         acePath: ''
         aceComponents: {}
-        'aceName': 'ace'
         'globals': globals
+        hash: (href) ->
+          if id = session.value?.id
+            hash("#{id}#{href}").substr(0,24)
 
       Model.init ace, sock
 
@@ -40,6 +43,8 @@ module.exports = ->
     catch _error
       debugError _error?.stack
 
+    doRedirect = false
+
     sock.onIdle idleFn = ->
       unless arr = url?.query?['']
         try
@@ -47,14 +52,22 @@ module.exports = ->
           json = Model.toJSON()
         catch _error
           debugError _error?.stack
-        cb null, json
+
+        redirect = if doRedirect then router.matchOutlets() else ''
+        cb null, json, redirect
         return
+
+      doRedirect = true
 
       try
         delete url.query['']
-        return idleFn unless (pathName = arr?[0]) and (methName = arr[1])
-        if component = ace.aceComponents[arr[0]]
-          component[methName].apply component, arr[2..]
+        url.reform query: url.query
+        validHash = arr[0] and ace.hash(url.href) is arr[0]
+        sock.serverSock.readOnly = !validHash
+
+        return idleFn unless (compPath = arr?[1]) and (methName = arr[2])
+        if component = ace.aceComponents[compPath]
+          component[methName].apply component, arr[3..]
       catch _error
         debugError _error?.stack
 

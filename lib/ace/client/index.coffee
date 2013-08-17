@@ -20,11 +20,9 @@ module.exports = ->
       'session': session = new Outlet undefined, undefined, true
       'Model': class Model extends ModelBase
     ace = globals['ace'] =
-      aceName: 'ace'
       vars: {}
       acePath: ''
       aceComponents: {}
-      'aceName': 'ace'
       'booting': true
       globals: globals
 
@@ -48,4 +46,5 @@ module.exports = ->
 
     # now route the entire URL
     router.useNavigator()
+    console.log "DONE WITH EVENT LOOP"
 

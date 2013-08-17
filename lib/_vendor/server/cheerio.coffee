@@ -28,7 +28,7 @@ extend $prototype,
   scrollLeft: ->
   scrollTop: ->
 
-  type: ->
+  name: ->
     @[0].name.toLowerCase()
 
   parents: ->

@@ -11,8 +11,8 @@ class Emitter
 # emulates the *client's* sock.io access
 class SockioEmulator
   constructor: (@db, Mediator) ->
-    @emitter = new Emitter
-    @mediator = new Mediator @db, @emitter
+    @serverSock = new Emitter
+    @mediator = new Mediator @db, @serverSock
 
     @pending = 0
     @_idleCallbacks = []
@@ -48,7 +48,7 @@ class SockioEmulator
     else
       @mediator[name].apply @mediator, args
 
-  on: (event, fn) -> @emitter.on event, fn
+  on: (event, fn) -> @serverSock.on event, fn
 
   onIdle: (cb) ->
     unless @pending

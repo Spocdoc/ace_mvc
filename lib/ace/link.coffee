@@ -13,22 +13,27 @@ updateUrl = (ace, allArgs) ->
     url = ace.linkUrl
     query = url.query || {}
 
+  if ace.hash
+    delete query['']
+    url.reform query: query
+    if urlHash = ace.hash url.href
+      allArgs[0] = urlHash
+
   query[''] = allArgs
   url.reform query: query
   url.href
 
 global.$['fn']['extend']
   'link': (component, methodName, args...) ->
-    nodeType = @['type']()
+    nodeName = @['name']()
     ace = component['ace']
     hook = 'click'
 
-    allArgs = Array.prototype.slice.call arguments, 0
-    allArgs[0] = component.acePath
+    allArgs = ['',component.acePath, methodName].concat args
 
-    if canHref = nodeType is 'a'
+    if canHref = nodeName is 'a'
       @attr 'href', updateUrl(ace, allArgs)
-    else if canAction = nodeType is 'form'
+    else if canAction = nodeName is 'form'
       @attr 'action', updateUrl(ace, allArgs)
       hook = 'submit'
 
@@ -45,4 +50,4 @@ global.$['fn']['extend']
         @attr 'href', updateUrl(ace, allArgs)
       else if canAction
         @attr 'action', updateUrl(ace, allArgs)
-
+    return this

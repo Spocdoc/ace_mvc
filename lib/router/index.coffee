@@ -10,7 +10,12 @@ class Var
 module.exports = class Router
   @getRoutes = (config) ->
     routes = []
-    config['routes'] (args...) -> routes.push new Route args...
+    moreArgs = []
+    config['routes'] (args...) ->
+      if typeof args[0] is 'string' and args[0].charAt(0) isnt '/'
+        moreArgs.push args...
+      else
+        routes.push new Route moreArgs.concat(args...)...
     routes
 
   @getVars = (config) ->
@@ -71,6 +76,14 @@ module.exports = class Router
 
     Outlet.closeBlock()
     return
+
+  matchOutlets: ->
+    if @navigator
+      @navigator.url.href
+    else
+      for r in this when r.matchOutlets @uriOutlets
+        return r.format @uriOutlets
+      ''
 
   route: (url) ->
     debug "Routing #{url}"

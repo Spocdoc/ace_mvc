@@ -12,10 +12,14 @@ module.exports = {}
 module.exports.stringifyValue = stringValue = (v) ->
   encodeURI(OJSON.stringify v).replace(regexAmp,'%26').replace(regexHash,'%23')
 
-module.exports.parseValue = parseValue = (v) ->
+module.exports.parseValue = parseValue = (v, simple) ->
   if v
     try
-      OJSON.parse decodeURIComponent(v)
+      v = decodeURIComponent(v)
+      if simple
+        v
+      else
+        OJSON.parse v
     catch _error
       undefined
   else
@@ -26,7 +30,7 @@ module.exports.stringifyKey = stringKey = (k) ->
 
 module.exports.parseKey = parseKey = (k) -> k and decodeURIComponent(k)
 
-module.exports.parse = (qs) ->
+module.exports.parse = (qs, simple) ->
   obj = {}
 
   return obj if typeof qs isnt "string" or qs.length is 0
@@ -34,15 +38,15 @@ module.exports.parse = (qs) ->
   for x in qs.replace(rPlus, '%20').split(sep)
     idx = x.indexOf(eq)
     if idx >= 0
-      kstr = x.substr(0, idx)
-      vstr = x.substr(idx + 1)
+      k = x.substr(0, idx)
+      v = x.substr(idx + 1)
     else
-      kstr = x
-      vstr = ""
+      k = x
+      v = ""
 
     try
-      k = parseKey(kstr)
-      v = parseValue(vstr)
+      k = parseKey(k)
+      v = parseValue(v, simple)
     catch e
       return {}
 
@@ -70,8 +74,4 @@ module.exports.stringify = do ->
     return strA(name, obj) if Array.isArray(obj)
 
     ((if Array.isArray(v) and v.length < 3 then strA(k,v) else str(k,v)) for k,v of obj).join(sep)
-
-
-
-
 

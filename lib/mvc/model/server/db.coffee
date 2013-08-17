@@ -31,6 +31,13 @@ replaceId = (id, cb) ->
     return false
   id
 
+checkMutation = (origin, cb) ->
+  if origin.readOnly
+    cb.reject "Mutating events disallowed"
+    false
+  else
+    true
+
 checkErr = (err, cb) ->
   if err
     cb.reject err.message
@@ -70,10 +77,9 @@ class Db extends Mongo
   @channel = (coll, id) -> "#{coll}:#{id}"
 
   create: (origin, coll, doc, cb) ->
-    debug "Got create request with",arguments...
-
-    return unless checkId(doc._id, cb)
-    return cb.reject "Version must be 1" unless doc['_v'] is 1
+    debug "Got create request with",coll,doc
+    return unless checkMutation(origin, cb) and checkId(doc._id, cb)
+    return cb.reject "Version must be at least 1" unless doc['_v'] >= 1
 
     @run 'insert', coll, doc, (err) ->
       return unless checkErr(err, cb)
@@ -82,7 +88,7 @@ class Db extends Mongo
     return
 
   read: (origin, coll, id, version, query, limit, sort, cb) ->
-    debug "Got read request with",arguments...
+    debug "Got read request with",coll,id,version,query,limit,sort
     doc = undefined
 
     if id
@@ -171,8 +177,8 @@ class Db extends Mongo
     return
 
   update: (origin, coll, id, version, ops, cb) ->
-    debug "Got update request with",arguments...
-    return unless id = replaceId(id, cb)
+    debug "Got update request with",coll,id,version,ops
+    return unless checkMutation(origin, cb) and id = replaceId(id, cb)
     moreOps = undefined
 
     async.waterfall [
@@ -208,24 +214,24 @@ class Db extends Mongo
 
         if moreOps
           cb.update version+1, moreOps
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version,[]])
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version+1,ops])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version,[]])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version+1,ops])
         else
           cb.ok()
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'update',coll,id.toString(),version,ops])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version,ops])
 
     ], (err) -> cb.reject err.message if err?
 
     return
 
   delete: (origin, coll, id, cb) ->
-    debug "Got delete request with",arguments...
-    return unless id = replaceId(id, cb)
+    debug "Got delete request with",coll,id
+    return unless checkMutation(origin, cb) and id = replaceId(id, cb)
 
     @run 'remove', coll, {_id: id}, (err) =>
       return unless checkErr(err, cb)
       cb.ok()
-      @pub.publish Db.channel(coll,id), OJSON.stringify([origin,'delete',coll,id.toString()])
+      @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'delete',coll,id.toString()])
       return
     return
 

@@ -13,8 +13,8 @@ class Route
       else
         switch c = arg.charAt(0)
           when '/' then @path = new Path arg
-          when '?' then @query = new QueryHash arg.substr(1)
-          when '#' then @hash = new QueryHash arg.substr(1)
+          when '?' then (@query ||= new QueryHash).add arg.substr(1)
+          when '#' then (@hash ||= new QueryHash).add arg.substr(1)
 
     @path ||= new Path '/'
     @path.outletHash = outletHash

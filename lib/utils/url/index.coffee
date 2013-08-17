@@ -128,7 +128,10 @@ class Url
     return
 
   _setQuery: (@query) ->
-    @search = '?' + querystring.stringify(@query)
+    if str = querystring.stringify(@query)
+      @search = '?' + str
+    else
+      @search = ''
     @path = @pathname + @search
     return
 

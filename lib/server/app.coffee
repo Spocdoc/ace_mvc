@@ -33,12 +33,9 @@ class App
     @_vars = router.getVars routes
 
     ### original wrongPage code
-    var a = !window.history || !window.history.pushState, b = window.location.pathname.slice(1), hash;
-    if (hash = window.location.hash) {
-      window['wrongPage'] = /^#\d+(\/[^#]*)/.exec(hash);
-    }
-    if (window['wrongPage'] && window['wrongPage'][1] === window.location.pathname) window['wrongPage'] = false;
-    a && (window['wrongPage'] && b) && (document.location.href = window['wrongPage'][1]);
+      m = /^(?:[^:]*:\/\/)?(?:[^\/]*)?\/*(\/[^#]*)?#\d*\/*(\/[^#]*)?(#.*)?$/.exec window.location.href
+      document.location.href = m[2] + (m[3] || '') if m and m[1] isnt m[2]
+    # var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));
     ###
 
     @$html = $("""
@@ -48,7 +45,7 @@ class App
     <title></title>
     <script type="text/javascript">
     (function (){
-      var a=!window.history||!window.history.pushState,b=window.location.pathname.slice(1),c;if(c=window.location.hash)window.wrongPage=/^#\\d+(\\/[^#]*)/.exec(c);window.wrongPage&&window.wrongPage[1]===window.location.pathname&&(window.wrongPage=!1);a&&window.wrongPage&&b&&(document.location.href=window.wrongPage[1]);
+      var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));
     }());
     </script>
     </head>
@@ -69,26 +66,10 @@ class App
     $body = $html.find 'body'
     $head = $html.find 'head'
 
-    Ace.newServer req, res, next, $body, @_routes, @_vars, (err, json) =>
+    Ace.newServer req, res, next, $body, @_routes, @_vars, (err, json, redirect) =>
+      return res.redirect 301, redirect if redirect
+
       uris = (if @settings['debug'] then @bundler.debugUris else @bundler.releaseUris)
-
-      $body.prepend $("""
-      <script type="text/javascript">
-        window.wrongPage && document.write('<div id="wrong-page" style="display:none">');
-      </script
-      """)
-
-      $body.append $("""
-      <script type="text/javascript">
-      (function () {
-      if (window.wrongPage) {
-        document.write("</div>");
-        var a = document.getElementById("wrong-page");
-        a.parentNode.removeChild(a);
-      }
-      })();
-      </script>
-      """)
 
       # IE 6 script: by default, not supported with scripting (just server-side
       # render). all scripts are excluded unless explicitly added to ie6
@@ -118,7 +99,7 @@ class App
       $body.append $("""
       <script type="text/javascript">
       (function () {
-        var restore = window.wrongPage ? null : #{JSON.stringify json};
+        var restore = #{JSON.stringify json};
         if (window.Ace) window.ace = window.Ace.newClient(restore, $('body'));
       }());
       </script>

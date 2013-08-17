@@ -2,10 +2,12 @@ Cookies = require '../index'
 debug = global.debug 'ace:cookies'
 connect = require 'connect'
 
-Cookies.prototype._build = (@req, @res) ->
+Cookies.prototype._build = (@req, @res, @sock) ->
 
 Cookies.prototype.set = (name, value, expires) ->
-  @res.setHeader 'Set-Cookie', @_makeString(name, value, expires)
+  unless @sock.readOnly
+    @res.setHeader 'Set-Cookie', @_makeString(name, value, expires)
+  return
 
 Cookies.prototype.get = (name) ->
   (value = @req.cookies?[name]) && @_parseValue value

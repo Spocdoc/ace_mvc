@@ -5,8 +5,6 @@ emptyFunc = ->
 module.exports = class MediatorServer
   constructor: (@db, @sock) ->
 
-  origin: 'server'
-
   # these should exist and be empty in case the app overrides Mediator and calls them during the server render
   @prototype[empty] = emptyFunc for empty in [
     'doSubscribe'
@@ -25,8 +23,7 @@ module.exports = class MediatorServer
 
   for method in ['create','read','update','delete','distinct']
     do (method) =>
-      @prototype['db' + method[0].toUpperCase() + method[1..]] = @prototype[method] = -> @db[method].apply @db, [@origin, arguments...]
-
+      @prototype['db' + method[0].toUpperCase() + method[1..]] = @prototype[method] = -> @db[method].apply @db, [@sock, arguments...]
 
   read: (coll, id, version, query, limit, sort, cb) ->
     proxy = Object.create cb

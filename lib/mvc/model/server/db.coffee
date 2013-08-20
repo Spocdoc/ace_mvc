@@ -45,7 +45,7 @@ checkErr = (err, cb) ->
   else
     true
 
-class Db extends Mongo
+module.exports = class Db extends Mongo
   emit: Emitter.emit
 
   on: (event, fn, ctx) ->
@@ -240,5 +240,3 @@ class Db extends Mongo
     @run 'distinct', coll, key, query, (err, docs) ->
       return unless checkErr(err, cb)
       cb.doc docs
-
-module.exports = Db

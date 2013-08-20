@@ -9,7 +9,7 @@ async = require 'async'
 
 hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 
-class Server
+module.exports = class Server
   constructor: (settings) ->
     extend @, express()
     delete @handle
@@ -81,6 +81,4 @@ class Server
 
       @[type].write debugRelease, category, number, res
       return
-
-module.exports = Server
 

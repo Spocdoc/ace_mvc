@@ -6,7 +6,7 @@ regexCurlySingle = /[\u2018\u2019]/g
 regexCurlyDouble = /[\u201c\u201d]/g
 
 
-class Mongo
+module.exports = class Mongo
   constructor: (host, db) ->
     @server = new mongodb.Server(host)
     @db = new mongodb.Db db, @server,
@@ -79,6 +79,4 @@ class Mongo
     else
       @q([cmd, coll, args..., cb])
     return
-
-module.exports = Mongo
 

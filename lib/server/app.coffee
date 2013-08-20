@@ -8,7 +8,7 @@ quote = require '../utils/quote'
 Ace = undefined
 
 # express sets route, parent
-class App
+module.exports = class App
   constructor: (@bundler, settings) ->
     extend @, express()
     delete @handle
@@ -111,6 +111,4 @@ class App
       return
 
     return
-
-module.exports = App
 

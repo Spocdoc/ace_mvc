@@ -1,6 +1,6 @@
 buildClasses = require './build_classes'
 
-class Configs
+module.exports = class Configs
   constructor: ->
     @configs = Object.create null
     @mixins = Object.create null
@@ -38,5 +38,3 @@ class Configs
 
   buildClasses: (base) ->
     buildClasses @configs, base
-
-module.exports = Configs

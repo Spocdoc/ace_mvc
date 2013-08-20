@@ -30,8 +30,8 @@ module.exports = makeLoader = (app, globals, options, cb) ->
       for p in dirs
         name = p.substr(2).replace(/\/.*$/,'')
         script.push """
-        if (typeof (r = require(#{quote(path.resolve(lib,p))})) === 'function') {
-          r(#{options[name] && JSON.stringify(options[name]) || ''});
+        if (typeof (require(#{quote(path.resolve(lib,p))})) === 'function') {
+          require(#{quote(path.resolve(lib,p))})(#{options[name] && JSON.stringify(options[name]) || ''});
         };
         """
 

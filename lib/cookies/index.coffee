@@ -1,6 +1,6 @@
 debugError = global.debug 'ace:error'
 
-class Cookies
+module.exports = class Cookies
   constructor: (args...) ->
     @_build args...
 
@@ -37,6 +37,4 @@ class Cookies
       debugError "Error decoding cookie value [#{value}]"
       undefined
 
-
-module.exports = Cookies
 

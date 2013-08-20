@@ -1,4 +1,4 @@
-class Registry
+module.exports = class Registry
   constructor: ->
     @r = Object.create null
 
@@ -17,5 +17,3 @@ class Registry
       type: constructor
       d: data
     this
-
-module.exports = Registry

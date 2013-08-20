@@ -1,6 +1,6 @@
 BundlerBase = require '../bundler_base'
 
-class Bundler extends BundlerBase
+module.exports = class Bundler extends BundlerBase
   _bundle: (cb) ->
     @debug = {standard: debugs = []}
     @release = {standard: releases = []}
@@ -11,5 +11,3 @@ class Bundler extends BundlerBase
 
     @release.standard = [releases.join ' ']
     cb(null)
-
-module.exports = Bundler

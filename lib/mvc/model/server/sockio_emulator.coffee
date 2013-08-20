@@ -9,7 +9,7 @@ class Emitter
   include @, require '../../../utils/events/emitter'
 
 # emulates the *client's* sock.io access
-class SockioEmulator
+module.exports = class SockioEmulator
   constructor: (@db, Mediator) ->
     @serverSock = new Emitter
     @mediator = new Mediator @db, @serverSock
@@ -56,5 +56,3 @@ class SockioEmulator
     else
       @_idleCallbacks.push cb
     return
-
-module.exports = SockioEmulator

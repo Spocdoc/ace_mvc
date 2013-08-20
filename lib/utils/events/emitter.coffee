@@ -1,4 +1,4 @@
-Emitter =
+module.exports = Emitter =
   on: (event, fn, ctx) ->
     @_emitter ?= {}
     (@_emitter[event] ||= []).push
@@ -44,6 +44,4 @@ Emitter =
       default: while (++i < l) (ev = events[i]).fn.apply(ev.ctx, [].slice.call(arguments, 1));
     }`
     return
-
-module.exports = Emitter
 

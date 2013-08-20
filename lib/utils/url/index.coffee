@@ -23,7 +23,7 @@ autoEscapeRegex = new RegExp("[#{RegExp.escape(autoEscape.join(''))}]",'g')
 
 dupSlashesRegex = /\/+/g
 
-class Url
+module.exports = class Url
   _pullAuth: (rest) ->
     return rest unless ~(atSign = rest.indexOf("@"))
     auth = rest.slice(0, atSign)
@@ -245,6 +245,4 @@ class Url
     @slashes ||= rhs.slashes if rhs.slashes?
     @href = @format()
     this
-
-module.exports = Url
 

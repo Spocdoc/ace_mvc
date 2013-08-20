@@ -16,18 +16,19 @@ module.exports = class Outlet
 
     @set value
 
-  @['block'] = (fn) ->
-    @openBlock()
-    try
-      fn()
-    finally
-      @closeBlock()
+  @['block'] = @block = (fn) ->
+    ->
+      Outlet.openBlock()
+      try
+        fn.apply this, arguments
+      finally
+        Outlet.closeBlock()
 
-  @['openBlock'] = @openBlock = ->
+  @openBlock = ->
     ++Outlet.roots.depth
     return
 
-  @['closeBlock'] = @closeBlock = ->
+  @closeBlock = ->
     unless --(roots = Outlet.roots).depth
       ++roots.depth
       `for (var i = 0, len = 0; (i < len) || (i < (len = roots.length)); ++i) roots[i]._runSource();`

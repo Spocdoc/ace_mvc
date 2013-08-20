@@ -4,7 +4,7 @@ QueryHash = require './query_hash'
 debug = global.debug 'ace:routing'
 
 # similar to express
-class Route
+module.exports = class Route
   constructor: ->
     outletHash = undefined
     for arg in arguments
@@ -48,5 +48,3 @@ class Route
     url += "##{hash}" if hash = @hash?.format outlets
     url
 
-
-module.exports = Route

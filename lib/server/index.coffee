@@ -7,7 +7,7 @@ async = require 'async'
 {extend} = require '../utils/mixin'
 
 # express sets route, parent
-class Server
+module.exports = class Server
   constructor: (settings) ->
     extend @, express()
     extend @settings, settings
@@ -61,6 +61,4 @@ class Server
         @parent.use @aceApp = new App @bundler, @settings
         @aceApp.boot done
     ], cb
-
-module.exports = Server
 

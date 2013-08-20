@@ -1,6 +1,6 @@
 parseRoute = require './parse_route'
 
-class Path
+module.exports = class Path
   constructor: (path) ->
     @keys = []
     [@regexp, @format] = parseRoute path, @keys
@@ -29,5 +29,3 @@ class Path
 
     else
       false
-
-module.exports = Path

@@ -10,7 +10,7 @@ readExterns = require './extern'
 makeMvc = require './mvc'
 makeLoader = require './loader'
 
-class Bundler extends BundlerBase
+module.exports =  class Bundler extends BundlerBase
   _bundle: (cb) ->
     app = @settings.app
 
@@ -64,5 +64,3 @@ class Bundler extends BundlerBase
         @debug[category] = [externCode, obj.loader.debug, obj.mvc.debug]
 
     return
-
-module.exports = Bundler

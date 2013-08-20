@@ -3,7 +3,7 @@ EventEmitter = require('events').EventEmitter
 
 hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 
-class BundlerBase extends EventEmitter
+module.exports = class BundlerBase extends EventEmitter
   constructor: (@settings) ->
 
   write: (debugRelease, category, number, stream) ->
@@ -40,5 +40,3 @@ class BundlerBase extends EventEmitter
       return
     return
 
-
-module.exports = BundlerBase

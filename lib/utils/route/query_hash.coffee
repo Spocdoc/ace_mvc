@@ -1,7 +1,7 @@
 querystring = require '../url/querystring'
 empty = {}
 
-class QueryHash
+module.exports = class QueryHash
   constructor: (arg) ->
     @varNames = []
     @obj = []
@@ -27,6 +27,3 @@ class QueryHash
     catch _error
     return
 
-
-
-module.exports = QueryHash

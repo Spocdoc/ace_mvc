@@ -4,7 +4,7 @@ stream = require 'stream'
 async = require 'async'
 {defaults} = require '../../../utils/mixin'
 EventEmitter = require('events').EventEmitter
-# beautify = require('js-beautify').js_beautify
+beautify = require('js-beautify').js_beautify
 
 readExterns = require './extern'
 makeMvc = require './mvc'
@@ -49,7 +49,7 @@ module.exports =  class Bundler extends BundlerBase
         tmp[i++] = externCode
         tmp[i++] = obj.loader.release
         tmp[i++] = obj.mvc.release
-        prod[category] = [tmp.join ';\n']
+        prod[category] = [beautify tmp.join ';\n']
 
     @release = prod
     return

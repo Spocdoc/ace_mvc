@@ -65,6 +65,8 @@ doReplace = (now=new Date) ->
   replaceLastCall = now
   replaceTimeoutId = null
 
+  debug "REPLACE"
+
   if useHash
     hash = navigate.url.hashHref()
 
@@ -106,6 +108,8 @@ push = (url) ->
     doReplace()
 
   urls[++navigate.index] = navigate.url = url
+
+  debug "PUSH"
 
   if useHash
     ++ignoreCount

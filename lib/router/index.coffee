@@ -35,17 +35,32 @@ module.exports = class Router
       @[@length++] = route
       for varName of route.pathVarNames
         context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
+        outlet.uriOutlet = varName
         outlet.affectsRouteChoice = true
       for varName of route.otherVarNames
-        context[varName] = @uriOutlets[varName] ||= new Outlet undefined, context, true
+        outlet = context[varName] = @uriOutlets[varName] ||= new Outlet undefined, context, true
+        outlet.uriOutlet = varName
 
     varOutlets = {}
     context['var'] = (path, value) =>
-      unless outlet = varOutlets[path]
-        v = @vars
-        v = (v[p] ||= new Var) for p in path.split '/' when p
-        outlet = v.outlet = varOutlets[path] = new Outlet value, context, true
-      outlet
+      return outlet if outlet = varOutlets[path]
+
+      if varName = value?.uriOutlet
+        outlet = @uriOutlets[varName]
+      else
+        outlet = new Outlet value, context, true
+
+      v = @vars
+      v = (v[p] ||= new Var) for p in path.split '/' when p
+      v.outlet = varOutlets[path] = outlet
+
+    context['outlet'] = (value) => new Outlet value, context, true
+
+    @routeSearch = new Outlet ->
+    @uriFormatter = new Outlet ->
+    for varName, outlet of @uriOutlets
+      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
+      outlet.addOutflow @uriFormatter
 
     @navigate = navigate.listen @route, this if useNavigate
 
@@ -57,22 +72,16 @@ module.exports = class Router
     Outlet.openBlock()
     @route url = @navigate.url
 
-    @routeSearch = new Outlet
     @routeSearch.value = @routeSearch['value'] = @current
     @routeSearch.func = (=>
       for r in this when r.matchOutlets @uriOutlets
         return @current = r)
 
-    @uriFormatter = new Outlet
     @uriFormatter.value = @uriFormatter['value'] = url.href
     @uriFormatter.func = (=> @current?.format @uriOutlets)
 
     @routeSearch.addOutflow @uriFormatter
     @uriFormatter.addOutflow new Outlet => @navigate(@uriFormatter.value)
-
-    for varName, outlet of @uriOutlets
-      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
-      outlet.addOutflow @uriFormatter
 
     Outlet.closeBlock()
     return

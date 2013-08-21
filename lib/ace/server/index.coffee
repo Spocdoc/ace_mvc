@@ -55,6 +55,7 @@ module.exports = ->
           debugError _error?.stack
 
         redirect = if doRedirect then router.matchOutlets() else ''
+        debug "done rendering request for #{req.originalUrl}"
         cb null, json, redirect
         return
 

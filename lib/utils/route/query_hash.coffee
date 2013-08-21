@@ -16,7 +16,8 @@ module.exports = class QueryHash
   format: (outlets) ->
     try
       obj = {}
-      obj[k] = v for k,v of @obj when (v = outlets[v].value)?
+      # any "falsy" value is omitted
+      obj[k] = v for k,v of @obj when v = outlets[v].value
       querystring.stringify obj
     catch _error
 

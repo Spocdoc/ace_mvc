@@ -6,6 +6,7 @@ Template = require '../../mvc/template'
 Controller = require '../../mvc/controller'
 ModelBase = require '../../mvc/model'
 navigate = require '../../utils/navigate'
+debug = global.debug 'ace'
 
 module.exports = ->
   Ace['newClient'] = (json, $container) ->
@@ -14,7 +15,7 @@ module.exports = ->
 
     sock = global.io.connect '/'
     cookies = new Cookies sock
-    sock.emit 'cookies', cookies.toJSON(), ->
+    cookies.get() # emits cookies
 
     globals =
       'cookies': cookies
@@ -47,5 +48,5 @@ module.exports = ->
 
     # now route the entire URL
     router.useNavigate()
-    console.log "DONE WITH EVENT LOOP"
+    debug "DONE WITH EVENT LOOP"
 

@@ -103,6 +103,7 @@ module.exports = class Query
     return
 
   _findOne: ->
+    return if (model = @results.value?[0]) and @_func model
     for id, model of @Model.models when @_func model
       @_serverVersion = @_clientVersion
       @_updateResults [model]

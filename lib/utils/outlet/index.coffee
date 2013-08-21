@@ -91,7 +91,7 @@ module.exports = class Outlet
             Outlet.roots.push outflow
             outflow._setPendingTrue()
 
-    equiv._setFA value, version, this for index, equiv of @equivalents when equiv isnt except
+    equiv._setFA value, version, this, immediate for index, equiv of @equivalents when equiv isnt except
 
     return
 
@@ -174,6 +174,14 @@ module.exports = class Outlet
         else unless @_shouldPend({})
           @_setPendingFalse()
     Outlet.closeBlock()
+    return
+
+  @prototype['clear'] = @prototype.clear = ->
+    for index, outlet of @equivalents
+      delete @equivalents[index]
+      delete outlet.equivalents[this]
+      outlet._setPendingFalse() unless outlet._shouldPend {}
+    @set()
     return
 
   _shouldPend: (visited) ->

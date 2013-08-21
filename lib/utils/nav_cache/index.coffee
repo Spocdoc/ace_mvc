@@ -4,18 +4,18 @@ navigate = require '../navigate'
 module.exports = class NavCache
   constructor: ->
     @cacheHash = []
-    @cacheValue = []
+    @cacheValue = {}
 
   set: (hash, value) ->
     index = navigate.index
     @cacheHash[index] = hash
-    @cacheValue[index] = value
+    @cacheValue[hash] = value
     return
 
   get: (hash) ->
     index = navigate.index
     if @cacheHash[index] is hash
-      @cacheValue[index]
+      @cacheValue[hash]
 
 
 

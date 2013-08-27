@@ -1,3 +1,11 @@
-require './link'
+module.exports = class Ace
+  acePath: ''
 
-module.exports = {}
+  constructor: ->
+    @aceComponents = {}
+    @vars = {}
+
+require './link'
+module.require './server', 'server'
+module.require './client', 'client'
+

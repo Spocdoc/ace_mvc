@@ -1,3 +1,4 @@
+require './setup_globals'
 Base = require '../base'
 Configs = require '../configs'
 ObjectID = global.mongo.ObjectID
@@ -44,8 +45,9 @@ OK_CONFLICT     = 3 << 4
 module.exports = class ModelBase extends Base
   @configs = new Configs
 
-  @init: (ace, sock, json) ->
+  @init: (ace, json) ->
     _this = this
+    sock = ace.sock
 
     sock.on 'create', (coll, doc) =>
       debug "got create on #{coll}, #{doc['_id']}"

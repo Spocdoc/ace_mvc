@@ -1,6 +1,7 @@
 Url = require '../utils/url'
-Route = require '../utils/route'
+Route = require './route'
 Outlet = require '../utils/outlet'
+Context = require './context'
 navigate = require '../utils/navigate'
 debug = global.debug 'ace:router'
 
@@ -8,99 +9,91 @@ class Var
   constructor: (@outlet) ->
 
 module.exports = class Router
-  @getRoutes = (config) ->
+  @buildRoutes = (config) ->
+    return config unless typeof config['list'] is 'function'
+
     routes = []
     moreArgs = []
-    config['routes'] (args...) ->
-      if typeof args[0] is 'string' and args[0].charAt(0) isnt '/'
+    config._vars = [ otherVars = {}, pathVars = {} ]
+
+    config['list'] (args...) ->
+      route = new Route moreArgs.concat(args...)...
+
+      varNames = otherVars[route.name || ''] ||= []
+      varNames.push q.varNames... if q = route.query
+      varNames.push q.varNames... if q = route.hash
+
+      if route.path
+        (pathVars[route.name || ''] ||= []).push route.path.varNames...
+        routes.push route
+      else
         moreArgs.push args...
-      else
-        routes.push new Route moreArgs.concat(args...)...
-    routes
 
-  @getVars = (config) ->
-    config['vars']
+    config['list'] = routes
+    config
 
-  constructor: (routes, vars, globals, useNavigate) ->
-    Outlet.openBlock()
-
-    @uriOutlets = {}
-    @length = 0
-
-    @vars = new Var
-
-    context = Object.create globals
-
-    for route in routes
-      @[@length++] = route
-      for varName of route.pathVarNames
-        context[varName] = outlet = @uriOutlets[varName] ||= new Outlet undefined, context, true
-        outlet.uriOutlet = varName
-        outlet.affectsRouteChoice = true
-      for varName of route.otherVarNames
-        outlet = context[varName] = @uriOutlets[varName] ||= new Outlet undefined, context, true
-        outlet.uriOutlet = varName
-
-    varOutlets = {}
-    context['var'] = (path, value) =>
-      return outlet if outlet = varOutlets[path]
-
-      if varName = value?.uriOutlet
-        outlet = @uriOutlets[varName]
-      else
-        outlet = new Outlet value, context, true
-
-      v = @vars
-      v = (v[p] ||= new Var) for p in path.split '/' when p
-      v.outlet = varOutlets[path] = outlet
-
-    context['outlet'] = (value) => new Outlet value, context, true
-
-    @routeSearch = new Outlet ->
-    @uriFormatter = new Outlet ->
-    for varName, outlet of @uriOutlets
-      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
-      outlet.addOutflow @uriFormatter
-
-    @navigate = navigate.listen @route, this if useNavigate
-
-    vars.call context
-    Outlet.closeBlock()
+  _addUriOutlets: (varNames, outlets, context, affectsRouteChoice) ->
+    for varName in varNames
+      unless outlet = outlets[varName]
+        context[varName] = outlet = outlets[varName] = new Outlet undefined, context, true
+        outlet.uriOutlet = true
+      outlet.affectsRouteChoice ||= affectsRouteChoice
     return
 
-  useNavigate: ->
-    Outlet.openBlock()
+  constructor: Outlet.block (config, globals) ->
+    @routes = if Array.isArray(config['list']) then config['list'] else Router.buildRoutes config
+    @uriOutlets = {}
+    @length = 0
+    @vars = new Var
+
+    context = new Context this, config, globals
+
+    for a,i in config._vars when a['']
+      @_addUriOutlets a[''], @uriOutlets, context, i
+
+    for vars,i in config._vars
+      for name,varNames of vars when name
+        @_addUriOutlets varNames, @uriOutlets[name] = Object.create(@uriOutlets), context[name] = Object.create(context), i
+
+    context.configure()
+    context.start()
+    return
+
+  useNavigate: Outlet.block ->
+    @navigate = navigate.listen @route, this
     @route url = @navigate.url
 
+    @routeSearch = new Outlet ->
     @routeSearch.value = @routeSearch['value'] = @current
     @routeSearch.func = (=>
-      for r in this when r.matchOutlets @uriOutlets
+      for r in @routes when r.matchOutlets @uriOutlets
         return @current = r)
 
+    @uriFormatter = new Outlet ->
     @uriFormatter.value = @uriFormatter['value'] = url.href
     @uriFormatter.func = (=> @current?.format @uriOutlets)
 
     @routeSearch.addOutflow @uriFormatter
     @uriFormatter.addOutflow new Outlet => @navigate(@uriFormatter.value)
 
-    Outlet.closeBlock()
+    for varName, outlet of @uriOutlets
+      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
+      outlet.addOutflow @uriFormatter
+
     return
 
   matchOutlets: ->
     if @navigate
       @navigate.url.href
     else
-      for r in this when r.matchOutlets @uriOutlets
+      for r in @routes when r.matchOutlets @uriOutlets
         return r.format @uriOutlets
       ''
 
-  route: (url) ->
+  route: Outlet.block (url) ->
     debug "Routing #{url}"
     url = new Url(url, slashes: false) unless url instanceof Url
-    Outlet.openBlock()
-    try
-      for route in this when route.match url, @uriOutlets
-        return @current = route
-    finally
-      Outlet.closeBlock()
+    for route in @routes when route.match url, @uriOutlets
+      return @current = route
     debug "no match for #{url}"
+    return

@@ -1,6 +1,7 @@
 $ = global.$
 debug = global.debug 'ace:mvc'
 utils = require './utils'
+{typeToClass} = require 'mvc_manifester'
 
 configs = new (require('./configs'))
 NAME_ELEMS = [
@@ -33,7 +34,7 @@ getDomIds = do ->
 module.exports = class TemplateBase
   @add: (type, domString) -> configs.add type, {domString}
 
-  @finish: ->
+  @compile: ->
     types = {}
     for type,config of configs.configs
       types[type] = class Template extends TemplateBase
@@ -83,7 +84,7 @@ module.exports = class TemplateBase
         (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}-#{id}"))
           .template = this
 
-    @['$root'].attr 'class', "#{utils.makeClassName(@aceParent.aceType)} root"
+    @['$root'].attr 'class', "#{typeToClass @aceParent.aceType} root"
 
     # public
     @['acePrefix'] = @acePrefix

@@ -11,7 +11,7 @@ module.exports = class Base
     @configs.add type, config
     return this
 
-  @finish: ->
+  @compile: ->
     @configs.applyMixins()
     @[type] = clazz for type, clazz of @configs.buildClasses this
     return

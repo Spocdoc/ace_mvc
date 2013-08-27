@@ -1,28 +1,33 @@
 {
-    "name": "ace_mvc",
-    "version": "0.0.0",
-    "description": "ERROR: No README.md file found!",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": "",
-    "author": "",
-    "private": true,
-    "dependencies": {
-        "async": "0.x",
-        "mold-source-map": "0.x",
-        "redis": "0.x",
-        "glob": "3.x",
-        "stylus": "0.x",
-        "cheerio": "git://github.com/mikerobe/cheerio.git",
-        "closurify": "0.x",
-        "hiredis": "0.x",
-        "express": "3.x",
-        "jade": "0.x",
-        "mongodb": "1.x",
-        "socket.io": "0.x",
-        "socket.io-client": "0.x",
-        "file_memoize": "0.x"
-    }
+  "name": "ace_mvc",
+  "version": "0.0.0",
+  "description": "ERROR: No README.md file found!",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "",
+  "private": true,
+  "dependencies": {
+    "async": "0.x",
+    "redis": "0.x",
+    "cheerio": "git://github.com/mikerobe/cheerio.git",
+    "hiredis": "0.x",
+    "express": "3.x",
+    "mongodb": "1.x",
+    "socket.io": "0.x",
+    "socket.io-client": "0.x",
+    "glob": "~3.2.6"
+  },
+  "DEBUG local dependencies": {
+    "file_memoize": "0.x",
+    "closurify": "0.x",
+    "debug-fork": "0.x",
+    "url-fork": "0.x",
+    "ojson": "0.x",
+    "outlet": "0.x",
+    "browser_navigate": "0.x",
+    "events-fork": "0.x",
+    "lodash-fork": "0.x"
+  }
 }

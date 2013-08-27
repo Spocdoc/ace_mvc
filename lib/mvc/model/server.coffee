@@ -1,0 +1,1 @@
+Query.useBootCache = 2

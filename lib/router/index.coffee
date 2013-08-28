@@ -65,16 +65,27 @@ module.exports = class Router
 
     @routeSearch = new Outlet ->
     @routeSearch.value = @routeSearch['value'] = @current
-    @routeSearch.func = (=>
+    @routeSearch.func = =>
       for r in @routes when r.matchOutlets @uriOutlets
-        return @current = r)
+        return @current = r
 
     @uriFormatter = new Outlet ->
-    @uriFormatter.value = @uriFormatter['value'] = url.href
-    @uriFormatter.func = (=> @current?.format @uriOutlets)
+    @uriFormatter.value = @uriFormatter['value'] = url
+    @uriFormatter.func = =>
+      new Url @current?.format @uriOutlets
+
+    lastRoute = undefined
+    lastPathname = undefined
 
     @routeSearch.addOutflow @uriFormatter
-    @uriFormatter.addOutflow new Outlet => @navigate(@uriFormatter.value)
+    @uriFormatter.addOutflow new Outlet =>
+      if @current is lastRoute and @current.path.shouldReplace(lastPathname, @uriFormatter.value.pathname)
+        @navigate.replace @uriFormatter.value
+      else
+        lastRoute = @current
+        @navigate(@uriFormatter.value)
+      lastPathname = @uriFormatter.value.pathname
+      return
 
     for varName, outlet of @uriOutlets
       outlet.addOutflow @routeSearch if outlet.affectsRouteChoice

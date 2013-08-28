@@ -5,13 +5,15 @@ module.exports = class Path
     @keys = []
     @optional = []
     @required = []
-    [@regexp, @format] = parseRoute path, @keys, @optional, @required
-    @varNames = @optional.concat(@required)
+    [@regexp, @_shouldReplace, @format] = parseRoute path, @keys, @optional, @required
+    @varNames = @keys
 
-  setOutletHash: (outletHash) ->
-    @outletHash = outletHash
-    @varNames.push Object.keys(outletHash)...
+  setOutletHash: (@outletHash) ->
+    @varNames = @varNames.concat Object.keys(outletHash)
     return
+
+  shouldReplace: (oldPath, newPath) ->
+    @_shouldReplace.test "#{newPath}##{oldPath}"
 
   matchOutlets: (outlets) ->
     for key in @required
@@ -37,3 +39,4 @@ module.exports = class Path
 
     else
       false
+

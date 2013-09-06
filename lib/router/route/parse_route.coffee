@@ -36,7 +36,7 @@ module.exports = (path, keys, optionalKeys, requiredKeys) ->
 
     shouldReplaceLhs.push regex
     if optional
-      shouldReplaceRhs.push "(?:#{type}\\#{keys.length}|)"
+      shouldReplaceRhs.push regex
     else
       shouldReplaceRhs.push "#{type}\\#{keys.length}"
 

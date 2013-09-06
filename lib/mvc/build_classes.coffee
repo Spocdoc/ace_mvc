@@ -1,4 +1,4 @@
-Outlet = require '../utils/outlet'
+Outlet = require 'outlet'
 
 special = ['constructor','static','view','outlets','outletMethods','template','inWindow']
 

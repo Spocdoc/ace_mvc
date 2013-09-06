@@ -1,6 +1,6 @@
 debug = global.debug 'ace:mvc'
-clone = require '../utils/clone'
-Outlet = require '../utils/outlet'
+clone = require 'diff-fork/clone'
+Outlet = require 'outlet'
 
 reserved = ['constructor','static','view','outlets','outletMethods','template','inWindow']
 

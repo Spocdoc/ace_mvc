@@ -3,13 +3,12 @@ diff = require 'diff-fork'
 clone = require 'diff-fork/clone'
 Query = require './query'
 
-ObjectID = global.mongo.ObjectID
+mongodb = require 'mongo-fork'
+ObjectID = mongodb.ObjectID
 OJSON.register 'ObjectID': ObjectID
 clone.register ObjectID, (other) -> new ObjectID(other.toString())
 
-Query.useBootCache = 1
-
-DBRef = global.mongo.DBRef
+DBRef = mongodb.DBRef
 OJSON.register 'DBRef': DBRef
 # for consistency with mongodb's existing toJSON implementation
 DBRef.prototype.toJSON = ->
@@ -31,6 +30,3 @@ dbRefDiff = (from, to, options) ->
 dbRefDiff.patch = (obj, diff, options) -> diff[0]['v']
 
 diff.register DBRef, dbRefDiff
-
-module.require './server', 'server'
-

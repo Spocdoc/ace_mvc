@@ -1,6 +1,6 @@
 Base = require './base'
 View = require './view'
-Outlet = require '../utils/outlet'
+Outlet = require 'outlet'
 debugCascade = global.debug 'ace:cascade'
 debugMvc = global.debug 'ace:mvc'
 Configs = require './configs'

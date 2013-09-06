@@ -11,24 +11,22 @@
   "dependencies": {
     "async": "0.x",
     "redis": "0.x",
-    "cheerio": "git://github.com/mikerobe/cheerio.git",
     "hiredis": "0.x",
-    "express": "3.x",
     "mongodb": "1.x",
-    "socket.io": "0.x",
-    "socket.io-client": "0.x",
-    "glob": "~3.2.6"
+    "node-watch": "0.x"
   },
   "DEBUG local dependencies": {
     "file_memoize": "0.x",
     "closurify": "0.x",
     "debug-fork": "0.x",
+    "dom-fork": "0.x",
     "url-fork": "0.x",
     "ojson": "0.x",
     "outlet": "0.x",
-    "browser_navigate": "0.x",
+    "navigate-fork": "0.x",
     "events-fork": "0.x",
     "polyfill-fork": "0.x",
+    "sockio-fork": "0.x",
     "lodash-fork": "0.x"
   }
 }

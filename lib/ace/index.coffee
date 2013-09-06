@@ -2,10 +2,8 @@ module.exports = class Ace
   acePath: ''
 
   constructor: ->
-    @aceComponents = {}
     @vars = {}
+    @_build.apply this, arguments
 
 require './link'
-module.require './server', 'server'
-module.require './client', 'client'
-
+require('./build')(Ace)

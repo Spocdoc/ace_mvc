@@ -1,12 +1,10 @@
-Url = require '../utils/url'
+Url = require 'url-fork'
 Route = require './route'
-Outlet = require '../utils/outlet'
+Outlet = require 'outlet'
 Context = require './context'
-navigate = require '../utils/navigate'
+navigate = require 'navigate-fork'
 debug = global.debug 'ace:router'
-
-class Var
-  constructor: (@outlet) ->
+Var = require './var'
 
 module.exports = class Router
   @buildRoutes = (config) ->
@@ -20,12 +18,13 @@ module.exports = class Router
       route = new Route moreArgs.concat(args...)...
 
       varNames = otherVars[route.name || ''] ||= []
-      varNames.push q.varNames... if q = route.query
-      varNames.push q.varNames... if q = route.hash
+      varNames.push key for key of route.query?.obj
+      varNames.push key for key of route.hash?.obj
 
       if route.path
-        (pathVars[route.name || ''] ||= []).push route.path.varNames...
+        (pathVars[route.name || ''] ||= []).push route.path.keys...
         routes.push route
+        (pathVars[''] ||= []).push key for key of route.path.outletHash
       else
         moreArgs.push args...
 
@@ -41,7 +40,7 @@ module.exports = class Router
     return
 
   constructor: Outlet.block (config, globals) ->
-    @routes = if Array.isArray(config['list']) then config['list'] else Router.buildRoutes config
+    @routes = if Array.isArray(config['list']) then config['list'] else Router.buildRoutes(config)['list']
     @uriOutlets = {}
     @length = 0
     @vars = new Var
@@ -53,11 +52,13 @@ module.exports = class Router
 
     for vars,i in config._vars
       for name,varNames of vars when name
-        @_addUriOutlets varNames, @uriOutlets[name] = Object.create(@uriOutlets), context[name] = Object.create(context), i
+        @_addUriOutlets varNames, @uriOutlets[name] ||= Object.create(@uriOutlets), context[name] ||= Object.create(context), i
 
     context.configure()
     context.start()
     return
+
+  _getOutlets: (name) -> if name then @uriOutlets[name] else @uriOutlets
 
   useNavigate: Outlet.block ->
     @navigate = navigate.listen @route, this
@@ -66,13 +67,13 @@ module.exports = class Router
     @routeSearch = new Outlet ->
     @routeSearch.value = @routeSearch['value'] = @current
     @routeSearch.func = =>
-      for r in @routes when r.matchOutlets @uriOutlets
+      for r in @routes when r.matchOutlets @_getOutlets r.name
         return @current = r
 
     @uriFormatter = new Outlet ->
     @uriFormatter.value = @uriFormatter['value'] = url
     @uriFormatter.func = =>
-      new Url @current?.format @uriOutlets
+      new Url @current?.format @_getOutlets @current.name
 
     lastRoute = undefined
     lastPathname = undefined
@@ -87,9 +88,16 @@ module.exports = class Router
       lastPathname = @uriFormatter.value.pathname
       return
 
-    for varName, outlet of @uriOutlets
-      outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
-      outlet.addOutflow @uriFormatter
+    addOutflows = (outlets) =>
+      for varName, outlet of outlets when outlets.hasOwnProperty varName
+        if outlet instanceof Outlet
+          outlet.addOutflow @routeSearch if outlet.affectsRouteChoice
+          outlet.addOutflow @uriFormatter
+        else
+          addOutflows outlet
+      return
+
+    addOutflows @uriOutlets
 
     return
 
@@ -97,14 +105,14 @@ module.exports = class Router
     if @navigate
       @navigate.url.href
     else
-      for r in @routes when r.matchOutlets @uriOutlets
-        return r.format @uriOutlets
+      for r in @routes when r.matchOutlets outlets = @_getOutlets r.name
+        return r.format outlets
       ''
 
   route: Outlet.block (url) ->
     debug "Routing #{url}"
     url = new Url(url, slashes: false) unless url instanceof Url
-    for route in @routes when route.match url, @uriOutlets
+    for route in @routes when route.match url, @_getOutlets route.name
       return @current = route
     debug "no match for #{url}"
     return

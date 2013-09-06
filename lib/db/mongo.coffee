@@ -1,5 +1,5 @@
-queue = require '../../../utils/queue'
-mongodb = require 'mongodb'
+{queue} = require 'lodash-fork'
+mongodb = require 'mongo-fork'
 
 regexAllSpace = /\s/g
 regexCurlySingle = /[\u2018\u2019]/g

@@ -1,5 +1,6 @@
-Outlet = require '../utils/outlet'
-clone = require '../utils/clone'
+Outlet = require 'outlet'
+clone = require 'diff-fork/clone'
+$ = require 'dom-fork'
 
 updateUrl = (ace, allArgs) ->
   if ace.lastUrl isnt currentUrl = ace.currentUrl()
@@ -23,7 +24,7 @@ updateUrl = (ace, allArgs) ->
   url.reform query: query
   url.href
 
-global.$['fn']['extend']
+$['fn']['extend']
   'link': (component, methodName, args...) ->
     nodeName = @['name']()
     ace = component['ace']

@@ -25,7 +25,7 @@ module.exports = (path, keys, optionalKeys, requiredKeys) ->
       formatFn.push "r.push(#{quote fixed});"
       shouldReplaceLhs.push fixed
       shouldReplaceRhs.push fixed
-    formatFn.push "if ((v = outlets[#{quote key}]) && null != v = v.value) r.push(#{quote type}, encodeURIComponent(v));"
+    formatFn.push "if ((v = outlets[#{quote key}]) && null != (v = v.value)) r.push(#{quote type}, encodeURIComponent(v));"
     lastIndex = index + match.length
 
     keys.push key

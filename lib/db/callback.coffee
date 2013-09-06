@@ -1,4 +1,4 @@
-OJSON = require '../../../utils/ojson'
+OJSON = require 'ojson'
 
 methods =
   ok: -> Array.prototype.concat.apply(['o'], arguments)

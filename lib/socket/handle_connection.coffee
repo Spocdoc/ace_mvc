@@ -1,5 +1,9 @@
+callback = require '../db/callback'
+OJSON = require 'ojson'
+
 module.exports = (sock) ->
   # sock.mediator = mediator = new Mediator db, sock
+  mediator = sock.mediator
   cookiesQueue = null
 
   sock.on 'cookies', ->

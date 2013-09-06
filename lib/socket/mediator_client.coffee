@@ -1,6 +1,6 @@
 Db = require '../db'
-Listener = require '../../../utils/events/listener'
-{extend} = require '../../../utils/mixin'
+Listener = require 'events-fork/listener'
+{extend} = require 'lodash-fork'
 MediatorServer = require './mediator_server'
 debug = global.debug 'ace:mediator'
 

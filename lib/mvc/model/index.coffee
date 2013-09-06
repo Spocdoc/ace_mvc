@@ -1,17 +1,16 @@
-require './setup_globals'
+require './register'
 Base = require '../base'
 Configs = require '../configs'
-ObjectID = global.mongo.ObjectID
-DBRef = global.mongo.DBRef
-Registry = require '../../utils/registry'
-diff = require '../../utils/diff'
-clone = require '../../utils/clone'
-queue = require '../../utils/queue'
-OJSON = require '../../utils/ojson'
-Outlet = require '../../utils/outlet'
+mongodb = require 'mongo-fork'
+ObjectID = mongodb.ObjectID
+DBRef = mongodb.DBRef
+{Registry, queue, makeId} = require 'lodash-fork'
+diff = require 'diff-fork'
+clone = require 'diff-fork/clone'
+OJSON = require 'ojson'
+Outlet = require 'outlet'
 Query = require './query'
 patchOutlets = diff.toOutlets
-makeIndex = require '../../utils/id'
 debug = global.debug 'ace:mvc:model'
 debugSock = global.debug 'ace:sock'
 
@@ -494,7 +493,7 @@ module.exports = class ModelBase extends Base
           patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
 
           @_clientOps.push ops...
-          makeIndex()
+          makeId()
         else
           pusher.value
       )

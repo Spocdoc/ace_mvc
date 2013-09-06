@@ -1,7 +1,8 @@
 Outlet = require 'outlet'
+Var = require './var'
 
 module.exports = class Context
-  constructor: (router, config, globals) ->
+  constructor: (@router, config, globals) ->
     @[k] = v for k,v of globals
     @[k] = v for k,v of config['methods']
 
@@ -13,8 +14,8 @@ module.exports = class Context
 
   'var': (path, value) ->
     return outlet if outlet = @_varCache[path]
-    outlet = if value?.uriOutlet then value else new Outlet value, context, true
-    v = router.vars
+    outlet = if value?.uriOutlet then value else new Outlet value, this, true
+    v = @router.vars
     v = (v[p] ||= new Var) for p in path.split '/' when p
     v.outlet = @_varCache[path] = outlet
 

@@ -1,11 +1,12 @@
-Outlet = require '../../utils/outlet'
-OJSON = require '../../utils/ojson'
+Outlet = require 'outlet'
+OJSON = require 'ojson'
 queryCompile = require './query_compile'
-makeId = require '../../utils/id'
-hash = require '../../utils/hash'
-NavCache = require '../../utils/nav_cache'
+{makeId} = require 'lodash-fork'
+NavCache = require 'navigate-fork/cache'
 emptyArray = []
 debug = global.debug "ace:mvc:query"
+
+hash = (obj) -> ''+obj
 
 arraysDiffer = (lhs, rhs) ->
   return true if lhs.length isnt rhs.length
@@ -26,7 +27,7 @@ CACHE_READ = 1
 CACHE_WRITE = 2
 
 module.exports = class Query
-  @useBootCache = 0
+  @useBootCache = 2 # default on server
 
   constructor: (@Model, @_spec={}, limit, sort) ->
     @['limit'] = @limit = new Outlet limit ? 20
@@ -216,3 +217,5 @@ module.exports = class Query
       return
     outlet
 
+
+require('./query_client')(Query)

@@ -1,6 +1,6 @@
-sockio = require("socket.io")
+sockio = require 'sockio-fork'
 redis = require 'redis'
-RedisStore = require 'socket.io/lib/stores/redis'
+RedisStore = require 'sockio-fork/redis_store'
 
 module.exports = (server, options) ->
   redisInfo = options['redis']

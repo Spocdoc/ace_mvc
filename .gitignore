@@ -5,7 +5,6 @@ lib/bundler/server/load-*
 routes.coffee
 .d8_history
 bench
-test/**/*.js
-test/**/*.log
+test
 *.jar
 node_modules

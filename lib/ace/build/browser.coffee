@@ -1,4 +1,3 @@
-Ace = require '../index'
 Cookies = require 'cookies-fork'
 Outlet = require 'outlet'
 Router = require '../../router'
@@ -7,11 +6,13 @@ Model = require '../../mvc/model'
 View = require '../../mvc/view'
 Controller = require '../../mvc/controller'
 ModelBase = require '../../mvc/model'
-navigate = require '../../utils/navigate'
+io = require 'sockio-fork'
+navigate = require 'navigate-fork'
 debug = global.debug 'ace'
 
-module.exports = ->
-  Ace.newClient = (manifest, json, $container) ->
+module.exports = (Ace) ->
+
+  Ace.prototype._build = (manifest, json, $container) ->
     Template.add name, dom for name, dom of manifest['template']
     ModelBase.add name, global['req'+exp] for name, exp of manifest['model']
     View.add name, global['req'+exp] for name, exp of manifest['view']
@@ -22,7 +23,7 @@ module.exports = ->
     View.compile()
     Controller.compile()
 
-    sock = global.io.connect '/'
+    sock = io.connect '/'
     cookies = new Cookies sock
     cookies.get() # emits cookies
 
@@ -30,26 +31,27 @@ module.exports = ->
       'cookies': cookies
       'session': session = new Outlet undefined, undefined, true
       'Model': class Model extends ModelBase
+      'ace': this
 
-    ace = globals['ace'] = new Ace
-    ace['booting'] = true
-    ace['globals'] = globals
-    ace['sock'] = sock
+    @['booting'] = true
+    @['globals'] = globals
+    @['sock'] = sock
+    @aceComponents = {}
 
-    Model.init ace, json
+    Model.init this, json
 
     router = new Router global['req'+manifest['routes']], globals
     navigate.enable()
 
-    ace.vars = router.vars
-    ace.currentUrl = -> navigate.url
+    @vars = router.vars
+    @currentUrl = -> navigate.url
 
     # route only the URL the server saw when it rendered (to bootstrap)
     router.route navigate.url.clone().reform hash: null
 
     Template.bootRoot = $container
-    (new Controller['body'] ace)['appendTo'] $container
-    ace['booting'] = false
+    (new Controller['body'] this)['appendTo'] $container
+    @['booting'] = false
 
     Model.clearQueryCache()
     delete Template.bootstrapRoot

@@ -1,7 +1,6 @@
-$ = global.$
+$ = require 'dom-fork'
 debug = global.debug 'ace:mvc'
-utils = require './utils'
-{typeToClass} = require 'mvc_manifester'
+typeToClass = require 'manifest_mvc/type_to_class'
 
 configs = new (require('./configs'))
 NAME_ELEMS = [

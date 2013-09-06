@@ -6,11 +6,6 @@ module.exports = class Path
     @optional = []
     @required = []
     [@regexp, @_shouldReplace, @format] = parseRoute path, @keys, @optional, @required
-    @varNames = @keys
-
-  setOutletHash: (@outletHash) ->
-    @varNames = @varNames.concat Object.keys(outletHash)
-    return
 
   shouldReplace: (oldPath, newPath) ->
     @_shouldReplace.test "#{newPath}##{oldPath}"

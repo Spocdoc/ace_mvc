@@ -1,6 +1,7 @@
-{defaults} = require '../mixin'
+{defaults} = require 'lodash-fork'
 Path = require './path'
 QueryHash = require './query_hash'
+Outlet = require 'outlet'
 debug = global.debug 'ace:routing'
 
 # similar to express
@@ -20,21 +21,29 @@ module.exports = class Route
     @varNames = {}
 
     if @path
-      @path.setOutletHash outletHash if outletHash
-      @varNames[name] = 1 for name in @path.varNames
+      if outletHash
+        @path.outletHash = outletHash
+        @varNames[name] = 1 for name of outletHash
+      @varNames[name] = 1 for name in @path.keys
 
-    @varNames[name] = 1 for name in @query.varNames if @query
-    @varNames[name] = 1 for name in @hash.varNames if @hash
+    @varNames[name] = 1 for name of @query.obj if @query
+    @varNames[name] = 1 for name of @hash.obj if @hash
 
-    debug "Built route with path regex #{@path.regexp}"
+    debug "Built route with path regex #{@path.regexp}" if @path
 
-  matchOutlets: (outlets) -> @path.matchOutlets outlets
+  matchOutlets: (outlets) ->
+    @path.matchOutlets outlets
 
   match: (url, outlets) ->
     return false unless @path.match url, outlets
     @query?.setOutlets url.search.substr(1), outlets
     @hash?.setOutlets url.hash?.substr(1), outlets
-    outlet.set undefined for k,outlet of outlets when !@varNames[k]
+    for k,outlet of outlets when !@varNames[k]
+      if outlet instanceof Outlet
+        outlet.set undefined
+      else if outlet isnt outlets
+        for k,v of outlet when outlet.hasOwnProperty(k)
+          v.set undefined
     true
 
   format: (outlets) ->

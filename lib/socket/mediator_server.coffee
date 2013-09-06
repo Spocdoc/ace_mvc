@@ -1,4 +1,4 @@
-OJSON = require '../../../utils/ojson'
+OJSON = require 'ojson'
 
 emptyFunc = ->
 trueFunc = -> true

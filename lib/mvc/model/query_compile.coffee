@@ -1,5 +1,5 @@
-deepEqual = require '../../utils/deep_equal'
-quote = require '../../utils/quote'
+deepEqual = require 'diff-fork/deep_equal'
+{quote} = require 'lodash-fork'
 debug = global.debug 'ace:model:query'
 
 joinerOp =

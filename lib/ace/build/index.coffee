@@ -1,28 +1,33 @@
-Ace = require '../index'
-Cookies = require '../../cookies'
-Outlet = require '../../utils/outlet'
+Cookies = require 'cookies-fork'
+Outlet = require 'outlet'
 Router = require '../../router'
 debugError = global.debug 'ace:error'
 debug = global.debug 'ace:server'
 ModelBase = require '../../mvc/model'
-Url = require '../../utils/url'
+Template = require '../../mvc/template'
+Controller = require '../../mvc/controller'
+Url = require 'url-fork'
 setFormValues = require './set_form_values'
 hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
+bundleToHtml = require 'bundle-fork/to_html'
+_ = require 'lodash-fork'
+fs = require 'fs'
 
 getInode = do ->
   cache = {}
-  (filePath) -> cache[filePath] ||= fs.statSync(filePath).ino
+  (filePath) -> cache[filePath] ||= fs.statSync(require.resolve filePath).ino
 
-module.exports = ->
+module.exports = (Ace) ->
 
-  Ace.newServer = (manifest, bundleSpec, options, sockEmulator) ->
-    ace = new Ace
-    ace.sock = sockEmulator
-    ace.bundleSpec = bundleSpec
-    ace.options = options
-    clientManifest = ace.clientManifest =
+  Ace.prototype._build = (manifest, bundleSpec, options, @sockEmulator) ->
+    debugger
+    @bundleHtml = bundleToHtml bundleSpec, "-ie<=6 #{if options['release'] then 'release' else 'debug'}"
+    @options = options
+    clientManifest = @clientManifest =
       'template': manifest['template']
       'routes': getInode manifest['routes']
+
+    require index if index = manifest['index']
 
     Template.add name, dom for name, dom of manifest['template']
     Template.compile()
@@ -35,7 +40,7 @@ module.exports = ->
         cm[name] = getInode p
       clazz.compile()
 
-    Router.buildRoutes ace.routes = require manifest['routes']
+    Router.buildRoutes @routes = require manifest['routes']
 
     ### original wrongPage code
       m = /^(?:[^:]*:\/\/)?(?:[^\/]*)?\/*(\/[^#]*)?#\d*\/*(\/[^#]*)?(#.*)?$/.exec window.location.href
@@ -43,7 +48,7 @@ module.exports = ->
     # var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));
     ###
 
-    ace.$template = $ """
+    @$template = $ """
       <html>
       <head>
       <meta charset="UTF-8"/>
@@ -59,45 +64,12 @@ module.exports = ->
       """
 
     if process.env.NODE_ENV isnt 'production' and DEBUG = process.env.DEBUG
-      ace.$template.find('head').append $ """
+      @$template.find('head').append $ """
         <script type="text/javascript">
           window.DEBUG = #{_.quote(DEBUG)};
         </script>
         """
 
-    ace
-
-  Ace.prototype.writeResponse = ($html, $head, $body, json, res) ->
-    # TODO: make this generic -- it should determine the appropriate conditional comments using @bundleSpec keys
-
-    uris = @bundleSpec
-
-    $head.prepend $ """<link href="#{uri}" rel="stylesheet" type="text/css"/>""" for uri in uris.css.standard
-
-    if uris.js.ie6
-      cond = """<!--[if lte IE 7]>"""
-      cond += """<script type="text/javascript" src="#{uri}"></script>""" for uri in uris.js.ie6
-      cond += """<![endif]-->"""
-      $body.append cond
-
-    if uris.js.ie8
-      cond = """<!--[if IE 8]>"""
-      cond += """<script type="text/javascript" src="#{uri}"></script>""" for uri in uris.js.ie8
-      cond += """<![endif]-->"""
-      $body.append cond
-
-    cond = """<![if gt IE 8]>"""
-    cond += """<script type="text/javascript" src="#{uri}"></script>""" for uri in uris.js.standard
-    cond += """<![endif]>"""
-    $body.append cond
-
-    $body.append $ """
-      <script type="text/javascript">
-      ace && (ace.body = ace(#{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body')));
-      </script>
-      """
-
-    res.end "<!DOCTYPE html>\n#{$html.toString()}"
     return
 
   Ace.prototype.handle = (req, res, next, cb) ->
@@ -107,7 +79,9 @@ module.exports = ->
     $body = $html.find 'body'
     $head = $html.find 'head'
 
-    cookies = new Cookies req, res, @sock.serverSock
+    @sock = @sockEmulator()
+
+    cookies = new Cookies @sock.serverSock, req, res
     if oc = @options.cookies
       cookies.domain = oc['domain']
       cookies.secure = oc['secure']
@@ -121,13 +95,14 @@ module.exports = ->
         'Model': class Model extends ModelBase
 
       ace = globals['ace'] = Object.create this
+      ace.aceComponents = {}
       ace['globals'] = globals
       ace.hash = (href) -> hash("#{id}#{href}").substr(0,24) if id = session.value?.id
 
       Model.init ace
 
       ace.vars = (router = new Router @routes, globals).vars
-      unless router.route url = new Url req.url, slashes: false
+      unless router.route url = new Url(req.url, slashes: false)
         cb?()
         return next null
       ace.currentUrl = -> url
@@ -150,7 +125,15 @@ module.exports = ->
           res.status 301
           res.setHeader "Location", router.matchOutlets()
 
-        @writeResponse $html, $head, $body, json, res
+        $head.prepend $ @bundleHtml.head
+        $body.append $ @bundleHtml.body
+        $body.append $ """
+          <script type="text/javascript">
+            if (Ace) var ace = new Ace(#{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
+          </script>
+          """
+        res.end "<!DOCTYPE html>\n#{$html.toString()}"
+
         debug "done rendering request for #{req.originalUrl}"
         cb?()
         return
@@ -173,3 +156,4 @@ module.exports = ->
       @sock.onIdle idleFn
       return
 
+  return

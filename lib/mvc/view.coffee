@@ -1,6 +1,6 @@
 Base = require './base'
 Template = require './template'
-Outlet = require '../utils/outlet'
+Outlet = require 'outlet'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
 Configs = require './configs'

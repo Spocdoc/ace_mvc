@@ -20,7 +20,6 @@ getInode = do ->
 module.exports = (Ace) ->
 
   Ace.prototype._build = (manifest, bundleSpec, options, @sockEmulator) ->
-    debugger
     @bundleHtml = bundleToHtml bundleSpec, "-ie<=6 #{if options['release'] then 'release' else 'debug'}"
     @options = options
     clientManifest = @clientManifest =
@@ -125,11 +124,16 @@ module.exports = (Ace) ->
           res.status 301
           res.setHeader "Location", router.matchOutlets()
 
+        else if req.url isnt canonicalUrl = router.serverUrl()
+          $head.prepend $ """<link rel="canonical" href="#{canonicalUrl}"/>"""
+        else
+          canonicalUrl = undefined
+
         $head.prepend $ @bundleHtml.head
         $body.append $ @bundleHtml.body
         $body.append $ """
           <script type="text/javascript">
-            if (Ace) var ace = new Ace(#{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
+            if (Ace) var ace = new Ace(#{_.quote(canonicalUrl) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
           </script>
           """
         res.end "<!DOCTYPE html>\n#{$html.toString()}"

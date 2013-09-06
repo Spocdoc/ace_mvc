@@ -60,9 +60,18 @@ module.exports = class Router
 
   _getOutlets: (name) -> if name then @uriOutlets[name] else @uriOutlets
 
-  useNavigate: Outlet.block ->
+  serverUrl: ->
+    return '' unless @current
+    url = new Url @current.format @_getOutlets @current.name
+    url.reform(hash: null).href
+
+  useNavigate: Outlet.block (canonicalUrl) ->
     @navigate = navigate.listen @route, this
-    @route url = @navigate.url
+    if canonicalUrl
+      @navigate.replaceNow url = (new Url(canonicalUrl)).reform hash: @navigate.url.hash
+    else
+      url = @navigate.url
+    @route url
 
     @routeSearch = new Outlet ->
     @routeSearch.value = @routeSearch['value'] = @current
@@ -71,21 +80,22 @@ module.exports = class Router
         return @current = r
 
     @uriFormatter = new Outlet ->
-    @uriFormatter.value = @uriFormatter['value'] = url
-    @uriFormatter.func = =>
-      new Url @current?.format @_getOutlets @current.name
+    @uriFormatter.value = @uriFormatter['value'] = "#{url.path}#{url.hash||''}"
+    @uriFormatter.func = => @current?.format @_getOutlets @current.name
 
     lastRoute = undefined
     lastPathname = undefined
 
     @routeSearch.addOutflow @uriFormatter
-    @uriFormatter.addOutflow new Outlet =>
-      if @current is lastRoute and @current.path.shouldReplace(lastPathname, @uriFormatter.value.pathname)
-        @navigate.replace @uriFormatter.value
+    @uriFormatter.addOutflow updateNavigate = new Outlet
+    updateNavigate.func = =>
+      url = new Url @uriFormatter.value
+      if @current is lastRoute and @current.path.shouldReplace(lastPathname, url.pathname)
+        @navigate.replace url
       else
         lastRoute = @current
-        @navigate(@uriFormatter.value)
-      lastPathname = @uriFormatter.value.pathname
+        @navigate url
+      lastPathname = url.pathname
       return
 
     addOutflows = (outlets) =>

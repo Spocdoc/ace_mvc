@@ -12,7 +12,7 @@ debug = global.debug 'ace'
 
 module.exports = (Ace) ->
 
-  Ace.prototype._build = (manifest, json, $container) ->
+  Ace.prototype._build = (canonicalUrl, manifest, json, $container) ->
     Template.add name, dom for name, dom of manifest['template']
     ModelBase.add name, global['req'+exp] for name, exp of manifest['model']
     View.add name, global['req'+exp] for name, exp of manifest['view']
@@ -47,7 +47,7 @@ module.exports = (Ace) ->
     @currentUrl = -> navigate.url
 
     # route only the URL the server saw when it rendered (to bootstrap)
-    router.route navigate.url.clone().reform hash: null
+    router.route canonicalUrl || navigate.url.clone().reform hash: null
 
     Template.bootRoot = $container
     (new Controller['body'] this)['appendTo'] $container
@@ -57,6 +57,6 @@ module.exports = (Ace) ->
     delete Template.bootstrapRoot
 
     # now route the entire URL
-    router.useNavigate()
+    router.useNavigate canonicalUrl
     debug "DONE WITH EVENT LOOP"
 

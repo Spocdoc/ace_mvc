@@ -114,7 +114,7 @@ module.exports = (server, manifest, bundleSpec, options, bundle) ->
 
   i = (requires = Object.keys fixedRequires).length
   addRequires = ->
-    iE = (requires = Object.keys require.cache)
+    iE = (requires = Object.keys require.cache).length
     watch requires[i++] while i < iE
     return
   (req, res, next) ->

@@ -34,10 +34,10 @@ module.exports = class Route
   matchOutlets: (outlets) ->
     @path.matchOutlets outlets
 
-  match: (url, outlets) ->
-    return false unless @path.match url, outlets
-    @query?.setOutlets url.search.substr(1), outlets
-    @hash?.setOutlets url.hash?.substr(1), outlets
+  match: (uri, outlets) ->
+    return false unless @path.match uri, outlets
+    @query?.setOutlets uri.search.substr(1), outlets
+    @hash?.setOutlets uri.hash.substr(1), outlets
     for k,outlet of outlets when !@varNames[k]
       if outlet instanceof Outlet
         outlet.set undefined
@@ -47,8 +47,8 @@ module.exports = class Route
     true
 
   format: (outlets) ->
-    url = @path.format outlets
-    url += "?#{query}" if query = @query?.format outlets
-    url += "##{hash}" if hash = @hash?.format outlets
-    url
+    uri = @path.format outlets
+    uri += "?#{query}" if query = @query?.format outlets
+    uri += "##{hash}" if hash = @hash?.format outlets
+    uri
 

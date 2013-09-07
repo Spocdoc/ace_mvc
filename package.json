@@ -20,7 +20,7 @@
     "closurify": "0.x",
     "debug-fork": "0.x",
     "dom-fork": "0.x",
-    "url-fork": "0.x",
+    "uri-fork": "0.x",
     "ojson": "0.x",
     "outlet": "0.x",
     "navigate-fork": "0.x",

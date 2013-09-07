@@ -17,8 +17,8 @@ module.exports = class Path
       return false unless outlets[k].value is v
     true
 
-  match: (url, outlets) ->
-    if m = @regexp.exec url.pathname
+  match: (uri, outlets) ->
+    if m = @regexp.exec uri.pathname
       
       for val, i in m[1..] when (key = @keys[i]) and ou = outlets[key]
         try
@@ -26,7 +26,7 @@ module.exports = class Path
         catch _error
           val = undefined
 
-        ou.set val
+        ou.set val unless ou.pending
 
       outlets[k].set v for k,v of @outletHash
 

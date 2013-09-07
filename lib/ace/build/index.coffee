@@ -6,7 +6,7 @@ debug = global.debug 'ace:server'
 ModelBase = require '../../mvc/model'
 Template = require '../../mvc/template'
 Controller = require '../../mvc/controller'
-Url = require 'url-fork'
+Uri = require 'uri-fork'
 setFormValues = require './set_form_values'
 hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
 bundleToHtml = require 'bundle-fork/to_html'
@@ -96,15 +96,15 @@ module.exports = (Ace) ->
       ace = globals['ace'] = Object.create this
       ace.aceComponents = {}
       ace['globals'] = globals
-      ace.hash = (href) -> hash("#{id}#{href}").substr(0,24) if id = session.value?.id
+      ace.uriToken = (uri) -> if id = session.value?.id then hash("#{id}#{uri}").substr(0,24) else ''
 
       Model.init ace
 
       ace.vars = (router = new Router @routes, globals).vars
-      unless router.route url = new Url(req.url, slashes: false)
+      unless router.route uri = new Uri req.url
         cb?()
         return next null
-      ace.currentUrl = -> url
+      ace.currentUri = -> uri
 
       (new Controller['body'] ace)['appendTo'] $body
     catch _error
@@ -113,7 +113,7 @@ module.exports = (Ace) ->
     doRedirect = false
 
     @sock.onIdle idleFn = =>
-      unless arr = url?.query?['']
+      unless arr = uri?.query()['']
         try
           @sock.emit 'disconnect'
           json = Model.toJSON()
@@ -124,16 +124,16 @@ module.exports = (Ace) ->
           res.status 301
           res.setHeader "Location", router.matchOutlets()
 
-        else if req.url isnt canonicalUrl = router.serverUrl()
-          $head.prepend $ """<link rel="canonical" href="#{canonicalUrl}"/>"""
+        else if req.url isnt canonicalUri = router.serverUri().uri
+          $head.prepend $ """<link rel="canonical" href="#{canonicalUri}"/>"""
         else
-          canonicalUrl = undefined
+          canonicalUri = undefined
 
         $head.prepend $ @bundleHtml.head
         $body.append $ @bundleHtml.body
         $body.append $ """
           <script type="text/javascript">
-            if (Ace) var ace = new Ace(#{_.quote(canonicalUrl) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
+            if (Ace) var ace = new Ace(#{_.quote(canonicalUri) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
           </script>
           """
         res.end "<!DOCTYPE html>\n#{$html.toString()}"
@@ -146,9 +146,9 @@ module.exports = (Ace) ->
       setFormValues $body, req.body if req.body
 
       try
-        delete url.query['']
-        url.reform query: url.query
-        validHash = arr[0] and ace.hash(url.href) is arr[0]
+        delete uri.query()['']
+        uri.setQuery uri.query()
+        validHash = arr[0] and ace.hash(uri.uri) is arr[0]
         @sock.serverSock.readOnly = !validHash
 
         return idleFn unless (compPath = arr?[1]) and (methName = arr[2])

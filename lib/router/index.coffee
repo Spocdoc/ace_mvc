@@ -1,4 +1,4 @@
-Url = require 'url-fork'
+Uri = require 'uri-fork'
 Route = require './route'
 Outlet = require 'outlet'
 Context = require './context'
@@ -60,18 +60,19 @@ module.exports = class Router
 
   _getOutlets: (name) -> if name then @uriOutlets[name] else @uriOutlets
 
-  serverUrl: ->
-    return '' unless @current
-    url = new Url @current.format @_getOutlets @current.name
-    url.reform(hash: null).href
+  serverUri: ->
+    uri = new Uri(if @current then @current.format @_getOutlets @current.name else '')
+    uri.setHash ''
 
-  useNavigate: Outlet.block (canonicalUrl) ->
+  useNavigate: Outlet.block (canonicalUri) ->
     @navigate = navigate.listen @route, this
-    if canonicalUrl
-      @navigate.replaceNow url = (new Url(canonicalUrl)).reform hash: @navigate.url.hash
+    if canonicalUri
+      uri = new Uri canonicalUri
+      uri.setHash @navigate.uri.hash
+      @navigate.replaceNow uri
     else
-      url = @navigate.url
-    @route url
+      uri = @navigate.uri
+    @route uri
 
     @routeSearch = new Outlet ->
     @routeSearch.value = @routeSearch['value'] = @current
@@ -80,22 +81,22 @@ module.exports = class Router
         return @current = r
 
     @uriFormatter = new Outlet ->
-    @uriFormatter.value = @uriFormatter['value'] = "#{url.path}#{url.hash||''}"
+    @uriFormatter.value = @uriFormatter['value'] = uri.uri
     @uriFormatter.func = => @current?.format @_getOutlets @current.name
 
-    lastRoute = undefined
-    lastPathname = undefined
+    lastRoute = @current
+    lastPathname = uri.pathname
 
     @routeSearch.addOutflow @uriFormatter
     @uriFormatter.addOutflow updateNavigate = new Outlet
     updateNavigate.func = =>
-      url = new Url @uriFormatter.value
-      if @current is lastRoute and @current.path.shouldReplace(lastPathname, url.pathname)
-        @navigate.replace url
+      uri = new Uri @uriFormatter.value
+      if @current is lastRoute and @current.path.shouldReplace(lastPathname, uri.pathname)
+        @navigate.replace uri
       else
         lastRoute = @current
-        @navigate url
-      lastPathname = url.pathname
+        @navigate uri
+      lastPathname = uri.pathname
       return
 
     addOutflows = (outlets) =>
@@ -113,16 +114,16 @@ module.exports = class Router
 
   matchOutlets: ->
     if @navigate
-      @navigate.url.href
+      @navigate.uri.uri
     else
       for r in @routes when r.matchOutlets outlets = @_getOutlets r.name
-        return r.format outlets
+        return (@current = r).format outlets
       ''
 
-  route: Outlet.block (url) ->
-    debug "Routing #{url}"
-    url = new Url(url, slashes: false) unless url instanceof Url
-    for route in @routes when route.match url, @_getOutlets route.name
+  route: Outlet.block (uri) ->
+    debug "Routing #{uri}"
+    uri = new Uri uri unless uri instanceof Uri
+    for route in @routes when route.match uri, @_getOutlets route.name
       return @current = route
-    debug "no match for #{url}"
+    debug "no match for #{uri}"
     return

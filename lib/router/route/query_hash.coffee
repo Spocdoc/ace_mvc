@@ -1,4 +1,4 @@
-querystring = require 'url-fork/querystring'
+querystring = require 'uri-fork/querystring'
 empty = {}
 
 module.exports = class QueryHash
@@ -23,7 +23,7 @@ module.exports = class QueryHash
   setOutlets: (part, outlets) ->
     try
       obj = querystring.parse(part) || empty
-      outlets[v].set obj[k] for k,v of @obj
+      ou.set obj[k] unless (ou = outlets[v]).pending for k,v of @obj
     catch _error
     return
 

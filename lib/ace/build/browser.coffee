@@ -34,8 +34,8 @@ module.exports = (Ace) ->
       'ace': this
 
     @['booting'] = true
-    @['globals'] = globals
-    @['sock'] = sock
+    @globals = globals
+    @sock = sock
     @aceComponents = {}
 
     Model.init this, json

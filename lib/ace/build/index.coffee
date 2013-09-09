@@ -133,7 +133,7 @@ module.exports = (Ace) ->
         $body.append $ @bundleHtml.body
         $body.append $ """
           <script type="text/javascript">
-            if (Ace) var ace = new Ace(#{_.quote(canonicalUri) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body'));
+            if (window.Ace) { var ace = new Ace(#{_.quote(canonicalUri) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body')); }
           </script>
           """
         res.end "<!DOCTYPE html>\n#{$html.toString()}"
@@ -148,7 +148,7 @@ module.exports = (Ace) ->
       try
         delete uri.query()['']
         uri.setQuery uri.query()
-        validHash = arr[0] and ace.hash(uri.uri) is arr[0]
+        validHash = arr[0] and ace.uriToken(uri.uri) is arr[0]
         @sock.serverSock.readOnly = !validHash
 
         return idleFn unless (compPath = arr?[1]) and (methName = arr[2])

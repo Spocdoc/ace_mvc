@@ -23,7 +23,7 @@ module.exports = class QueryHash
   setOutlets: (part, outlets) ->
     try
       obj = querystring.parse(part) || empty
-      ou.set obj[k] unless (ou = outlets[v]).pending for k,v of @obj
+      ou.set obj[k] for k,v of @obj when !(ou = outlets[v]).pending
     catch _error
     return
 

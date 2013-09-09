@@ -27,6 +27,7 @@
     "events-fork": "0.x",
     "polyfill-fork": "0.x",
     "sockio-fork": "0.x",
+    "es5": "0.x",
     "lodash-fork": "0.x"
   }
 }

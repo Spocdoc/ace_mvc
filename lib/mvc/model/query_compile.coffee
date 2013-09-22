@@ -9,66 +9,58 @@ joinerOp =
 
 parsePart = (field, spec, func) ->
   if spec instanceof RegExp
-    func.push "#{spec}.test(#{field})"
+    func = func + "&& #{spec}.test(#{field})"
   else if typeof spec is 'object'
-    arr1 = []
-
     for k,v of spec
       switch k
-        when '$mod' then arr1.push "#{field}%#{v[0]}===#{v[1]}"
-        when '$regex' then arr1.push "match.call(#{field},#{quote(v)})!=null"
-        when '$all' then arr1.push "~indexOf.call(#{field},#{quote(elem)})" for elem in v
-        when '$gt' then arr1.push "#{field}>#{v}"
-        when '$gte' then arr1.push "#{field}>=#{v}"
-        when '$lt' then arr1.push "#{field}<#{v}"
-        when '$lte' then arr1.push "#{field}<=#{v}"
-        when '$ne' then arr1.push "#{field}!==#{v}"
+        when '$mod' then func = func + "&& #{field}%#{v[0]}===#{v[1]}"
+        when '$regex' then func = func + "&& match.call(#{field},#{quote(v)})!=null"
+        when '$all' then func = func + "&& ~indexOf.call(#{field},#{quote(elem)})" for elem in v
+        when '$gt' then func = func + "&& #{field}>#{v}"
+        when '$gte' then func = func + "&& #{field}>=#{v}"
+        when '$lt' then func = func + "&& #{field}<#{v}"
+        when '$lte' then func = func + "&& #{field}<=#{v}"
+        when '$ne' then func = func + "&& #{field}!==#{v}"
         when '$in'
-          arr2 = []
-          arr2.push "~indexOf.call(#{field},#{quote(elem)})" for elem in v
-          arr1.push arr2.join '||'
+          arr2 = ''
+          arr2 = arr2 + "|| ~indexOf.call(#{field},#{quote(elem)})" for elem in v
+          func = func + "&& (#{arr2.substr(3)})"
         when '$nin'
-          arr2 = []
-          arr2.push "!~indexOf.call(#{field},#{quote(elem)})" for elem in v
-          arr1.push "(#{field}==null||(#{arr2.join '&&'}))"
+          arr2 = ''
+          arr2 = arr2 + "&& !~indexOf.call(#{field},#{quote(elem)})" for elem in v
+          func = func + "&& (#{field}==null || (#{arr2.substr 3}))"
         when '$elemMatch'
-          arr2 = []
-          parseClause "#{field}[i]", v, arr2
-          arr1.push """(function(){for(var i=0,j=#{field}.length;i<j;++i)if(#{arr2.join '&&'})return true;return false;})()"""
-        when '$size' then arr1.push "#{field}.length === #{v}"
+          arr2 = parseClause "f[i]", v, ''
+          func = func + """&& (function(){var f = #{field}; for(var i=0,j=f.length;i<j;++i)if(#{arr2.substr 3})return true;return false;})()"""
+        when '$size' then func = func + "&& #{field}.length === #{v}"
         when '$not'
-          arr2 = []
-          parsePart field, v, arr2
-          arr1.push "!(#{arr2.join "&&"})"
+          arr2 = parsePart field, v, ''
+          func = func + "&& !(#{arr2.substr 3})"
         else
-          arr1.push "deepEqual(#{field}[#{quote(k)}],#{quote(v)})"
-
-    func.push str if str = arr1.join '&&'
+          return func + "&& deepEqual(#{field},#{JSON.stringify spec})"
   else
-    func.push "#{field}===#{quote(spec)}"
+    func = func + "&& #{field}===#{quote(spec)}"
 
-  return
+  func
 
 
 parseClause = (doc, spec, func) ->
-  arr1 = []
-
   for k,v of spec
     if op = joinerOp[k]
-      arr2 = []
-      parseClause doc, clause, arr2 for clause in v
-      arr1.push "#{if k.charAt(1) is 'n' then '!' else ''}(#{arr2.join op})"
+      arr2 = ''
+      arr2 = "#{arr2}#{op} (#{parseClause(doc, clause, '').substr(3)})" for clause in v
+      func = "#{func}&& #{if k.charAt(1) is 'n' then '!' else ''}(#{arr2.substr(3)})"
     else unless k is '$text' # full text search is too complex to do locally
-      parsePart "#{doc}[#{quote(k)}]", v, arr1
+      field = ''
+      field = field + "[#{quote part}]" for part in k.split '.'
 
-  func.push arr1.join '&&'
+      func = parsePart "#{doc}#{field}", v, func
 
-  return
+  func
 
 module.exports = (spec) ->
-  func = []
-  parseClause 'doc', spec, func
-  func = "return #{func.join('')||true};"
+  func = parseClause 'doc', spec, ''
+  func = "return #{func.substr(2)||true};"
   debug "compiled query to #{func}"
   func = new Function 'deepEqual', 'match', 'indexOf', 'doc', func
   (model) ->

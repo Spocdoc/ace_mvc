@@ -2,6 +2,7 @@ Socket = require './lib/socket'
 Db = require './lib/db'
 _ = require 'lodash-fork'
 fs = require 'fs'
+path = require 'path'
 require 'debug-fork'
 debug = global.debug 'ace'
 debugError = global.debug 'ace:error'
@@ -34,9 +35,13 @@ module.exports = (server, manifest, bundleSpec, options, bundle) ->
   watching = {}
 
   watch = (filePath) ->
+    filePath = path.resolve filePath
+    unless fs.statSync(filePath).isDirectory()
+      filePath = path.resolve filePath, '..'
+
     unless watching[filePath]
       watching[filePath] = true
-      nodeWatch filePath, ->
+      nodeWatch filePath, recursive: false, ->
         debug "#{filePath} changed"
         reset()
       debug "watching #{filePath}"

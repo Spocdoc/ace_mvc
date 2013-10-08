@@ -13,8 +13,7 @@ rEscape = ///
 ///g
 
 module.exports = (path, keys, optionalKeys, requiredKeys) ->
-  formatFn = ''
-  formatFn.push "var r = '', v;"
+  formatFn = "var r = '', v;"
   lastIndex = 0
 
   shouldReplaceLhs = ''

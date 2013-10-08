@@ -26,29 +26,39 @@ $['fn']['extend']
   'link': (component, methodName, args...) ->
     nodeName = @['name']()
     ace = component['ace']
-    hook = 'click'
 
-    allArgs = ['',component.acePath, methodName].concat args
+    canHref = nodeName is 'A'
+    canAction = nodeName is 'FORM'
 
-    if canHref = nodeName is 'a'
-      @attr 'href', getHref(ace, allArgs)
-    else if canAction = nodeName is 'form'
-      @attr 'action', getHref(ace, allArgs)
-      @attr 'method', 'post'
-      @attr 'enctype', 'multipart/form-data'
-      hook = 'submit'
+    hook = if canAction then 'submit.link' else 'click.link'
+    @off '.link'
 
-    @[hook] (event) ->
-      unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
-        Outlet.openBlock()
-        try
-          component[methodName].apply component, args
-        finally
-          Outlet.closeBlock()
-          event.preventDefault()
-        false
-      else if canHref
+    unless methodName
+      if canHref
+        @removeAttr 'href'
+      else if canAction
+        @removeAttr 'action'
+    else
+      allArgs = ['',component.acePath, methodName].concat args
+
+      if canHref
         @attr 'href', getHref(ace, allArgs)
       else if canAction
         @attr 'action', getHref(ace, allArgs)
+        @attr 'method', 'post'
+        @attr 'enctype', 'multipart/form-data'
+
+      @on hook, (event) ->
+        unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
+          Outlet.openBlock()
+          try
+            component[methodName].apply component, args
+          finally
+            Outlet.closeBlock()
+            event.preventDefault()
+          false
+        else if canHref
+          @attr 'href', getHref(ace, allArgs)
+        else if canAction
+          @attr 'action', getHref(ace, allArgs)
     return this

@@ -5,6 +5,7 @@ debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
 Configs = require './configs'
 buildClasses = require './build_classes'
+_ = require 'lodash-fork'
 
 module.exports = class ViewBase extends Base
   @configs: new Configs
@@ -130,10 +131,11 @@ module.exports = class ViewBase extends Base
           when 'text','html'
             outlet.addOutflow new Outlet =>
               unless @['ace']['booting'] and @['template']['bootstrapped']
-                if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
-                  @['domCache'][dollar] = v
-                  debugDom "calling #{methName} in dom on #{dollar} with #{v}"
-                  e[methName](v)
+                if outlet.value
+                  if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
+                    @['domCache'][dollar] = v
+                    debugDom "calling #{methName} in dom on #{dollar} with #{v}"
+                    e[methName](v)
 
           when 'view'
             oldView = undefined
@@ -151,10 +153,19 @@ module.exports = class ViewBase extends Base
       else
         switch methName
           when 'link'
-            if typeof arg is 'string' or typeof arg[0] is 'string'
-              e['link'].apply e, [this].concat arg
+            applyLink = (arg) =>
+              if !arg?
+                e['link'].call e, this
+              else
+                if typeof arg is 'string' or typeof arg[0] is 'string'
+                  e['link'].apply e, [this].concat arg
+                else
+                  e['link'].apply e, arg
+              return
+            if typeof arg is 'function'
+              @outlets["_link#{_.makeId()}"] = new Outlet (=> applyLink arg.call this), this, true
             else
-              e['link'].apply e, arg
+              applyLink arg
 
           else
             if Array.isArray arg
@@ -173,7 +184,7 @@ module.exports = class ViewBase extends Base
         @_buildDollarString k, v, @outlets[k.substr(1)]
       else # object
         for str, method of v
-          @_buildDollarString k, str, method #new Outlet method, this, true
+          @_buildDollarString k, str, (if typeof method is 'string' and @outlets[method] then @outlets[method] else method) #new Outlet method, this, true
     return
 
   _buildTemplate: (arg) ->

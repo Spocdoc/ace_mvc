@@ -9,6 +9,7 @@ module.exports = class Controller extends Base
   @configs: new Configs
 
   constructor: (aceParent, aceName, settings) ->
+    throw new Error "Controllers must have names." unless aceName or aceParent is aceParent.globals['ace']
     return new @constructor[aceParent.aceType] aceParent, aceName, settings unless @aceConfig
 
     if aceName? and typeof aceName is 'object'

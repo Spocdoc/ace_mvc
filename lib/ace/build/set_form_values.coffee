@@ -1,7 +1,7 @@
 module.exports = ($container, obj) ->
   for k,v of obj when $elem = $container.find("##{k}")
     switch $elem.name()
-      when 'input'
+      when 'INPUT'
         $elem.val v
         event =
           stopPropagation: ->

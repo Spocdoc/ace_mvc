@@ -4,20 +4,20 @@ typeToClass = require 'manifest_mvc/type_to_class'
 
 configs = new (require('./configs'))
 NAME_ELEMS = [
-  "a"
-  "applet"
-  "button"
-  "form"
-  "frame"
-  "iframe"
-  "img"
-  "input"
-  "map"
-  "meta"
-  "object"
-  "param"
-  "select"
-  "textarea"
+  # "A"
+  # "APPLET"
+  # "BUTTON"
+  # "FORM"
+  # "FRAME"
+  # "IFRAME"
+  # "IMG"
+  "INPUT"
+  # "MAP"
+  # "META"
+  # "OBJECT"
+  # "PARAM"
+  "SELECT"
+  "TEXTAREA"
 ]
 
 getDomIds = do ->

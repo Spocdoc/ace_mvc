@@ -181,7 +181,8 @@ module.exports = class ViewBase extends Base
   _buildDollar: ->
     for k,v of @aceConfig when k.charAt(0) is '$'
       if typeof v is 'string'
-        @_buildDollarString k, v, @outlets[k.substr(1)]
+        outlet = @outlets[name=k.substr(1)] || @_buildOutlet name
+        @_buildDollarString k, v, outlet
       else # object
         for str, method of v
           @_buildDollarString k, str, (if typeof method is 'string' and @outlets[method] then @outlets[method] else method) #new Outlet method, this, true

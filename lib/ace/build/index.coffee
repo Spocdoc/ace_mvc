@@ -41,30 +41,24 @@ module.exports = (Ace) ->
 
     Router.buildRoutes @routes = require manifest['routes']
 
+    @$template = $template = $ if layout = manifest['layout'] then """<html>#{layout}</html>""" else """
+      <html><!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title></title></head><body></body></html></html>
+      """
+
+    $html = $template.find 'html'
+    $head = $html.find 'head'
+
     ### original wrongPage code
       m = /^(?:[^:]*:\/\/)?(?:[^\/]*)?\/*(\/[^#]*)?#\d*\/*(\/[^#]*)?(#.*)?$/.exec window.location.href
       document.location.href = m[2] + (m[3] || '') if m and m[1] isnt m[2]
     # var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));
     ###
-
-    @$template = $ """
-      <html>
-      <head>
-      <meta charset="UTF-8"/>
-      <meta name="viewport" content="width=device-width; initial-scale=1.0"/>
-      <title></title>
-      <script type="text/javascript">
-      (function (){
-        var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));
-      }());
-      </script>
-      </head>
-      <body></body>
-      </html>
+    $head.append """
+      <script type="text/javascript">(function (){var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));}());</script>
       """
 
     if process.env.NODE_ENV isnt 'production' and DEBUG = process.env.DEBUG
-      @$template.find('head').append $ """
+      $head.append $ """
         <script type="text/javascript">
           window.DEBUG = #{_.quote(DEBUG)};
         </script>
@@ -75,9 +69,11 @@ module.exports = (Ace) ->
   Ace.prototype.handle = (req, res, next, cb) ->
     debug "New request for #{req.originalUrl}"
 
-    $html = @$template.clone()
+    $doc = @$template.clone()
+    $html = $doc.find 'html'
     $body = $html.find 'body'
     $head = $html.find 'head'
+    $title = $head.find 'title'
 
     @sock = @sockEmulator()
 
@@ -130,14 +126,17 @@ module.exports = (Ace) ->
         else
           canonicalUri = undefined
 
-        $head.prepend $ @bundleHtml.head
-        $body.append $ @bundleHtml.body
-        $body.append $ """
+        $title.after $ str if str = @bundleHtml.head
+        $body.append $ str if str = @bundleHtml.body
+        $html.append $ str if str = @bundleHtml.html
+
+        $html.append $ """
           <script type="text/javascript">
             if (window.Ace) { var ace = new Ace(#{_.quote(canonicalUri) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body')); }
           </script>
           """
-        res.end "<!DOCTYPE html>\n#{$html.toString()}"
+
+        res.end ''+$doc.html()
 
         debug "done rendering request for #{req.originalUrl}"
         cb?()

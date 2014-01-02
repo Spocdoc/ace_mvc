@@ -27,9 +27,10 @@ module.exports = class MediatorServer
 
   for method in ['create','read','update','delete','distinct']
     do (method) =>
-      @prototype['db' + method[0].toUpperCase() + method[1..]] =
-      @prototype['base' + method[0].toUpperCase() + method[1..]] =
-        @prototype[method] = -> @db[method].apply @db, [@sock, arguments...]
+      capitalized = method.charAt(0).toUpperCase() + method.substr(1)
+
+      @prototype['db' + capitalized] = @prototype['base' + capitalized] = @prototype[method] = ->
+        @db[method].apply @db, [@sock, arguments...]
 
   @prototype.create = @prototype.baseCreate = (coll, doc, cb) ->
     proxy = Object.create cb
@@ -61,7 +62,11 @@ module.exports = class MediatorServer
       cb.ok()
 
     proxy.reject = (msg) =>
-      @doUnsubscribe coll, id
+      if Array.isArray id
+        ids = id
+        @doUnsubscribe coll, id for id in ids
+      else
+        @doUnsubscribe coll, id
       cb.reject msg
 
     proxy.bulk = (reply) =>

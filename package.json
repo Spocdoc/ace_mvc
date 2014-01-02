@@ -10,13 +10,12 @@
   "private": true,
   "dependencies": {
     "async": "0.x",
-    "redis": "0.x",
     "hiredis": "0.x",
+    "redis": "0.x",
     "mongodb": "1.x",
-    "node-watch": "0.x"
+    "jade": "0.x"
   },
   "DEBUG local dependencies": {
-    "file_memoize": "0.x",
     "closurify": "0.x",
     "debug-fork": "0.x",
     "dom-fork": "0.x",
@@ -28,6 +27,7 @@
     "polyfill-fork": "0.x",
     "sockio-fork": "0.x",
     "es5": "0.x",
-    "lodash-fork": "0.x"
+    "lodash-fork": "0.x",
+    "hash-fork": "0.x"
   }
 }

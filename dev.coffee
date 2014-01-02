@@ -6,129 +6,72 @@ path = require 'path'
 require 'debug-fork'
 debug = global.debug 'ace'
 debugError = global.debug 'ace:error'
-nodeWatch = require 'node-watch'
 
-fixedRequires = undefined
-
-module.exports = (server, manifest, bundleSpec, options, bundle) ->
-  unless fixedRequires
-    fixedRequires = {}
-    fixedRequires[k] = 1 for k of require.cache
+module.exports = (server, manifest, options) ->
+  {root} = manifest.private
+  initializing = true
 
   sockServer = new Socket server, options
   db = new Db options
   sockEmulator = undefined
   socketConnections = {}
+  dirWatch = resetter = ace = MediatorClient = MediatorServer = undefined
 
   server.on 'connection', (sock) ->
     socketConnections[id = sock.aceId = _.makeId()] = sock
     sock.on 'close', -> delete socketConnections[id]
 
-  resetting = true
-  ace = MediatorClient = MediatorServer = undefined
-
   sockServer.on 'connection', (sock) ->
-    return if resetting
+    return if initializing or resetter.running
     sock.mediator = new MediatorClient db, sock
     require('./lib/socket/handle_connection')(sock)
 
-  watching = {}
+  reset = (done) ->
+    initializing = false
 
-  watch = (filePath) ->
-    filePath = path.resolve filePath
-    unless fs.statSync(filePath).isDirectory()
-      filePath = path.resolve filePath, '..'
+    manifest.update (err) ->
+      try
+        return console.error err if err?
 
-    unless watching[filePath]
-      watching[filePath] = true
-      nodeWatch filePath, recursive: false, ->
-        debug "#{filePath} changed"
-        reset()
-      debug "watching #{filePath}"
-    return
+        # watch all the bundle's sources
+        for type in ['js','css']
+          for expr, {sources,generated} of manifest.bundle.debug[type]
+            sources[i] = path.resolve(root,source) for source, i in sources
+            dirWatch sources
 
-  doReset = ->
-    debug "clearing sockets"
-    for id, sock of socketConnections
-      sock.end()
-      sock.destroy()
+        # disconnect sockets
+        for id, sock of socketConnections
+          sock.end()
+          sock.destroy()
 
-    db.off()
+        db.off()
 
-    for req of require.cache when !fixedRequires[req]
-      delete require.cache[req]
+        debug "building ace"
+        try
+          MediatorClient = require './lib/socket/mediator_client'
+          MediatorServer = require './lib/socket/mediator_server'
+          if makeMediator = manifest.mediator && require path.resolve(root,manifest.mediator)
+            MediatorClient = makeMediator MediatorClient
+            MediatorServer = makeMediator MediatorServer
 
-    if filePath = manifest['index']
-      watch filePath
+          SockioEmulator = require './lib/socket/emulator'
+          sockEmulator = -> new SockioEmulator db, MediatorServer
 
-    watch filePath for type, filePath of manifest['files']['style']
-    watch filePath for type, filePath of manifest['files']['template']
+          Ace = require './lib/ace'
+          ace = new Ace manifest, options, sockEmulator
+        catch _error
+          debugError _error?.stack
 
-    MediatorClient = require './lib/socket/mediator_client'
-    MediatorServer = require './lib/socket/mediator_server'
-    if makeMediator = manifest['mediator'] && require manifest['mediator']
-      MediatorClient = makeMediator MediatorClient
-      MediatorServer = makeMediator MediatorServer
-
-    SockioEmulator = require './lib/socket/emulator'
-    sockEmulator = -> new SockioEmulator db, MediatorServer
-
-    debug "rebuilding ace"
-    try
-      Ace = require './lib/ace'
-      ace = new Ace manifest, bundleSpec, options, sockEmulator
-    catch _error
-      debugError _error?.stack
-
-    debug "Done resetting"
-    resetting = false
-
-  doBundle = (done) ->
-    debug "bundling"
-    bundle manifest, (err, spec) ->
-      if err?
-        console.error err
-        return done()
-      for expr, arr of spec.js
-        watch filePath for filePath in arr['files']
-      bundleSpec = spec
-      debug "done bundling"
-      done -> doReset()
-    return
-
-  reset = _.debounce 100, _.debounceAsync (done) ->
-    resetting = true
-    debug "Resetting..."
-    next = (err) ->
-      if err?
-        console.error err.stack
-        resetting = false
+        debug "Done resetting"
         return
-      if bundle
-        doBundle done
-      else
-        done -> doReset()
-    if typeof manifest.reload is 'function'
-      debug "reloading manifest"
-      manifest.reload next
-    else
-      next()
-    return
+      finally
+        done()
 
-  reset()
+  dirWatch = _.watchRequires reset
+  resetter = dirWatch.callback
 
-  i = (requires = Object.keys fixedRequires).length
-  addRequires = ->
-    iE = (requires = Object.keys require.cache).length
-    watch requires[i++] while i < iE
-    return
+  resetter()
+
   (req, res, next) ->
-    if resetting
-      next null
-      return
-
-    try
-      ace.handle req, res, next, addRequires
-    catch _error
-      addRequires()
-      throw _error
+    return next null if initializing or resetter.running
+    ace.handle req, res, next

@@ -18,8 +18,8 @@ module.exports = class Router
       route = new Route moreArgs.concat(args...)...
 
       varNames = otherVars[route.name || ''] ||= []
-      varNames.push key for key of route.query?.obj
-      varNames.push key for key of route.hash?.obj
+      varNames.push value for key, value of route.query?.obj
+      varNames.push value for key, value of route.hash?.obj
 
       if route.path
         (pathVars[route.name || ''] ||= []).push route.path.keys...

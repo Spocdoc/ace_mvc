@@ -1,4 +1,5 @@
 buildClasses = require './build_classes'
+debugError = global.debug 'error'
 
 module.exports = class Configs
   constructor: ->
@@ -14,25 +15,45 @@ module.exports = class Configs
       @configs[type] = config
     return
 
-  _applyMixin: (config, mixin) ->
-    if Array.isArray mixin
-      @_applyMixin config, m for m in mixin
-
-    else if typeof mixin is 'string'
-      @mixins[mixin](config)
-
-    else if mixin?
-      for type, args of mixin
-        if Array.isArray args
-          @mixins[type](config, args...)
+  merge: (into, from) ->
+    for k, v of from
+      if current = into[k]
+        if Array.isArray current
+          if Array.isArray v
+            current.push v...
+          else
+            current.push v
         else
-          @mixins[type](config, args)
+          into[k] = [current].concat v
+      else
+        into[k] = v
+    return
+
+  _applyMixin: (config, spec) ->
+    if Array.isArray spec
+      @_applyMixin config, m for m in spec
+
+    else if typeof spec is 'string'
+      if mixin = @mixins[spec]
+        mixin(config)
+      else if otherConfig = @configs[spec]
+        @merge config, otherConfig
+
+    else if spec?
+      for type, args of spec
+        if mixin = @mixins[type]
+          if Array.isArray args
+            mixin(config, args...)
+          else
+            mixin(config, args)
+        else
+          debugError "Can't find mixin #{type}"
 
     return
 
   applyMixins: ->
-    for type, config of @configs when mixin = config['mixins'] || config['mixin']
-      @_applyMixin config, mixin
+    for type, config of @configs when spec = config['mixins']
+      @_applyMixin config, spec
       delete config['mixins']
     return
 

@@ -1,25 +1,12 @@
 Outlet = require 'outlet'
 OJSON = require 'ojson'
+queryCompile = require './query_compile'
 {makeId} = require 'lodash-fork'
 NavCache = require 'navigate-fork/cache'
 emptyArray = []
-_ = require 'lodash-fork'
 debug = global.debug "ace:mvc:query"
 
-hash = (obj) ->
-  str = "{"
-  for k in Object.keys(obj).sort()
-    v = obj[k]
-    str += _.quote(k) + ":"
-    if !v?
-      str += 'null'
-    else if v.constructor is String
-      str += _.quote v
-    else if typeof v is 'object'
-      str += hash v
-    else
-      str += ''+v
-  str + "}"
+hash = (obj) -> ''+obj
 
 arraysDiffer = (lhs, rhs) ->
   return true if lhs.length isnt rhs.length
@@ -64,10 +51,17 @@ module.exports = class Query
 
       if @limit.value < 1
         @_updateResults [] if @results.value.length
+        delete @_func
       else
-        ++@_clientVersion
-        unless @pending.value
-          @_update()
+        @_compile()
+
+        unless @_subquery && (results = @_narrowLocally @results.value) && (@_full || @limit.value is 1)
+           ++@_clientVersion
+           unless @pending.value
+            if @limit.value is 1
+                @_findOne()
+              else
+                @_update()
         @_updateResults results if results
       return makeId() # to trigger the 'distinct' calls
 
@@ -87,26 +81,41 @@ module.exports = class Query
     @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
       pending = false
       Outlet.openBlock()
-      try
-        if code is 'd'
-          @error.set ''
-          results = []
-          results[i] = @Model.read id for id, i in docs
-          if @_clientVersion != @_serverVersion
-            pending = true
-            @_update()
-          else
-            @_updateResults results
-        else if pending = (@_clientVersion != @_serverVersion)
-          @_update()
-        else
-          @error.set docs || "can't read"
-          @_updateResults []
-        @pending.set pending
-      finally
-        Outlet.closeBlock()
+      if code is 'd'
+        @error.set ''
+        results = []
+        results[i] = @Model.read id for id, i in docs
+        @_full = results.length < @limit.value
+        if @_clientVersion != @_serverVersion
+          results = if @_subquery then @_narrowLocally(results) else 0
+          @_update() if pending = !@_subquery or !@_full
+        if results
+          @_subquery = 1
+          @_updateResults results
+      else if pending = (@_clientVersion != @_serverVersion and !@_subquery)
+        @_update()
+      else
+        @error.set docs || "can't read"
+        @_full = 1
+        @_updateResults []
+      @pending.set pending
+      Outlet.closeBlock()
       return
     return
+
+  _findOne: ->
+    return if (model = @results.value?[0]) and @_func model
+    for id, model of @Model.models when @_func model
+      @_serverVersion = @_clientVersion
+      @_updateResults [model]
+      return
+    @_update()
+    return
+
+  _narrowLocally: (orig) ->
+    results = []; i = 0
+    (result[i++] = model if @_func model) for model in orig
+    results
 
   _updateResults: (results) ->
     if Query.useBootCache & CACHE_WRITE
@@ -118,11 +127,9 @@ module.exports = class Query
 
     if arraysDiffer results, @results.value
       Outlet.openBlock()
-      try
-        @results.set results
-        outlet.set results[i] for i, outlet of @_peggedResults
-      finally
-        Outlet.closeBlock()
+      @results.set results
+      outlet.set results[i] for i, outlet of @_peggedResults
+      Outlet.closeBlock()
 
     return
 
@@ -135,19 +142,59 @@ module.exports = class Query
       @_update() if @limit.value > 0
     return
 
-  _initOutlets: (obj) ->
-    for k, outlet of obj
-      if outlet instanceof Outlet
-        outlet.addOutflow @_updater
+  _compile: -> @_func = queryCompile @_spec
+
+  # analogous to RegExp.exec -- returns truthy if matches
+  exec: (model) -> (@_func ||= @_compile())(model)
+
+  _outletOutflowArray: (oldValue, outlet, inverted) ->
+    =>
+      @_subquery &&= inverted ^ arrayIsSubset(oldValue, outlet.value)
+      oldValue = outlet.value
+
+  _outletOutflowMath: (oldValue, outlet, inverted, math) ->
+    =>
+      if typeof oldValue is 'number' and typeof outlet.value is 'number'
+        @_subquery &&= inverted ^ (if math.charAt(1) is 'g' then outlet.value >= oldValue else outlet.value <= oldValue)
       else
-        @_initOutlets outlet
+        @_subquery = false
+      oldValue = outlet.value
+
+  _outletOutflowNone: (outlet) ->
+    =>
+      @_subquery = false
+      outlet.value
+
+  _initOutlets: (obj, inverted_) ->
+    for k, outlet of obj
+      inverted = inverted_ or (k in ['$not','$nin','$nor','$ne'])
+      math = k if k in ['$gte','$lte','$gt','$lt']
+      
+      if outlet instanceof Outlet
+        oldValue = outlet.value
+
+        if Array.isArray oldValue
+          outflow = @_outletOutflowArray oldValue, outlet, inverted
+
+        else if math
+          outflow = @_outletOutflowMath oldValue, outlet, inverted, math
+
+        else
+          outflow = @_outletOutflowNone outlet
+
+        outlet.addOutflow outflow = new Outlet outflow
+        outflow.addOutflow @_updater
+
+      else
+        @_initOutlets outlet, inverted, math
+
     return
 
   # returns an outlet that contains an array of the unique values for the given
   # field across all the documents matching the query (server side)
   'distinct': (key) ->
     return outlet if outlet = (@_distinct ||= {})[key]
-    @_distinct[key] = outlet = new Outlet ((Query.useBootCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key])
+    @_distinct[key] = outlet = new Outlet ((Query.useBootCache & CACHE_READ) && @Model.queryCache[@_hash]?.distinct?[key]) || emptyArray
 
     navCache = new NavCache
     serverVersion = pending = 0

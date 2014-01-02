@@ -12,7 +12,9 @@ Outlet = require 'outlet'
 Query = require './query'
 patchOutlets = diff.toOutlets
 debug = global.debug 'ace:mvc:model'
+debugError = global.debug 'error'
 debugSock = global.debug 'ace:sock'
+autoResolve = require 'diff-fork/conflict'
 
 NOW            = 0
 
@@ -92,12 +94,21 @@ module.exports = class ModelBase extends Base
           docs[id] = clone model.clientDoc
           ++i
         if ids[0]
-          do (clazz, docs) ->
-            sock.emit 'read', type, ids, versions, null, null, null, (code) ->
+          do (clazz, docs, ids) ->
+            sock.emit 'read', type, ids, versions, null, null, null, (code, arg) ->
               if typeof code is 'object'
                 Outlet.openBlock()
-                clazz.models[id].handleRead args[0], args[1], docs[id] for id, args of code
-                Outlet.closeBlock()
+                try
+                  clazz.models[id].handleRead args[0], args[1], docs[id] for id, args of code
+                finally
+                  Outlet.closeBlock()
+              else
+                Outlet.openBlock()
+                try
+                  for id in ids
+                    clazz.models[id].handleRead code, arg
+                finally
+                  Outlet.closeBlock()
               return
       return
 
@@ -204,8 +215,10 @@ module.exports = class ModelBase extends Base
     clientDoc = clone @clientDoc
     @sock.emit 'create', @aceType, OJSON.toOJSON(clientDoc), (code, arg1, arg2) =>
       Outlet.openBlock()
-      @handleCreate code, clientDoc, arg1, arg2
-      Outlet.closeBlock()
+      try
+        @handleCreate code, clientDoc, arg1, arg2
+      finally
+        Outlet.closeBlock()
 
   handleCreate: (code, doc, arg1, arg2) ->
     @_pending.set @_pending.value & ~CREATE_NOW
@@ -231,8 +244,10 @@ module.exports = class ModelBase extends Base
     clientDoc = clone @clientDoc
     @sock.emit 'read', @aceType, @id, (clientDoc && clientDoc['_v']), null, null, null, (code, arg) =>
       Outlet.openBlock()
-      @handleRead code, arg, clientDoc
-      Outlet.closeBlock()
+      try
+        @handleRead code, arg, clientDoc
+      finally
+        Outlet.closeBlock()
 
   handleRead: (code, arg, clientDoc) ->
     @_pending.set @_pending.value & ~READ_NOW
@@ -266,7 +281,7 @@ module.exports = class ModelBase extends Base
     return if @clientDoc and @clientDoc['_v'] is newVersion
 
     if @outgoing[0]
-      @_conflict()
+      @_conflict() # TODO
     else
       @patchClient diff @clientDoc, @serverDoc
     return
@@ -277,8 +292,10 @@ module.exports = class ModelBase extends Base
     @present.set present
     if @_outlets
       Outlet.openBlock()
-      patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
-      Outlet.closeBlock()
+      try
+        patchOutlets @_outlets, ops, @clientDoc, @_patchRegistry
+      finally
+        Outlet.closeBlock()
     return
 
   'reset': ->
@@ -292,7 +309,7 @@ module.exports = class ModelBase extends Base
   update: (ops) ->
     pending = @_pending.value
     unless @serverDoc
-      return @create unless pending & (CREATE | READ)
+      return @create() unless pending & (CREATE_LATER | READ_LATER)
 
     @outgoing.push ops... if ops
     return @_pending.set pending | UPDATE_LATER if pending & NOW
@@ -311,8 +328,10 @@ module.exports = class ModelBase extends Base
 
     @sock.emit 'update', @aceType, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2) =>
       Outlet.openBlock()
-      @handleUpdate code, arg1, arg2, outgoing
-      Outlet.closeBlock()
+      try
+        @handleUpdate code, arg1, arg2, outgoing
+      finally
+        Outlet.closeBlock()
     return
 
   handleUpdate: (code, arg1, arg2, outgoing) ->
@@ -328,7 +347,7 @@ module.exports = class ModelBase extends Base
         @_loop()
     else if code is 'c'
       if @serverDoc['_v'] > @clientDoc['_v']
-        @_conflict()
+        @_conflict() # TODO
       else
         outgoing.push @outgoing...
         @outgoing = outgoing
@@ -336,9 +355,17 @@ module.exports = class ModelBase extends Base
         @_loop()
     else
       ++@serverDoc['_v']
+      ++@clientDoc['_v']
       @serverDoc = diff.patch @serverDoc, outgoing
-      @serverUpdate arg1, OJSON.fromOJSON(arg2) if code is 'u'
-      @_update()
+
+      if code is 'u'
+        @_pending.set @_pending.value & ~UPDATE_NOW
+        @serverUpdate arg1, OJSON.fromOJSON(arg2)
+        unless @conflict.value
+          @_pending.set @_pending.value | UPDATE_NOW
+          @_update()
+      else
+        @_update()
     return
 
   serverUpdate: (version, ops) ->
@@ -352,26 +379,41 @@ module.exports = class ModelBase extends Base
     return if (@_pending.value & NOW) or @conflict.value
     ops = @patchServer()
     if @outgoing[0]
-      @_conflict()
+      @_conflict @clientDoc, @outgoing, @serverDoc, ops
     else
       @patchClient ops
     return
 
   patchServer: ->
     a = []
-    while ops = @incoming[@serverDoc['_v']]
-      a.push ops...
+    while (ops = @incoming[@serverDoc['_v']])?
+      if ops
+        a.push ops...
+        @serverDoc = diff.patch @serverDoc, ops
       delete @incoming[@serverDoc['_v']]
-      @serverDoc = diff.patch @serverDoc, ops
       ++@serverDoc['_v']
     return a
 
-  _conflict: ->
-    @conflict.set true
-    @outgoing = []
-    @runQueue?.clear()
-    @_pending.set 0
-    return
+  _conflict: (clientDoc, outgoing, serverDoc, incoming) ->
+    # TODO shouldn't have doc1 check
+    if clientDoc and ops = autoResolve clientDoc, outgoing, serverDoc, incoming
+      @patchClient ops
+      @outgoing = diff(@serverDoc, @clientDoc) || []
+      true
+    else
+      if debug
+        if global.alert
+          alert "CONFLICT"
+        else
+          debugError "CONFLICT"
+        debugger
+
+      @conflict.set true
+      @outgoing = []
+      @runQueue?.clear()
+      @_pending.set 0
+
+      false
 
   'resolveConflict': ->
     return unless @serverDoc['_v'] > @clientDoc['_v']
@@ -390,8 +432,10 @@ module.exports = class ModelBase extends Base
       @patchClient diff @clientDoc, null
       @sock.emit 'delete', @aceType, @id, (code, msg) =>
         Outlet.openBlock()
-        @handleDelete code, msg
-        Outlet.closeBlock()
+        try
+          @handleDelete code, msg
+        finally
+          Outlet.closeBlock()
     return
 
   handleDelete: (code, msg) ->
@@ -428,11 +472,12 @@ module.exports = class ModelBase extends Base
     [cmd, arg, cb] = arr
 
     @sock.emit 'run', @aceType, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
-      Outlet.openBlock()
-      try
-        cb.apply this, arguments
-      finally
-        Outlet.closeBlock()
+      if cb
+        Outlet.openBlock()
+        try
+          cb.apply this, arguments
+        finally
+          Outlet.closeBlock()
 
       @_run()
       return

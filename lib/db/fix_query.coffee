@@ -3,8 +3,8 @@ joinerOps =
   '$or': 1
   '$nor': 1
 
-parsePart = (field, spec) ->
-  return spec if field is '$text'
+parsePart = (field, spec, parent) ->
+  return true if field is '$text'
   return true unless typeof spec is 'object' and spec
 
   keptKeys = 0
@@ -16,6 +16,28 @@ parsePart = (field, spec) ->
       when '$mod' then keep = v[0]? and v[1]?
       # when '$regex' then
       when '$all' then keep = v?.length
+      when '$allc'
+        keep = false
+        if v?.length
+          arr = []
+          elems = []
+          for elem in v
+            if elem.length > 1
+              (obj = {})[field] = '$in': elem
+              arr.push obj
+            else
+              elems.push elem[0]
+          if arr.length
+            if pa = parent['$and']
+              pa.push arr...
+            else
+              parent['$and'] = arr
+          if elems.length
+            ++keptKeys
+            if pa = spec['$all']
+              pa.push elems...
+            else
+              spec['$all'] = elems
       when '$gt' then keep = v?
       when '$gte' then keep = v?
       when '$lt' then keep = v?
@@ -47,15 +69,16 @@ parseClause = (spec) ->
   for k,v of spec
     if joinerOps[k]
       v2 = []; i = 0
-      for clause in v
-        v2[i++] = clause if parseClause clause
+      if v
+        for clause in v
+          v2[i++] = clause if parseClause clause
       if i
         ++keptKeys
         spec[k] = v2
       else
         delete spec[k]
     else
-      if parsePart k,v
+      if parsePart k,v, spec
         ++keptKeys
       else
         delete spec[k]
@@ -64,5 +87,6 @@ parseClause = (spec) ->
 
 # mongodb for "invalid" queries returns no results. invalid includes queries with empty text searches or empty $all conditions
 module.exports = (spec) ->
-  if parseClause spec then spec else {}
+  parseClause spec
+  spec
 

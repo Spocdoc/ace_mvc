@@ -20,6 +20,7 @@ module.exports = class Controller extends Base
 
     @aceParent = aceParent
     @aceName = aceName || ''
+    @controllers = {}
 
     debugMvc "Building #{@}"
 
@@ -59,10 +60,12 @@ module.exports = class Controller extends Base
     if arg instanceof View
       @['view'] = arg
     else if typeof arg is 'string'
-      @['view'] = new View[arg] this
+      return unless clazz = View[arg]
+      @['view'] = new clazz this, undefined, 'isPrimary': true
     else
       break for k,v of arg
-      outlet.set @['view'] = new View[k] this, undefined, v
+      v['isPrimary'] ?= true
+      @['view'] = new View[k] this, undefined, v
 
     @$ = {}
     @outlets["$#{k}"] = @["$#{k}"] = @$[k] = v for k, v of @['view'].outlets
@@ -73,3 +76,4 @@ module.exports = class Controller extends Base
       v = new Outlet v, this, true if typeof v is 'function'
       (@['view'].outlets[name=k.substr(1)] || @['view']._buildOutlet(name)).set v
     return
+

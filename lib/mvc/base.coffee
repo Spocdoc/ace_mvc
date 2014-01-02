@@ -2,7 +2,7 @@ debug = global.debug 'ace:mvc'
 clone = require 'diff-fork/clone'
 Outlet = require 'outlet'
 
-reserved = ['constructor','static','view','outlets','outletMethods','template','inWindow']
+reserved = ['deputy','constructor','static','view','outlets','outletMethods','template','inWindow']
 
 module.exports = class Base
   @add: (type, config) ->
@@ -56,7 +56,7 @@ module.exports = class Base
           o.context = this
           o.set v
         else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
-          if settings.hasOwnProperty k
+          if settings and settings.hasOwnProperty k
             v = settings[k]
           else if @_outletDefaults and @_outletDefaults.hasOwnProperty k
             v = @_outletDefaults[k]

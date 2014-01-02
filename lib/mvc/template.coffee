@@ -21,10 +21,12 @@ NAME_ELEMS = [
 ]
 
 getDomIds = do ->
+  regexNotCapitalized = /^[^A-Z]/
+
   helper = (ids, dom) ->
     for child in dom.children()
       child = $(child)
-      ids.push(id) if (id = child.attr('id'))?
+      ids.push(id) if (id = child.attr('id'))? and regexNotCapitalized.test id
       helper(ids, child)
     ids
 
@@ -76,14 +78,17 @@ module.exports = class TemplateBase
         .template = this
         if $elem.name() in NAME_ELEMS
           $elem.attr 'name', "#{@acePrefix}-#{id}"
+
+      classes = "#{typeToClass @aceParent.aceType} root"
+      if @aceParent['isPrimary'] and @aceParent.aceType isnt ppt = @aceParent.aceParent.aceType
+        classes += " #{typeToClass ppt}"
+      @['$root'].attr 'class', classes
     else
       @['bootstrapped'] = true
       debug "Bootstrapping template with rootId #{rootId}"
       for id in config.ids
         (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}-#{id}"))
           .template = this
-
-    @['$root'].attr 'class', "#{typeToClass @aceParent.aceType} root"
 
     # public
     @['acePrefix'] = @acePrefix

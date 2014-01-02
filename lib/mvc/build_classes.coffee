@@ -1,6 +1,6 @@
 Outlet = require 'outlet'
 
-special = ['constructor','static','view','outlets','outletMethods','template','inWindow']
+special = ['deputy','constructor','static','view','outlets','internal','inlets','outletMethods','template','inWindow']
 
 addOutlets = do ->
   addOutlet = (clazz, outlet) ->
@@ -11,9 +11,10 @@ addOutlets = do ->
     return
 
   (config, clazz) ->
-    clazz['outletDefaults'] = clazz.outletDefaults = {}
+    clazz['outletDefaults'] = clazz.outletDefaults =
+      'deputy': undefined
 
-    if outlets = config['outlets']
+    if outlets = (config['outlets'] || []).concat(config['internal'] || []).concat(config['inlets'] || [])
       if Array.isArray outlets
         addOutlet clazz, k for k in outlets
       else
@@ -52,10 +53,12 @@ module.exports = (configs, base) ->
   types
 
 module.exports.wrapFunction = wrapFunction = (fn, ctx) ->
-  ->
+  ret = ->
     Outlet.openBlock()
     try
       fn.apply (ctx || this), arguments
     finally
       Outlet.closeBlock()
+  ret.inblock = true
+  ret
 

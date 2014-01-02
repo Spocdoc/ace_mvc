@@ -1,26 +1,38 @@
 deepEqual = require 'diff-fork/deep_equal'
 {quote} = require 'lodash-fork'
 debug = global.debug 'ace:model:query'
+Outlet = require 'outlet'
 
 joinerOp =
   '$and': '&&'
   '$or': '||'
   '$nor': '||'
 
+nameToOp =
+  '$gt': '>'
+  '$lt': '<'
+  '$gte': '>='
+  '$lte': '<='
+  '$ne': '!=='
+
 parsePart = (field, spec, func) ->
   if spec instanceof RegExp
     func = func + "&& #{spec}.test(#{field})"
   else if typeof spec is 'object'
     for k,v of spec
+      v = v.value if v instanceof Outlet
+      continue unless v?
       switch k
         when '$mod' then func = func + "&& #{field}%#{v[0]}===#{v[1]}"
         when '$regex' then func = func + "&& match.call(#{field},#{quote(v)})!=null"
         when '$all' then func = func + "&& ~indexOf.call(#{field},#{quote(elem)})" for elem in v
-        when '$gt' then func = func + "&& #{field}>#{v}"
-        when '$gte' then func = func + "&& #{field}>=#{v}"
-        when '$lt' then func = func + "&& #{field}<#{v}"
-        when '$lte' then func = func + "&& #{field}<=#{v}"
-        when '$ne' then func = func + "&& #{field}!==#{v}"
+
+        when '$gt', '$gte', '$lt', '$lte', '$ne'
+          if typeof v is 'number' or ''+(0+v) is v
+            func = func + "&& #{field}#{nameToOp[k]}#{v}"
+          else
+            func = func + "&& +#{field}#{nameToOp[k]}#{+v}"
+
         when '$in'
           arr2 = ''
           arr2 = arr2 + "|| ~indexOf.call(#{field},#{quote(elem)})" for elem in v

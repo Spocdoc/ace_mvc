@@ -26,8 +26,8 @@ module.exports = class Route
         @varNames[name] = 1 for name of outletHash
       @varNames[name] = 1 for name in @path.keys
 
-    @varNames[name] = 1 for name of @query.obj if @query
-    @varNames[name] = 1 for name of @hash.obj if @hash
+    @varNames[name] = 1 for key, name of @query.obj if @query
+    @varNames[name] = 1 for key, name of @hash.obj if @hash
 
     debug "Built route with path regex #{@path.regexp}" if @path
 

@@ -154,12 +154,12 @@ module.exports = class Db extends Mongo
         (next) => if cb.validateQuery? then cb.validateQuery(spec, next) else next()
         (next) =>
           {query,sort,limit} = spec
+          search = query.$text
+          delete query.$text
 
           # mongo treats full text searches totally differently from find commands that don't involve full text.
           # $text is used here to normalize the client API. it's not a valid mongo field
-          if query.hasOwnProperty '$text'
-            search = query.$text
-            delete query.$text
+          if search
             @run 'text', coll,
               search: search
               limit: limit
@@ -243,6 +243,7 @@ module.exports = class Db extends Mongo
     return
 
   distinct: (origin, coll, query, key, cb) ->
+    query = fixQuery(query)
     delete query.$text # not supported as a regular query type in mongoDB
     @run 'distinct', coll, key, query, (err, docs) ->
       return unless checkErr(err, cb)

@@ -12,11 +12,12 @@ debug = global.debug 'ace'
 
 module.exports = (Ace) ->
 
-  Ace.prototype._build = (canonicalUri, manifest, json, $container) ->
-    Template.add name, dom for name, dom of manifest['template']
-    ModelBase.add name, global['req'+exp] for name, exp of manifest['model']
-    View.add name, global['req'+exp] for name, exp of manifest['view']
-    Controller.add name, global['req'+exp] for name, exp of manifest['controller']
+  Ace.prototype._build = (canonicalUri, manifest, json, containerSelector) ->
+    $container = $ containerSelector
+    Template.add name, dom for name, dom of manifest['templates']
+    ModelBase.add name, global['req'+exp] for name, exp of manifest['models']
+    View.add name, global['req'+exp] for name, exp of manifest['views']
+    Controller.add name, global['req'+exp] for name, exp of manifest['controllers']
 
     Template.compile()
     ModelBase.compile()
@@ -27,13 +28,20 @@ module.exports = (Ace) ->
     cookies = new Cookies sock
     cookies.get() # emits cookies
 
+    sock.once 'disconnect', =>
+      sock.on 'connect', =>
+        sock.emit 'cookies', cookies.toJSON(), ->
+        Model['reread']()
+
     globals =
       'cookies': cookies
       'session': session = new Outlet undefined, undefined, true
       'Model': class Model extends ModelBase
       'ace': this
+      'templates': manifest['templateGlobals']
 
     @['booting'] = true
+    globals['globals'] = globals
     @globals = globals
     @sock = sock
     # @aceComponents = {}
@@ -52,6 +60,7 @@ module.exports = (Ace) ->
     Template.bootRoot = $container
     (new Controller['body'] this)['appendTo'] $container
     @['booting'] = false
+    Template.bootRoot = null
 
     Model.clearQueryCache()
     delete Template.bootstrapRoot

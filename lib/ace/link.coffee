@@ -1,6 +1,7 @@
 Outlet = require 'outlet'
 clone = require 'diff-fork/clone'
 $ = require 'dom-fork'
+isTouch = global.document? and 'ontouchstart' of global.document.documentElement
 
 getHref = (ace, allArgs) ->
   if ace.lastUri isnt currentUri = ace.currentUri()
@@ -22,43 +23,113 @@ getHref = (ace, allArgs) ->
   uri.setQuery query
   uri.uri
 
+$['link'] = (component, methodName, args...) ->
+  # if component['ace'].onServer
+    allArgs = ['',component.acePath, methodName].concat args
+    getHref(component['ace'], allArgs)
+  # else
+  #   'javascript:void()'
+
 $['fn']['extend']
-  'link': (component, methodName, args...) ->
+  # trigger is 'click', 'mouseup', or 'mousedown'
+  #
+  # alternate arguments: trigger, component, selector, fn
+  #   where fn is called with the matched event target and should return an
+  #   array with component, methodName and args
+  'link': (trigger, component, methodName, args...) ->
     nodeName = @['name']()
     ace = component['ace']
 
-    canHref = nodeName is 'A'
-    canAction = nodeName is 'FORM'
+    trigger = 'touchend' if isTouch and trigger is 'click'
 
-    hook = if canAction then 'submit.link' else 'click.link'
-    @off '.link'
+    suffix = if typeof (fn = args[0]) is 'function' then '' else '.link'
 
-    unless methodName
-      if canHref
-        @removeAttr 'href'
-      else if canAction
-        @removeAttr 'action'
-    else
-      allArgs = ['',component.acePath, methodName].concat args
+    switch trigger
+      when 'mousedown'
+        hook = if isTouch then "touchstart#{suffix}" else "mousedown#{suffix}"
+      when 'mouseup'
+        hook = if isTouch then "touchend#{suffix}" else "mouseup#{suffix}"
+      else
+        hook = "#{trigger}#{suffix}"
 
-      if canHref
-        @attr 'href', getHref(ace, allArgs)
-      else if canAction
-        @attr 'action', getHref(ace, allArgs)
-        @attr 'method', 'post'
-        @attr 'enctype', 'multipart/form-data'
+    unless suffix
+      # using selector method
 
-      @on hook, (event) ->
+      selector = methodName
+
+      @on hook, selector, (event) =>
+        $target = $(event.currentTarget)
+        [methodName, args...] = fn $target, event
+
         unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
+          keepDefault = false
           Outlet.openBlock()
           try
-            component[methodName].apply component, args
+            if true is component[methodName].apply component, args
+              keepDefault = true
           finally
             Outlet.closeBlock()
+            event.preventDefault() unless keepDefault
+        else
+          allArgs = ['',component.acePath, methodName].concat args
+          $target.attr 'href', getHref(ace, allArgs)
+        return
+
+      if trigger isnt 'click'
+        @on 'click', selector, (event) =>
+          unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
             event.preventDefault()
-          false
-        else if canHref
+          else
+            $target = $(event.currentTarget)
+            $target.attr 'href', getHref(ace, ['',component.acePath].concat fn $target)
+          return
+
+    else
+      canHref = nodeName is 'A'
+      canAction = nodeName is 'FORM'
+
+      hook = 'submit.link' if canAction
+      @off '.link'
+
+      unless methodName
+        if canHref
+          @removeAttr 'href'
+        else if canAction
+          @removeAttr 'action'
+      else
+        allArgs = ['',component.acePath, methodName].concat args
+
+        if canHref
           @attr 'href', getHref(ace, allArgs)
         else if canAction
           @attr 'action', getHref(ace, allArgs)
+          @attr 'method', 'post'
+          @attr 'enctype', 'multipart/form-data'
+
+        @on hook, (event) =>
+          unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
+            keepDefault = false
+            Outlet.openBlock()
+            try
+              if true is component[methodName].apply component, args
+                keepDefault = true
+            finally
+              Outlet.closeBlock()
+              event.preventDefault() unless keepDefault
+          else if canHref
+            @attr 'href', getHref(ace, allArgs)
+          else if canAction
+            @attr 'action', getHref(ace, allArgs)
+          return
+
+        if !canAction and trigger isnt 'click'
+          @on 'click.link', (event) =>
+            unless event.altKey or event.metaKey or event.ctrlKey or event.shiftKey
+              event.preventDefault()
+            else if canHref
+              @attr 'href', getHref(ace, allArgs)
+            else if canAction
+              @attr 'action', getHref(ace, allArgs)
+            return
+
     return this

@@ -7,41 +7,57 @@ ModelBase = require '../../mvc/model'
 Template = require '../../mvc/template'
 Controller = require '../../mvc/controller'
 Uri = require 'uri-fork'
+template = require '../../template'
 setFormValues = require './set_form_values'
-hash = (str) -> require('crypto').createHash('sha1').update(str).digest("hex")
-bundleToHtml = require 'bundle-fork/to_html'
+hash = require 'hash-fork'
+path = require 'path'
 _ = require 'lodash-fork'
 fs = require 'fs'
+beautify = require 'js-beautify'
 
-getInode = do ->
-  cache = {}
-  (filePath) -> cache[filePath] ||= fs.statSync(require.resolve filePath).ino
+stringify = (json) ->
+  JSON.stringify(json).replace(/<\/script>/ig,'''</scr"+"ipt>''')
+
+unless process.env.NODE_ENV is 'production'
+  prodStringify = stringify
+  stringify = (json) ->
+    beautify(prodStringify(json).replace(/<\/script>/ig,'''</scr"+"ipt>'''),wrap_line_length: 70)
 
 module.exports = (Ace) ->
 
-  Ace.prototype._build = (manifest, bundleSpec, options, @sockEmulator) ->
-    @bundleHtml = bundleToHtml bundleSpec, "-ie<=6 #{if options['release'] then 'release' else 'debug'}"
-    @options = options
+  Ace.prototype._build = (manifest, @options, @sockEmulator) ->
+    @bundleHtml = manifest.clientHtml()
+    {root, assetRoot: @assetRoot} = manifest.private
+    release = process.env.NODE_ENV is 'production'
+
+    if relPath = manifest.options.templateGlobals
+      @templateGlobals = require(path.resolve root, relPath)(manifest)
+
     clientManifest = @clientManifest =
-      'template': manifest['template']
-      'routes': getInode manifest['routes']
+      routes: _.getInodeSync require.resolve path.resolve(root, manifest.routes)
+      templates: templates = {}
+      templateGlobals: @templateGlobals
 
-    require index if index = manifest['index']
+    for name, relPath of manifest.templates
+      templates[name] = html = template path.resolve(root,relPath), name, @templateGlobals
+      Template.add name, html
 
-    Template.add name, dom for name, dom of manifest['template']
     Template.compile()
+
+    require path.resolve(root,index) if index = manifest.index
 
     for type in ['model','view','controller']
       clazz = require("../../mvc/#{type}")
-      cm = clientManifest[type] = {}
-      for name,p of manifest[type]
-        clazz.add name, require p
-        cm[name] = getInode p
+      cm = clientManifest["#{type}s"] = {}
+      for name, relPath of manifest["#{type}s"]
+        fullPath = path.resolve root, relPath
+        clazz.add name, require fullPath
+        cm[name] = _.getInodeSync fullPath
       clazz.compile()
 
-    Router.buildRoutes @routes = require manifest['routes']
+    Router.buildRoutes @routes = require path.resolve(root, manifest.routes)
 
-    @$template = $template = $ if layout = manifest['layout'] then """<html>#{layout}</html>""" else """
+    @$template = $template = $ if layout = manifest.layout then """<html>#{template path.resolve(root,layout), '', @templateGlobals}</html>""" else """
       <html><!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title></title></head><body></body></html></html>
       """
 
@@ -57,17 +73,27 @@ module.exports = (Ace) ->
       <script type="text/javascript">(function (){var a;(a=/^(?:[^:]*:\\/\\/)?(?:[^\\/]*)?\\/*(\\/[^#]*)?#\\d*\\/*(\\/[^#]*)?(#.*)?$/.exec(window.location.href))&&a[1]!==a[2]&&(document.location.href=a[2]+(a[3]||""));}());</script>
       """
 
-    if process.env.NODE_ENV isnt 'production' and DEBUG = process.env.DEBUG
+    if !release and DEBUG = process.env.DEBUG
       $head.append $ """
         <script type="text/javascript">
           window.DEBUG = #{_.quote(DEBUG)};
         </script>
         """
 
+    @clientManifestString = stringify(@clientManifest)
+
     return
 
-  Ace.prototype.handle = (req, res, next, cb) ->
+  Ace.prototype.handle = (req, res, next) ->
     debug "New request for #{req.originalUrl}"
+
+    if req.url.lastIndexOf('/pub/') is 0
+      filePath = path.resolve(@assetRoot, req.url.replace(/^\/pub\/+/,''))
+      return next() unless filePath.lastIndexOf(@assetRoot+"/") is 0
+      _.readFile filePath, (err, content) =>
+        return next() if err?
+        res.end content
+      return
 
     $doc = @$template.clone()
     $html = $doc.find 'html'
@@ -89,18 +115,18 @@ module.exports = (Ace) ->
         'cookies': cookies
         'session': session = new Outlet undefined, undefined, true
         'Model': class Model extends ModelBase
+        'templates': @templateGlobals
 
       ace = globals['ace'] = Object.create this
       ace.aceComponents = {}
       ace['globals'] = globals
+      ace['onServer'] = true
       ace.uriToken = (uri) -> if id = session.value?.id then hash("#{id}#{uri}").substr(0,24) else ''
 
       Model.init ace
 
       ace.vars = (router = new Router @routes, globals).vars
-      unless router.route uri = new Uri req.url
-        cb?()
-        return next null
+      return next null unless router.route uri = new Uri req.url
       ace.currentUri = -> uri
 
       (new Controller['body'] ace)['appendTo'] $body
@@ -108,6 +134,7 @@ module.exports = (Ace) ->
       debugError _error?.stack
 
     doRedirect = false
+    res.header 'Content-Type', 'text/html'
 
     @sock.onIdle idleFn = =>
       unless arr = uri?.query()['']
@@ -126,24 +153,23 @@ module.exports = (Ace) ->
         else
           canonicalUri = undefined
 
+        $html.append $ """
+          <script type="text/javascript">
+            window.aceArgs = [#{_.quote(canonicalUri) || "null"}, #{@clientManifestString}, #{stringify(json)}, 'body'];
+          </script>
+          """
+
         $title.after $ str if str = @bundleHtml.head
         $body.append $ str if str = @bundleHtml.body
         $html.append $ str if str = @bundleHtml.html
 
-        $html.append $ """
-          <script type="text/javascript">
-            if (window.Ace) { var ace = new Ace(#{_.quote(canonicalUri) || "null"}, #{JSON.stringify @clientManifest}, #{JSON.stringify json}, $('body')); }
-          </script>
-          """
-
         res.end ''+$doc.html()
 
         debug "done rendering request for #{req.originalUrl}"
-        cb?()
         return
 
       doRedirect = true
-      setFormValues $body, req.body if req.body
+      setFormValues $body, req if req.body or req.files
 
       try
         delete uri.query()['']

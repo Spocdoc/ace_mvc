@@ -21,6 +21,7 @@ module.exports = class ViewBase extends Base
 
     @aceParent = aceParent
     @aceName = aceName || ''
+    @controllers = {}
 
     debugMvc "Building #{@}"
 
@@ -31,11 +32,14 @@ module.exports = class ViewBase extends Base
       throw new Error "MVC components with the same parent must have distinct names." if components[@acePath]
       components[@acePath] = this
 
+    @['view'] = this
+
     Outlet.openBlock()
     prev = Outlet.auto; Outlet.auto = null
     try
       @_buildOutlets()
       @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet false, this, true
+      @['isPrimary'] = settings['isPrimary']
       @_buildTemplate settings['template'] || @aceConfig['template'] || @aceType, settings
       @_buildDollar()
       @_runConstructors settings
@@ -132,10 +136,13 @@ module.exports = class ViewBase extends Base
             outlet.addOutflow new Outlet =>
               unless @['ace']['booting'] and @['template']['bootstrapped']
                 if outlet.value
-                  if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
-                    @['domCache'][dollar] = v
-                    debugDom "calling #{methName} in dom on #{dollar} with #{v}"
-                    e[methName](v)
+                  e['keepSelection'] =>
+                    if @['domCache'][dollar] isnt (v = ''+(outlet.value ? ''))
+                      @['domCache'][dollar] = v
+                      debugDom "calling #{methName} in dom on #{dollar} with #{v}"
+                      e[methName](v)
+                    return
+              return
 
           when 'view'
             oldView = undefined
@@ -152,18 +159,24 @@ module.exports = class ViewBase extends Base
                   e[methName](outlet.value)
       else
         switch methName
-          when 'link'
+          when 'link', 'linkdown', 'linkup'
+            trigger = if methName is 'link' then 'click' else methName.replace 'link', 'mouse'
             applyLink = (arg) =>
               if !arg?
-                e['link'].call e, this
+                e['link'].call e, trigger, this
               else
                 if typeof arg is 'string' or typeof arg[0] is 'string'
-                  e['link'].apply e, [this].concat arg
+                  e['link'].apply e, [trigger, this].concat arg
                 else
-                  e['link'].apply e, arg
+                  e['link'].apply e, [trigger].concat arg
               return
             if typeof arg is 'function'
-              @outlets["_link#{_.makeId()}"] = new Outlet (=> applyLink arg.call this), this, true
+              if arg.length
+                id = _.makeId()
+                feed = @outlets["_link#{id}_feed"] = new Outlet arg, this, true
+                @outlets["_link#{id}"] = new Outlet (=> applyLink feed.get()), this, true
+              else
+                @outlets["_link#{_.makeId()}"] = new Outlet (=> applyLink arg.call this), this, true
             else
               applyLink arg
 

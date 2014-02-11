@@ -3,6 +3,7 @@ Template = require './template'
 Outlet = require 'outlet'
 debugDom = global.debug 'ace:dom'
 debugMvc = global.debug 'ace:mvc'
+debugWindow = global.debug 'ace:mvc:window'
 Configs = require './configs'
 buildClasses = require './build_classes'
 _ = require 'lodash-fork'
@@ -38,7 +39,7 @@ module.exports = class ViewBase extends Base
     prev = Outlet.auto; Outlet.auto = null
     try
       @_buildOutlets()
-      @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet false, this, true
+      @inWindow = @['inWindow'] = @outlets['inWindow'] = new Outlet settings['$inWindow'], this, true
       @['isPrimary'] = settings['isPrimary']
       @_buildTemplate settings['template'] || @aceConfig['template'] || @aceType, settings
       @_buildDollar()
@@ -53,61 +54,59 @@ module.exports = class ViewBase extends Base
   varPrefix: '$'
   'View': ViewBase
 
-  toString: -> "View [#{@aceType}][#{@aceName}]"
+  toString: -> "View [#{@aceType}][#{@acePath}]"
 
-  'insertAfter': ($elem) ->
+  'insertAfter': ($elem, view) ->
     @['detach']()
     $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
+    @containingView = view
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "insert #{@} after #{$elem}"
       $elem.after(@['$root'])
-    @_setInWindow @$container
+    @inWindow.set ((view and view.inWindow) or true)
+    return
 
-  'insertBefore': ($elem) ->
+  'insertBefore': ($elem, view) ->
     @['detach']()
     $elem = $elem['$root'] || $elem['view']['$root'] if $elem instanceof Base
     @$container = $elem.parent()
+    @containingView = view
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "insert #{@} before #{$elem}"
       $elem.before(@['$root'])
-    @_setInWindow @$container
+    @inWindow.set ((view and view.inWindow) or true)
 
-  'prependTo': ($container) ->
+  'prependTo': ($container, view) ->
     @['detach']()
     $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
+    @containingView = view
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "prepend #{@} to #{$container}"
       $container.prepend(@['$root'])
-    @_setInWindow $container
+    @inWindow.set ((view and view.inWindow) or true)
 
-  'appendTo': ($container) ->
+  'appendTo': ($container, view) ->
     @['detach']()
     $container = $container['$container'] || $container['view']['$container'] if $container instanceof Base
     @$container = $container
+    @containingView = view
     unless @['ace']['booting'] and @['template']['bootstrapped']
-      debugDom "append #{@} to #{$container}"
+      debugDom "append #{@} to view #{view}"
       $container.append(@['$root'])
-    @_setInWindow $container
+    debugWindow "set window for #{this} to #{view}"
+    @inWindow.set ((view and view.inWindow) or true)
 
   'detach': ->
     return unless @$container
-    @$container = undefined
-    @inWindow.unset()
+    @inWindow.unset(iw) if iw = @containingView?.inWindow
     @inWindow.set(false)
+    @$container = undefined
+    @containingView = undefined
     unless @['ace']['booting'] and @['template']['bootstrapped']
       debugDom "detach #{@} from #{@$container}"
       @['$root'].detach()
-    return
-
-  _setInWindow: ($container) ->
-    if other = $container.template?.aceParent?.inWindow
-    else
-      for parent in $container.parents()
-        (break) if other = parent.template?.view?.inWindow
-
-    @inWindow.set(other || true)
     return
 
   _buildDollarString: do ->
@@ -148,7 +147,7 @@ module.exports = class ViewBase extends Base
             oldView = undefined
             outlet.addOutflow new Outlet =>
               oldView?['detach']()
-              (oldView = outlet.value)?['appendTo'] e
+              (oldView = outlet.value)?['appendTo'] e, this
               return
 
           else

@@ -18,16 +18,13 @@ module.exports = class Route
           when '#' then (@hash ||= new QueryHash).add arg.substr(1)
           else @name = arg
 
-    @varNames = {}
+    @pathNames = {}
 
     if @path
       if outletHash
         @path.outletHash = outletHash
-        @varNames[name] = 1 for name of outletHash
-      @varNames[name] = 1 for name in @path.keys
-
-    @varNames[name] = 1 for key, name of @query.obj if @query
-    @varNames[name] = 1 for key, name of @hash.obj if @hash
+        @pathNames[name] = 1 for name of outletHash
+      @pathNames[name] = 1 for name in @path.keys
 
     debug "Built route with path regex #{@path.regexp}" if @path
 
@@ -38,12 +35,6 @@ module.exports = class Route
     return false unless @path.match uri, outlets
     @query?.setOutlets uri.search.substr(1), outlets
     @hash?.setOutlets uri.hash.substr(1), outlets
-    for k,outlet of outlets when !@varNames[k]
-      if outlet instanceof Outlet
-        outlet.set undefined
-      else if outlet isnt outlets
-        for k,v of outlet when outlet.hasOwnProperty(k)
-          v.set undefined
     true
 
   format: (outlets) ->

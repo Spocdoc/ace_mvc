@@ -75,7 +75,6 @@ module.exports = class TemplateBase
       for id in config.ids
         ($elem = @["$#{id}"] = @$[id] = @['$root'].find("##{id}"))
         .attr('id', "#{@acePrefix}-#{id}")
-        .template = this
         if $elem.name() in NAME_ELEMS
           $elem.attr 'name', "#{@acePrefix}-#{id}"
 
@@ -88,7 +87,6 @@ module.exports = class TemplateBase
       debug "Bootstrapping template with rootId #{rootId}"
       for id in config.ids
         (@["$#{id}"] = @$[id] = @['$root'].find("##{@acePrefix}-#{id}"))
-          .template = this
 
     # public
     @['acePrefix'] = @acePrefix

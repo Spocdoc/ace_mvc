@@ -26,7 +26,9 @@ unless process.env.NODE_ENV is 'production'
 module.exports = (Ace) ->
 
   Ace.prototype._build = (manifest, @options, @sockEmulator) ->
-    @bundleHtml = manifest.clientHtml()
+    @skipJS = manifest.options.disableClientJS
+    @bundleHtml = manifest.clientHtml(skipJS: @skipJS)
+
     {root, assetRoot: @assetRoot} = manifest.private
     release = process.env.NODE_ENV is 'production'
 
@@ -153,11 +155,12 @@ module.exports = (Ace) ->
         else
           canonicalUri = undefined
 
-        $html.append $ """
-          <script type="text/javascript">
-            window.aceArgs = [#{_.quote(canonicalUri) || "null"}, #{@clientManifestString}, #{stringify(json)}, 'body'];
-          </script>
-          """
+        unless @skipJS
+          $html.append $ """
+            <script type="text/javascript">
+              window.aceArgs = [#{_.quote(canonicalUri) || "null"}, #{@clientManifestString}, #{stringify(json)}, 'body'];
+            </script>
+            """
 
         $title.after $ str if str = @bundleHtml.head
         $body.append $ str if str = @bundleHtml.body

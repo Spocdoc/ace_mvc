@@ -45,16 +45,16 @@ module.exports = class Controller extends Base
 
     debugMvc "done building #{@}"
 
-  'appendTo': ($container) -> @['view']['appendTo']($container)
-  'prependTo': ($container) -> @['view']['prependTo']($container)
-  'insertBefore': ($elem) -> @['view']['insertBefore']($elem)
-  'insertAfter': ($elem) -> @['view']['insertAfter']($elem)
+  'appendTo': ($container, view) -> @['view']['appendTo']($container, view)
+  'prependTo': ($container, view) -> @['view']['prependTo']($container, view)
+  'insertBefore': ($elem, view) -> @['view']['insertBefore']($elem, view)
+  'insertAfter': ($elem, view) -> @['view']['insertAfter']($elem, view)
   'detach': -> @['view']['detach']()
 
   'Controller': Controller
   'View': View
 
-  toString: -> "Controller [#{@aceType}][#{@aceName}]"
+  toString: -> "Controller [#{@aceType}][#{@acePath}]"
 
   _buildView: (arg, settings) ->
     if arg instanceof View

@@ -13,9 +13,8 @@
     "hiredis": "0.x",
     "redis": "0.x",
     "mongodb": "1.x",
-    "jade": "0.x"
-  },
-  "DEBUG local dependencies": {
+    "jade": "0.x",
+
     "closurify": "0.x",
     "debug-fork": "0.x",
     "dom-fork": "0.x",

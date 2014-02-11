@@ -54,18 +54,26 @@ module.exports = (Ace) ->
     @vars = router.vars
     @currentUri = -> navigate.uri
 
-    # route only the URL the server saw when it rendered (to bootstrap)
-    router.route canonicalUri || navigate.uri.clone().setHash('')
+    # In principle, you want to route only the server URI first, then route
+    # everything so the bootstrapping is done on the server-visible parts of
+    # the URL. This is done by first routing
+    #      # route only the URL the server saw when it rendered (to bootstrap)
+    #      router.route canonicalUri || navigate.uri.clone().setHash('')
+    # then building everything then routing
+    #      router.useNavigate canonicalUri
+    # However, since the client-side details (1) shouldn't conflict with
+    # server-side rendering and (2) should generally pertain to scrolling,
+    # etc., it should be fine to route the full route up front
+
+    router.useNavigate canonicalUri
 
     Template.bootRoot = $container
-    (new Controller['body'] this)['appendTo'] $container
+    (new Controller['body'] this, $inWindow: true)['appendTo'] $container
     @['booting'] = false
     Template.bootRoot = null
 
     Model.clearQueryCache()
     delete Template.bootstrapRoot
 
-    # now route the entire URL
-    router.useNavigate canonicalUri
     debug "DONE WITH EVENT LOOP"
 

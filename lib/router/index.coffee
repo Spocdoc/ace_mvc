@@ -123,7 +123,13 @@ module.exports = class Router
   route: Outlet.block (uri) ->
     debug "Routing #{uri}"
     uri = new Uri uri unless uri instanceof Uri
-    for route in @routes when route.match uri, @_getOutlets route.name
+    for route in @routes when route.match uri, newOutlets = @_getOutlets route.name
+      if current = @current
+        oldOutlets = @_getOutlets current.name
+        oldNames = current.pathNames
+        newNames = route.pathNames
+        for name of oldNames when !newNames[name] or newOutlets[name] isnt oldOutlets[name]
+          oldOutlets[name].set undefined
       return @current = route
     debug "no match for #{uri}"
     return

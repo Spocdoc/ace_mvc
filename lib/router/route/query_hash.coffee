@@ -23,7 +23,7 @@ module.exports = class QueryHash
   setOutlets: (part, outlets) ->
     try
       obj = querystring.parse(part) || empty
-      ou.set obj[k] for k,v of @obj when !(ou = outlets[v]).pending
+      outlets[v].set obj[k] for k,v of @obj # when !(ou = outlets[v]).pending # NOTE: now that the outlets run the function even when set, it should be OK to assign the value from the route even if there's a pending function call. this allows the scroll position storage to work
     catch _error
     return
 

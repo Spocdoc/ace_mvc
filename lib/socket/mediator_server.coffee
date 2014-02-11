@@ -21,7 +21,7 @@ module.exports = class MediatorServer
       @sock.emit 'create', coll, OJSON.toOJSON(doc)
     return
 
-  cookies: (cookies, cb) -> cb()
+  cookies: (cookies, cb) -> cb.ok()
 
   run: (coll, id, version, cmd, args, cb) -> cb.reject "unhandled"
 

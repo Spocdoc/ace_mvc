@@ -61,13 +61,19 @@ module.exports = class Db extends Mongo
         @sub.unsubscribe event unless @_emitter[event]
     this
 
+  close: (cb) ->
+    super =>
+      @sub.on 'end', => cb?()
+      @pub.on 'end', => @sub.quit()
+      @pub.quit()
+
   constructor: (options) ->
     dbInfo = options['mongodb']
     redisInfo = options['redis']
 
     @pub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
     @sub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
-    super dbInfo.host, dbInfo.db
+    super dbInfo.db, dbInfo.host, dbInfo.port
 
     @sub.on 'message', (channel, str) =>
       # use JSON, not OJSON, to avoid re-converting

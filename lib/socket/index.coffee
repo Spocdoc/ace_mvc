@@ -8,17 +8,19 @@ module.exports = (server, options) ->
   io = sockio.listen(server)
   io.set 'store', new RedisStore
     redis: redis
-    redisPub: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
-    redisSub: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
-    redisClient: redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+    redisPub: pub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+    redisSub: sub = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
+    redisClient: cli = redis.createClient redisInfo.host, redisInfo.port, redisInfo.options
 
   io.set 'browser client', false
+
+  # flashsocket causes problems during close -- it listens on a separate socket and there's no way to get access to it to shut it down
 
   io.configure 'development', ->
     io.set 'log level', 3
     io.set 'transports', [
       'websocket'
-      'flashsocket'
+      # 'flashsocket'
       'htmlfile'
       'xhr-polling'
     ]
@@ -27,9 +29,21 @@ module.exports = (server, options) ->
     io.set 'log level', 1
     io.set 'transports', [
       'websocket'
-      'flashsocket'
+      # 'flashsocket'
       'htmlfile'
       'xhr-polling'
     ]
+
+  # assumes that close() has already been called to refuse new connections
+  io.exit = (cb) ->
+    for client in io.sockets.clients()
+      client.disconnect()
+
+    # now close redis connections
+    cli.on 'end', -> cb?()
+    sub.on 'end', -> cli.quit()
+    pub.on 'end', -> sub.quit()
+    pub.quit()
+    return
 
   io

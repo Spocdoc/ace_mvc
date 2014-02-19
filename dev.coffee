@@ -4,6 +4,7 @@ _ = require 'lodash-fork'
 fs = require 'fs'
 path = require 'path'
 require 'debug-fork'
+SigHandler = require './sig_handler'
 debug = global.debug 'ace'
 debugError = global.debug 'ace:error'
 
@@ -14,12 +15,9 @@ module.exports = (server, manifest, options) ->
   sockServer = new Socket server, options
   db = new Db options
   sockEmulator = undefined
-  socketConnections = {}
   dirWatch = resetter = ace = MediatorClient = MediatorServer = undefined
 
-  server.on 'connection', (sock) ->
-    socketConnections[id = sock.aceId = _.makeId()] = sock
-    sock.on 'close', -> delete socketConnections[id]
+  sigHandler = new SigHandler server, sockServer, db
 
   sockServer.on 'connection', (sock) ->
     return if initializing or resetter.running
@@ -27,6 +25,7 @@ module.exports = (server, manifest, options) ->
     require('./lib/socket/handle_connection')(sock)
 
   reset = (done) ->
+    return if sigHandler.terminating
     initializing = false
 
     manifest.update (err) ->
@@ -39,10 +38,8 @@ module.exports = (server, manifest, options) ->
             sources[i] = path.resolve(root,source) for source, i in sources
             dirWatch sources
 
-        # disconnect sockets
-        for id, sock of socketConnections
-          sock.end()
-          sock.destroy()
+        # forcefully disconnect *all* sockets (including socket.IO)
+        sigHandler.disconnectSockets()
 
         db.off()
 

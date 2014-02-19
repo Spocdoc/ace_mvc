@@ -1,6 +1,6 @@
 {
   "name": "ace_mvc",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "ERROR: No README.md file found!",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -26,6 +26,7 @@
     "sockio-fork": "0.x",
     "es5": "0.x",
     "lodash-fork": "0.x",
+    "mongo-fork": "0.x",
     "hash-fork": "0.x"
   }
 }

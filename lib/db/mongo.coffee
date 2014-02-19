@@ -7,8 +7,9 @@ regexCurlyDouble = /[\u201c\u201d]/g
 
 
 module.exports = class Mongo
-  constructor: (host, db) ->
-    @server = new mongodb.Server(host)
+  # port is optional
+  constructor: (db, host, port) ->
+    @server = if port then new mongodb.Server(host, port) else new mongodb.Server(host)
     @db = new mongodb.Db db, @server,
       w: 1
       native_parser: true
@@ -17,7 +18,25 @@ module.exports = class Mongo
     @_connect()
     @q = queue()
 
+  # closes the database connection and disconnects redis pub/sub
+  close: (cb) ->
+    return if @closed
+    @connected = false
+    @closed = true
+
+    @db.close =>
+      # TODO this is a lousy workaround for an apparent mongo bug -- connections in the internal pool are opened on a timer and close won't prevent new opens in some cases
+      setTimeout ( =>
+        if cb
+          @db.close cb
+        else
+          @db.close()
+      ), 5000
+    return
+
   _connect: ->
+    return if @closed
+
     @connected = false # whenever this is false, you're connecting
     @db.open (err) =>
       if err?

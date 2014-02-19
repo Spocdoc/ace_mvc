@@ -3,6 +3,7 @@ Db = require './lib/db'
 Ace = require './lib/ace'
 path = require 'path'
 sockHandleConnection = require './lib/socket/handle_connection'
+SigHandler = require './sig_handler'
 
 module.exports = (server, manifest, options) ->
   {root} = manifest.private
@@ -22,6 +23,8 @@ module.exports = (server, manifest, options) ->
   sockServer.on 'connection', (sock) ->
     sock.mediator = new MediatorClient db, sock
     sockHandleConnection sock
+
+  sigHandler = new SigHandler server, sockServer, db
 
   options['release'] = true
 

@@ -1,8 +1,12 @@
 debug = global.debug 'ace'
 debugError = global.debug 'ace:error'
+_ = require 'lodash-fork'
 
 # max time to wait for server.close()
-MAX_CLOSE_MILLIS = 10000
+if process.env.NODE_ENV is 'production'
+  MAX_CLOSE_MILLIS = 10000
+else
+  MAX_CLOSE_MILLIS = 500
 
 module.exports = class SigHandler
   constructor: (server, sockServer, db) ->

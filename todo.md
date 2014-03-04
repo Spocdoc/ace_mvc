@@ -187,5 +187,12 @@ most likely has to do with closure. I noticed some variables that had been defin
 
 
 
+# Outlets & Scroll restoration
+
+ [] add a way for computation *after* all the roots have computed
+
+    - use for dom updates (safari)
+    - use for push events (so there's one push for the entire loop)
+    - use for scroll restore (so you restore after the loop and, if implemented, after the dom updates)
 
 

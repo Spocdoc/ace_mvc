@@ -45,11 +45,13 @@ module.exports = class Router
     @length = 0
     @vars = new Var
 
-    @context = context = new Context this, config, globals
+    context = new Context this, config, globals
+    afterPush = if context.afterPush then (=> context.afterPush()) else ->
 
-    @afterPush = =>
-      @setAfterPush = false
-      @context.afterPush()
+    @deferredPush = =>
+      @setDeferredPush = false
+      @navigate @pushUri
+      Outlet.atEnd afterPush
       return
 
     for a,i in config._vars when a['']
@@ -97,24 +99,21 @@ module.exports = class Router
     updateNavigate.func = =>
       uri = new Uri @uriFormatter.value
       if @current is lastRoute and @current.path.shouldReplace(lastPathname, uri.pathname)
-        @navigate.replace uri
+        if @setDeferredPush
+          @pushUri = uri
+        else
+          @navigate.replace uri
       else
-        if @navigate.wouldPush uri
-          unless @setAfterPush or !@context.afterPush
-            @setAfterPush = true
-            Outlet.atEnd @afterPush
-
-          # set old path outlets to undefined, for consistency
-          if lastRoute and lastRoute isnt current = @current
-            newOutlets = @_getOutlets current.name
-            oldOutlets = @_getOutlets lastRoute.name
-            oldNames = lastRoute.pathNames
-            newNames = current.pathNames
-            for name of oldNames when !newNames[name] or newOutlets[name] isnt oldOutlets[name]
-              oldOutlets[name].set undefined
-
         lastRoute = @current
-        @navigate uri
+        if @navigate.wouldPush uri
+          @pushUri = uri
+          unless @setDeferredPush
+            Outlet.atEnd @deferredPush
+            @setDeferredPush = true
+        else if @setDeferredPush
+          @pushUri = uri
+        else
+          @navigate uri
       lastPathname = uri.pathname
       return
 

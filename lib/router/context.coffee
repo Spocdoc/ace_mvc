@@ -8,6 +8,7 @@ module.exports = class Context
 
     @configure = config['configure']
     @start = config['start']
+    @afterPush = config['afterPush']
     @_varCache = {}
 
   'outlet': (value) -> new Outlet value, this, true

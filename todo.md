@@ -112,6 +112,14 @@ most likely has to do with closure. I noticed some variables that had been defin
 
  - remove unnecessary divs by observing that if there's only 1 element in the template, no root wrapper is needed (just add the necessary classes to the top element and link `@$root` to it)
 
+# Bundler
+
+ - the bundles aren't portable
+
+    they export files by inode, then ace looks up the file's inodes a second time using the local files
+
+    instead, the inodes should be associated with the files in the manifest itself and those should be used by ace (rather than looking up the inodes a second time from the disk)
+
 
 # Usability
 
@@ -151,4 +159,33 @@ most likely has to do with closure. I noticed some variables that had been defin
     1) the URL can't use the "uri token' (but that only applies to server-generated links?)
 
     2) the string part still has to be escaped
+
+# dev
+
+ - the program can't reset itself if there's a compilation error in a file
+
+    if there's an error, it should retain the previous list of watched files and revert to that
+
+ - if the inlets aren't explicitly given, you can't specify them in the constructor of the view
+
+    so this shorthand
+
+         module.exports =
+           $top: 'view'
+           $bottom: 'view'
+
+    isn't fully equivalent to 
+
+         module.exports =
+           inlets: [
+             'top'
+             'bottom'
+           ]
+
+           $top: 'view'
+           $bottom: 'view'
+
+
+
+
 

@@ -154,7 +154,7 @@ module.exports = class ModelBase extends Base
 
   # can also call with an array of ids, optional array of versions and optional callback
   @['read'] = @read = (id) ->
-    (model = new this id).read() unless model = @models[id]
+    (model = new this id)?.read() unless model = @models[id]
     model
 
   @['isValidId'] = do ->
@@ -164,6 +164,8 @@ module.exports = class ModelBase extends Base
   constructor: (id, clientDoc) ->
     # this is for patching the serverDoc with DBRefs instead of models. clone calls it
     return new DBRef @aceType, new ObjectID(id.id) if id instanceof @constructor
+
+    return undefined unless id
 
     models = @constructor.models
     return model if model = models[id]

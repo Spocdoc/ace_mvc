@@ -28,7 +28,7 @@ module.exports = class Controller extends Base
 
     @acePath = "#{@aceParent.acePath}/#{@aceName}"
     if components = @['ace'].aceComponents
-      throw new Error "MVC components with the same parent must have distinct names." if components[@acePath]
+      throw new Error "MVC components with the same parent must have distinct names: controller [#{@acePath}]." if components[@acePath]
       components[@acePath] = this
 
     Outlet.openBlock()

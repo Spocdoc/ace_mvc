@@ -30,7 +30,7 @@ module.exports = class ViewBase extends Base
 
     @acePath = "#{@aceParent.acePath}/#{@aceName}"
     if components = @['ace'].aceComponents
-      throw new Error "MVC components with the same parent must have distinct names." if components[@acePath]
+      throw new Error "MVC components with the same parent must have distinct names: view [#{@acePath}]." if components[@acePath]
       components[@acePath] = this
 
     @['view'] = this

@@ -40,7 +40,8 @@ $['fn']['extend']
     nodeName = @['name']()
     ace = component['ace']
 
-    trigger = 'touchend' if isTouch and trigger is 'click'
+    # bad idea -- it causes all the links to activate too often
+    # trigger = 'touchend' if isTouch and trigger is 'click'
 
     suffix = if typeof (fn = args[0]) is 'function' then '' else '.link'
 

@@ -40,16 +40,22 @@ module.exports = class Router
     return
 
   constructor: Outlet.block (config, globals) ->
+    globals['router'] = this
     @routes = if Array.isArray(config['list']) then config['list'] else Router.buildRoutes(config)['list']
     @uriOutlets = {}
     @length = 0
     @vars = new Var
 
     @context = context = new Context this, config, globals
+    @afterPushArg = {}
+    @doAfterPush = false
 
     @afterPush = =>
-      @setAfterPush = false
-      @context.afterPush()
+      doAfterPush = @doAfterPush
+      afterPushArg = @afterPushArg
+      @setAfterPush = @doAfterPush = false
+      @afterPushArg = {}
+      @context.afterPush afterPushArg if doAfterPush
       return
 
     for a,i in config._vars when a['']
@@ -64,6 +70,16 @@ module.exports = class Router
     return
 
   _getOutlets: (name) -> if name then @uriOutlets[name] else @uriOutlets
+
+  'setAfterPushArg': (name, value) ->
+    return if !@context.afterPush
+
+    @afterPushArg[name] = value
+
+    unless @setAfterPush
+      @setAfterPush = true
+      Outlet.atEnd @afterPush
+    return
 
   serverUri: ->
     uri = new Uri(if @current then @current.format @_getOutlets @current.name else '')
@@ -100,6 +116,7 @@ module.exports = class Router
         @navigate.replace uri
       else
         if @navigate.wouldPush uri
+          @doAfterPush = true
           unless @setAfterPush or !@context.afterPush
             @setAfterPush = true
             Outlet.atEnd @afterPush

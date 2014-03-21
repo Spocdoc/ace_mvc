@@ -6,6 +6,7 @@ module.exports = class Context
     @[k] = v for k,v of globals
     @[k] = v for k,v of config['methods']
 
+    @globals = @['globals'] = globals
     @configure = config['configure']
     @start = config['start']
     @afterPush = config['afterPush']

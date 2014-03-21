@@ -1,5 +1,6 @@
-callback = require '../db/callback'
 OJSON = require 'ojson'
+AceError = require '../error'
+Reject = require '../error/reject'
 
 module.exports = (sock) ->
   # sock.mediator = mediator = new Mediator db, sock
@@ -11,13 +12,11 @@ module.exports = (sock) ->
 
     args = Array.apply null, arguments
 
-    for arg, i in args when typeof arg is 'object'
-      args[i] = OJSON.fromOJSON arg
-
+    # change the function so it invokes the queue afterwards
     for argFn,iFn in args when typeof argFn is 'function'
       cookiesQueue = []
 
-      args[iFn] = new callback.Cookies ->
+      args[iFn] = ->
         try
           argFn.apply null, arguments
         catch _error
@@ -31,14 +30,12 @@ module.exports = (sock) ->
     mediator['cookies'].apply mediator, args
 
   for name in ['disconnect', 'create', 'read', 'update', 'delete', 'run', 'distinct']
-    Callback = callback[name.charAt(0).toUpperCase() + name[1..]]
-    do (name, Callback) ->
+    do (name) ->
       sock.on name, ->
+
         args = Array.apply null, arguments
-        for arg,i in args
-          switch typeof arg
-            when 'object' then args[i] = OJSON.fromOJSON arg
-            when 'function' then args[i] = new Callback arg
+
+        # store in queue if received cookies, else execute immediately
         if cookiesQueue
           cookiesQueue.push {name,args}
         else

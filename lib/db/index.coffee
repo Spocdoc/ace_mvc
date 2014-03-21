@@ -1,5 +1,3 @@
-# ASIDE: serious coffee script fail with all these useless return statements
-
 Mongo = require './mongo'
 mongodb = require 'mongo-fork'
 redis = require 'redis'
@@ -10,40 +8,30 @@ OJSON = require 'ojson'
 Emitter = require 'events-fork/emitter'
 debug = global.debug 'ace:server:db'
 async = require 'async'
-callback = require './callback'
 fixQuery = require './fix_query'
+Reject = require '../error/reject'
+Conflict = require '../error/conflict'
+
+checkMutation = (origin, cb) ->
+  return true unless origin.readOnly
+  cb new Reject 'NOMUT'
+  false
 
 checkId = (id, cb) ->
-  unless id instanceof mongodb.ObjectID
-    cb(['rej', "Invalid id"])
-    false
-  else
-    true
+  return true if id instanceof mongodb.ObjectID
+  cb new Reject "ID"
+  false
 
 replaceId = (id, cb) ->
   if typeof id is 'string'
     try
       id = new mongodb.ObjectID id
     catch _error
-      cb.reject 'Invalid id'
+      cb new Reject "ID"
       return false
   else unless checkId id,cb
     return false
   id
-
-checkMutation = (origin, cb) ->
-  if origin.readOnly
-    cb.reject "Mutating events disallowed"
-    false
-  else
-    true
-
-checkErr = (err, cb) ->
-  if err
-    cb.reject err.message
-    false
-  else
-    true
 
 module.exports = class Db extends Mongo
   emit: Emitter.emit
@@ -87,170 +75,214 @@ module.exports = class Db extends Mongo
 
       return
 
-  @channel = (coll, id) -> "#{coll}:#{id}"
+  @channel = (coll, id) ->
+    if id._id
+      id = id._id
+    else if id.oid
+      id = id.oid
+
+    "#{coll}:#{id}"
 
   create: (origin, coll, doc, cb) ->
     debug "Got create request with",coll,doc
     return unless checkMutation(origin, cb) and checkId(doc._id, cb)
-    return cb.reject "Version must be at least 1" unless doc['_v'] >= 1
+    return cb new Reject "VERSION" unless doc['_v'] >= 1
+    @run 'insert', coll, doc, (err) -> cb err
 
-    @run 'insert', coll, doc, (err) ->
-      return unless checkErr(err, cb)
-      cb.ok()
-      return
-    return
+  readIds: (origin, coll, ids, versions, cb, validateQuery) ->
+    # build a map from id to version (docs may be out of order)
+    # default reply is reject
+    versionArray = versions; versions = {}
+    reply = {}; reject = [new Reject 'EMPTY']; ok = []
+    for version, i in versionArray
+      return unless id = ids[i] = replaceId(ids[i], cb)
+      versions[id] = version
+      reply[id] = reject
 
-  read: (origin, coll, id, version, query, limit, sort, cb) ->
-    debug "Got read request with",coll,id,version,query,limit,sort
-    doc = undefined
+    async.waterfall [
+      (next) =>
+        query = '_id': '$in': ids
+
+        if validateQuery
+          validateQuery query, next
+        else
+          next null, query
+
+      (query, next) =>
+        # get only the id and version
+        @run 'find', coll, query, {'_id': 1, '_v': 1}, next
+
+      (docs, next) =>
+        fetchIds = []
+
+        for doc in docs
+          id = doc._id # ObjectId
+          if doc._v is versions[id]
+            reply[id] = ok
+          else
+            fetchIds.push id
+
+        if fetchIds.length
+          @run 'find', coll, {'_id': '$in': fetchIds}, next
+        else
+          next null, []
+
+      (docs, next) =>
+        for doc in docs
+          reply[doc._id] = [null, doc]
+        next null, reply
+
+    ], cb
+
+  query: (origin, coll, query, limit, sort, cb, validateQuery) ->
+    async.waterfall [
+      # modify the query in place if necessary
+      (next) =>
+        spec =
+          query: fixQuery(query)
+          sort: sort
+          limit: limit
+
+        if validateQuery
+          validateQuery spec, next
+        else
+          next null, spec
+
+      (spec, next) =>
+        {query,sort,limit} = spec
+        search = query.$text
+        delete query.$text
+
+        # mongo treats full text searches totally differently from find commands that don't involve full text.
+        # $text is used here to normalize the client API. it's not a valid mongo field
+        if search
+          @run 'text', coll,
+            search: search
+            limit: limit
+            filter: query
+            next
+        else if limit? and limit > 1
+          @run 'find', coll, query, limit: limit, sort: sort, next
+        else
+          @run 'findOne', coll, query, next
+
+    ], (err, docs) =>
+      docs = [docs] if docs and !Array.isArray(docs)
+      cb err, docs
+
+  read: (origin, coll, id, version, query, limit, sort, cb, validateDoc) ->
+    debug "Got read request with",origin.id,coll,id,version,query,limit,sort
 
     if id
       if Array.isArray id
-        reply = {}
-        versions = {}
-        query = '_id': '$in': id
-        ok = callback.Read.ok()
-        reject = callback.Read.reject()
-        for docId, i in id
-          return unless id[i] = replaceId docId, cb
-          reply[docId] = reject
-          versions[docId] = version[i]
-
-        fullDocs = []
-
-        async.waterfall [
-          (next) => if cb.validateQuery? then cb.validateQuery(query,next) else next()
-          (next) => @run 'find', coll, query, {'_id': 1, '_v': 1}, next
-          (docs, next) =>
-            for doc in docs
-              if doc._v is versions[doc._id]
-                reply[doc._id] = ok
-              else
-                fullDocs.push doc._id
-
-            if fullDocs.length
-              @run 'find', coll, {'_id': '$in': fullDocs}, next
-            else
-              next null, []
-          (docs, next) =>
-            reply[doc._id] = callback.Read.doc doc for doc in docs
-            cb.bulk reply
-        ], (err) -> cb.reject err.message if err?
-
-      else
-        return unless id = replaceId(id, cb)
+        @readIds origin, coll, id, version, cb, validateDoc
+      else # read single id
+        return unless id = replaceId id, cb
 
         async.waterfall [
           (next) => @run 'findOne', coll, {_id: id}, next
-          (_doc, next) =>
-            doc = _doc
-            return cb.reject() unless doc
-            return cb.ok() unless (doc['_v'] ||= 1) > version
-            if cb.validate? then cb.validate(doc, next) else next()
-          (next) => cb.doc doc
-        ], (err) -> cb.reject err.message if err?
+
+          (doc, next) =>
+            return cb new Reject 'EMPTY' unless doc
+            return next() unless (doc['_v'] ||= 1) > (version || 0)
+
+            if validateDoc
+              validateDoc doc, (err) =>
+                return next err if err?
+                next null, doc
+            else
+              next null, doc
+
+        ], cb
 
     else if query
-      spec =
-        query: fixQuery(query)
-        sort: sort
-        limit: limit
-
-      async.waterfall [
-        (next) => if cb.validateQuery? then cb.validateQuery(spec, next) else next()
-        (next) =>
-          {query,sort,limit} = spec
-          search = query.$text
-          delete query.$text
-
-          # mongo treats full text searches totally differently from find commands that don't involve full text.
-          # $text is used here to normalize the client API. it's not a valid mongo field
-          if search
-            @run 'text', coll,
-              search: search
-              limit: limit
-              filter: query
-              next
-          else if limit? and limit > 1
-            @run 'find', coll, query, limit: limit, sort: sort, next
-          else
-            @run 'findOne', coll, query, next
-        (doc, next) =>
-          if doc?
-            doc = [doc] unless Array.isArray doc
-          else
-            doc = []
-          cb.doc doc
-          return
-      ], (err) -> cb.reject err.message if err?
-
-    else
-      cb.reject 'invalid read'
+      @query origin, coll, query, limit, sort, cb, validateDoc
 
     return
 
-  update: (origin, coll, id, version, ops, cb) ->
+  update: (origin, coll, id, version, ops, cb, validateUpdate) ->
     debug "Got update request with",coll,id,version,ops
     return unless checkMutation(origin, cb) and id = replaceId(id, cb)
-    moreOps = undefined
+    original = doc = moreOps = undefined
+
+    appliedToVersion = version
 
     async.waterfall [
       (next) => @run 'findOne', coll, {_id: id}, next
 
-      (doc, next) =>
-        return cb.reject() unless doc
-        return cb.conflict doc['_v'] unless version is (doc['_v'] ? 1)
+      (doc_, next) =>
+        return cb new Reject "EMPTY" unless doc = doc_
+        return cb new Conflict docVersion unless !version? or version is docVersion = (doc['_v'] ? 1)
 
-        orig = clone doc
-        to = diff.patch(doc, ops)
-        doc = orig
+        original = clone doc
+        doc = diff.patch doc, ops
 
-        if cb.validate?
-          cb.validate doc, ops, to, (err, moreOps_) -> moreOps = moreOps_; next err, doc, to
+        if validateUpdate
+          validateUpdate original, ops, doc, (err, moreOps) -> next err, moreOps or null # to ensure arg count is right
         else
-          next null, doc,to
+          next null, null
 
-      (doc, to, next) =>
-        ops = diff doc, to
-        spec = diff.toMongo ops, to
+      (moreOps_, next) =>
+        if moreOps = moreOps_
+          # complex merge required for toMongo
+          doc = diff.patch(doc, moreOps)
+          mergedOps = diff(original, doc)
+          spec = diff.toMongo mergedOps, doc
+        else
+          spec = diff.toMongo ops, doc
 
         # increment version
-        if doc['_v']?
-          (spec['$inc'] ||= {})['_v'] = if moreOps then 2 else 1
-        else
-          (spec['$set'] ||= {})['_v'] = if moreOps then 3 else 2
+        (spec['$inc'] ||= {})['_v'] = if moreOps then 2 else 1
+        appliedToVersion = doc['_v']
 
-        @run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
+        if version?
+          @run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
+        else
+          @run 'findAndModify', coll, {_id: id}, null, spec, {fields: _v: 1}, (err, doc) ->
+            return next err if err?
+            appliedToVersion = doc['_v']
+            next null, 1
 
       (updated, next) =>
-        return cb.conflict() unless updated
+        return cb new Conflict() unless updated
 
         if moreOps
-          cb.update version+1, moreOps
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version,[]])
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version+1,ops])
+          cb null, appliedToVersion+1, moreOps # send moreOps in the callback (so the original updater updates their client doc)
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),appliedToVersion,[]])
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),appliedToVersion+1,ops])
         else
-          cb.ok()
-          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),version,ops])
+          cb()
+          @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),appliedToVersion,ops])
 
-    ], (err) -> cb.reject err.message if err?
+    ], cb
 
     return
 
-  delete: (origin, coll, id, cb) ->
+  delete: (origin, coll, id, cb, validateDelete) ->
     debug "Got delete request with",coll,id
     return unless checkMutation(origin, cb) and id = replaceId(id, cb)
 
-    @run 'remove', coll, {_id: id}, (err) =>
-      return unless checkErr(err, cb)
-      cb.ok()
+    async.waterfall [
+      (next) ->
+        if validateDelete
+          @run 'findOne', coll, {_id: id}, (err, doc) =>
+            return next err if err?
+            validateDelete doc, next
+        else
+          next()
+
+      (next) ->
+        @run 'remove', coll, {_id: id}, next
+
+    ], (err) =>
+      return cb err if err?
+      cb()
       @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'delete',coll,id.toString()])
-      return
+
     return
 
   distinct: (origin, coll, query, key, cb) ->
     query = fixQuery(query)
     delete query.$text # not supported as a regular query type in mongoDB
-    @run 'distinct', coll, key, query, (err, docs) ->
-      return unless checkErr(err, cb)
-      cb.doc docs
+    @run 'distinct', coll, key, query, cb
+

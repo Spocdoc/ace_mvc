@@ -1,12 +1,14 @@
 Outlet = require 'outlet'
-OJSON = require 'ojson'
 {makeId} = require 'lodash-fork'
 NavCache = require 'navigate-fork/cache'
+OJSON = require 'ojson'
 emptyArray = []
 _ = require 'lodash-fork'
 debug = global.debug "ace:mvc:query"
 
 hash = (obj) ->
+  obj = OJSON.toOJSON obj
+
   str = "{"
   for k in Object.keys(obj).sort()
     v = obj[k]
@@ -50,12 +52,12 @@ module.exports = class Query
     @['results'] = @results = new Outlet []
     @navCache = new NavCache
 
-    @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
+    @_hash = hash @_spec
     @_readBootCache() if Query.useBootCache & CACHE_READ
 
     @_clientVersion = 0
     @_updater = new Outlet =>
-      @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
+      @_hash = hash @_spec
 
       if Query.useBootCache & CACHE_READ
         @_readBootCache()
@@ -84,29 +86,16 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_ojSpec, @limit.value, @sort.value, (code, docs) =>
-      pending = false
-      Outlet.openBlock()
-      try
-        if code is 'd'
-          @error.set ''
-          results = []
-          results[i] = @Model.read id for id, i in docs
-          if @_clientVersion != @_serverVersion
-            pending = true
-            @_update()
-          else
-            @_updateResults results
-        else if pending = (@_clientVersion != @_serverVersion)
-          @_update()
-        else
-          @error.set docs || "can't read"
-          @_updateResults []
-        @pending.set pending
-      finally
-        Outlet.closeBlock()
+    @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_spec, @limit.value, @sort.value, (err, docs) =>
+      if @_clientVersion != @_serverVersion
+        @_update()
+      else
+        @pending.set false
+        results = []
+        @error.set(if err? then err.code || 'UNKNOWN' else '')
+        results[i] = @Model.read id for id, i in docs if !err? and docs
+        @_updateResults results
       return
-    return
 
   _updateResults: (results) ->
     if Query.useBootCache & CACHE_WRITE
@@ -161,12 +150,9 @@ module.exports = class Query
         else if cached = navCache.get @_hash
           outlet.set cached
 
-        @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, @_ojSpec, key, (code, docs) =>
+        @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, @_spec, key, (err, docs) =>
           pending = false
-          if code is 'd'
-            docs = OJSON.fromOJSON docs
-          else
-            docs = emptyArray
+          docs ||= emptyArray
           outlet.set docs if !outlet.value or arraysDiffer outlet.value, docs
           unless serverVersion is @_clientVersion
             distinctUpdater()

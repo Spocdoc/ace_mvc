@@ -6,6 +6,7 @@ Model = require '../../mvc/model'
 View = require '../../mvc/view'
 Controller = require '../../mvc/controller'
 ModelBase = require '../../mvc/model'
+OjsonSocket = require '../../socket/ojson_socket'
 io = require 'sockio-fork'
 navigate = require 'navigate-fork'
 debug = global.debug 'ace'
@@ -24,7 +25,7 @@ module.exports = (Ace) ->
     View.compile()
     Controller.compile()
 
-    sock = io.connect '/'
+    sock = new OjsonSocket io.connect '/'
     cookies = new Cookies sock
     cookies.get() # emits cookies
 

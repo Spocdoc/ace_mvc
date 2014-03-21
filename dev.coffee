@@ -5,7 +5,9 @@ fs = require 'fs'
 path = require 'path'
 require 'debug-fork'
 SigHandler = require './sig_handler'
+OjsonSocket = require './lib/socket/ojson_socket'
 debug = global.debug 'ace'
+debugSock = global.debug 'ace:sock'
 debugError = global.debug 'ace:error'
 
 module.exports = (server, manifest, options) ->
@@ -21,6 +23,8 @@ module.exports = (server, manifest, options) ->
 
   sockServer.on 'connection', (sock) ->
     return if initializing or resetter.running
+    sock = new OjsonSocket sock # to serialize/deserialize args
+    debugSock "new socket.io with id #{sock.id}"
     sock.mediator = new MediatorClient db, sock
     require('./lib/socket/handle_connection')(sock)
 

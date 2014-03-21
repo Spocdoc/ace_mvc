@@ -5,7 +5,6 @@ regexAllSpace = /\s/g
 regexCurlySingle = /[\u2018\u2019]/g
 regexCurlyDouble = /[\u201c\u201d]/g
 
-
 module.exports = class Mongo
   # port is optional
   constructor: (db, host, port) ->

@@ -1,5 +1,4 @@
-OJSON = require 'ojson'
-
+Reject = require '../error/reject'
 emptyFunc = ->
 trueFunc = -> true
 
@@ -8,73 +7,79 @@ module.exports = class MediatorServer
 
   # these should exist and be empty in case the app overrides Mediator and calls them during the server render
   @prototype[name] = emptyFunc for name in [
-    'doUnsubscribe'
-    'isSubscribed'
+    'unsubscribe'
+    'subscribed'
     'disconnect'
   ]
   @prototype[name] = trueFunc for name in [
-    'doSubscribe'
+    'subscribe'
   ]
 
   clientCreate: (coll, doc) ->
-    if @doSubscribe coll, doc._id
-      @sock.emit 'create', coll, OJSON.toOJSON(doc)
+    if @subscribe coll, doc._id
+      @sock.emit 'create', coll, doc
     return
 
-  cookies: (cookies, cb) -> cb.ok()
+  cookies: (cookies, cb) -> cb()
 
-  run: (coll, id, version, cmd, args, cb) -> cb.reject "unhandled"
+  run: (coll, id, version, cmd, args, cb) -> cb new Reject "UNHANDLED"
 
-  for method in ['create','read','update','delete','distinct']
+  for method in ['update','delete','distinct']
     do (method) =>
-      capitalized = method.charAt(0).toUpperCase() + method.substr(1)
-
-      @prototype['db' + capitalized] = @prototype['base' + capitalized] = @prototype[method] = ->
+      @prototype['_' + method] = @prototype[method] = ->
         @db[method].apply @db, [@sock, arguments...]
 
-  @prototype.create = @prototype.baseCreate = (coll, doc, cb) ->
-    proxy = Object.create cb
-    id = doc._id
+  # subscribe to updates when creating a document
+  @prototype.create = @prototype._create = (coll, doc, cb) ->
+    @db.create @sock, coll, doc, (err) =>
+      return cb err if err?
+      @subscribe coll, ''+doc._id
+      cb.apply null, arguments
 
-    proxy.ok = =>
-      @doSubscribe coll, id
-      cb.ok.apply cb, arguments
+  # can send array of ids to re-read or a query. 
+  #   - an array of ids leads to map replies from id to array of arguments (full documents, array with error, or empty array)
+  #   - query leads to db returning an array of full documents or a single document. 
+  # 
+  # wrapper unsubscribes from rejects, subscribes new docs and changes the
+  # returned array to be an array of full documents or ids (based on whether
+  # it's subscribed or not)
+  @prototype.read = @prototype._read = (coll, id, version, query, limit, sort, cb, validateDoc) ->
+    # allow optional args 
+    ARGS = 8
+    if (len = arguments.length) < ARGS
+      if typeof arguments[len-2] is 'function'
+        # then last 2 were passed
+        validateDoc = arguments[len-1]
+        arguments[len-1] = null
+        cb = arguments[len-2]
+        arguments[len-2] = null
+      else if len < ARGS-1
+        cb = arguments[len-1]
+        arguments[len-1] = null
 
-    proxy.update = (version, ops) =>
-      @doSubscribe coll, id
-      cb.update version, ops
+    if Array.isArray id # reply will be a map
+      @db.read @sock, coll, id, version, query, limit, sort, ((err, obj) =>
+        for id, arr of obj
+          if (err = arr[0])?
+            @unsubscribe coll, id
+          else
+            @subscribe coll, id
+        cb.apply null, arguments), validateDoc
+    else
+      @db.read @sock, coll, id, version, query, limit, sort, ((err, docs) =>
+        if err? # error reading this id. unsubscribe.
+          @unsubscribe coll, id if id
+          return cb err
 
-    @dbCreate coll, doc, proxy
+        if docs
+          if Array.isArray docs # then sent a query... have an array of full docs
+            for doc, i in docs
+              @clientCreate coll, doc
+              docs[i] = ''+doc._id
 
-  @prototype.read = @prototype.baseRead = (coll, id, version, query, limit, sort, cb) ->
-    proxy = Object.create cb
+          else # single document
+            @subscribe coll, ''+docs._id
 
-    proxy.doc = (docs) =>
-      if Array.isArray docs
-        @clientCreate coll, doc for doc in docs
-      else
-        @doSubscribe coll, id
+        cb.apply null, arguments), validateDoc
+    return
 
-      cb.doc docs
-
-    proxy.ok = =>
-      @doSubscribe coll, id
-      cb.ok()
-
-    proxy.reject = (msg) =>
-      if Array.isArray id
-        ids = id
-        @doUnsubscribe coll, id for id in ids
-      else
-        @doUnsubscribe coll, id
-      cb.reject msg
-
-    proxy.bulk = (reply) =>
-      for id,r of reply
-        if r[0] is 'r'
-          @doUnsubscribe coll, id
-        else
-          @doSubscribe coll, id
-      cb.bulk reply
-
-    @dbRead coll, id, version, query, limit, sort, proxy

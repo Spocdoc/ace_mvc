@@ -4,6 +4,7 @@ Ace = require './lib/ace'
 path = require 'path'
 sockHandleConnection = require './lib/socket/handle_connection'
 SigHandler = require './sig_handler'
+OjsonSocket = require './lib/socket/ojson_socket'
 
 module.exports = (server, manifest, options) ->
   {root} = manifest.private
@@ -21,6 +22,7 @@ module.exports = (server, manifest, options) ->
   sockEmulator = -> new SockioEmulator db, MediatorServer
 
   sockServer.on 'connection', (sock) ->
+    sock = new OjsonSocket sock # to serialize/deserialize args
     sock.mediator = new MediatorClient db, sock
     sockHandleConnection sock
 

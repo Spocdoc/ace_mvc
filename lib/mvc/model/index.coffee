@@ -10,6 +10,8 @@ clone = require 'diff-fork/clone'
 OJSON = require 'ojson'
 Outlet = require 'outlet'
 Query = require './query'
+Reject = require 'ace_mvc/lib/error/reject'
+Conflict = require 'ace_mvc/lib/error/conflict'
 patchOutlets = diff.toOutlets
 debug = global.debug 'ace:mvc:model'
 debugError = global.debug 'error'
@@ -52,14 +54,13 @@ module.exports = class ModelBase extends Base
 
     sock.on 'create', (coll, doc) =>
       debug "got create on #{coll}, #{doc['_id']}"
-      doc = OJSON.fromOJSON doc
       (@[coll].models[doc['_id']] || new @[coll] doc['_id']).serverCreate doc
       return
 
     sock.on 'update', (coll, id, version, ops) =>
       debug "got update on #{coll}, #{id}"
       if model = @[coll].models[id]
-        model.serverUpdate version, OJSON.fromOJSON ops
+        model.serverUpdate version, ops
       return
 
     sock.on 'delete', (coll, id) =>
@@ -95,20 +96,12 @@ module.exports = class ModelBase extends Base
           ++i
         if ids[0]
           do (clazz, docs, ids) ->
-            sock.emit 'read', type, ids, versions, null, null, null, (code, arg) ->
-              if typeof code is 'object'
-                Outlet.openBlock()
-                try
-                  clazz.models[id].handleRead args[0], args[1], docs[id] for id, args of code
-                finally
-                  Outlet.closeBlock()
+            sock.emit 'read', type, ids, versions, (err, reply) ->
+              if err?
+                clazz.models[id].handleRead err for id in ids
               else
-                Outlet.openBlock()
-                try
-                  for id in ids
-                    clazz.models[id].handleRead code, arg
-                finally
-                  Outlet.closeBlock()
+                for id, args of reply
+                  clazz.models[id].handleRead args[0], args[1]
               return
       return
 
@@ -138,7 +131,9 @@ module.exports = class ModelBase extends Base
 
     if json
       for type, obj of OJSON.fromOJSON json
-        new @[type] doc['_id'], doc for doc in obj['m']
+        for doc in obj['m']
+          model = new @[type] doc['_id'], doc
+          model.serverDoc = clone doc
         @[type].queryCache[hash] = {ids,distinct} for hash, {'i':ids,'d':distinct} of obj['q']
       @['reread']()
 
@@ -216,22 +211,18 @@ module.exports = class ModelBase extends Base
     @clientDoc ||= '_id': id
     @clientDoc['_v'] ||= 1
     clientDoc = clone @clientDoc
-    @sock.emit 'create', @aceType, OJSON.toOJSON(clientDoc), (code, arg1, arg2) =>
-      Outlet.openBlock()
-      try
-        @handleCreate code, clientDoc, arg1, arg2
-      finally
-        Outlet.closeBlock()
+    @sock.emit 'create', @aceType, clientDoc, (err, version, ops) =>
+      @handleCreate err, clientDoc, version, ops
 
-  handleCreate: (code, doc, arg1, arg2) ->
+  handleCreate: (err, doc, version, ops) ->
     @_pending.set @_pending.value & ~CREATE_NOW
 
-    if code is 'r'
-      @error.set arg1 || "can't create"
+    if err?
+      @error.set "can't create"
     else
       @error.set ''
       @serverDoc = doc
-      @serverUpdate arg1, OJSON.fromOJSON(arg2) if code is 'u'
+      @serverUpdate version, ops if ops
 
     @_loop()
     return
@@ -245,22 +236,18 @@ module.exports = class ModelBase extends Base
   read: ->
     return unless @canRead()
     clientDoc = clone @clientDoc
-    @sock.emit 'read', @aceType, @id, (clientDoc && clientDoc['_v']), null, null, null, (code, arg) =>
-      Outlet.openBlock()
-      try
-        @handleRead code, arg, clientDoc
-      finally
-        Outlet.closeBlock()
+    @sock.emit 'read', @aceType, @id, (clientDoc && clientDoc['_v']), (err, doc) =>
+      @handleRead err, doc or clientDoc
 
-  handleRead: (code, arg, clientDoc) ->
+  handleRead: (err, clientDoc) ->
     @_pending.set @_pending.value & ~READ_NOW
 
-    if code is 'r'
+    if err?
       @serverDelete()
-      @error.set arg || "can't read"
+      @error.set "can't read"
     else
       @error.set ''
-      @serverCreate if code is 'd' then OJSON.fromOJSON(arg) else clientDoc
+      @serverCreate clientDoc if clientDoc
 
     @_loop()
     return
@@ -329,41 +316,38 @@ module.exports = class ModelBase extends Base
       @_loop()
       return
 
-    @sock.emit 'update', @aceType, @id, @serverDoc['_v'], OJSON.toOJSON(outgoing), (code, arg1, arg2) =>
-      Outlet.openBlock()
-      try
-        @handleUpdate code, arg1, arg2, outgoing
-      finally
-        Outlet.closeBlock()
+    @sock.emit 'update', @aceType, @id, @serverDoc['_v'], outgoing, (err, version, ops) =>
+        @handleUpdate err, outgoing, version, ops
     return
 
-  handleUpdate: (code, arg1, arg2, outgoing) ->
-    if code is 'r'
-      if @outgoing[0]
-        outgoing.push @outgoing...
-        @outgoing = outgoing
-        @_update()
+  handleUpdate: (err, outgoing, version, ops) ->
+    if err?
+      if err instanceof Conflict
+        if @serverDoc['_v'] > @clientDoc['_v']
+          @_conflict() # TODO
+        else
+          outgoing.push @outgoing...
+          @outgoing = outgoing
+          @_pending.set @_pending.value & ~UPDATE_NOW
+          @_loop()
       else
-        @error.set arg1 || "can't update"
-        @patchClient diff @clientDoc, @serverDoc
-        @_pending.set @_pending.value & ~UPDATE_NOW
-        @_loop()
-    else if code is 'c'
-      if @serverDoc['_v'] > @clientDoc['_v']
-        @_conflict() # TODO
-      else
-        outgoing.push @outgoing...
-        @outgoing = outgoing
-        @_pending.set @_pending.value & ~UPDATE_NOW
-        @_loop()
+        if @outgoing[0]
+          outgoing.push @outgoing...
+          @outgoing = outgoing
+          @_update()
+        else
+          @error.set "can't update"
+          @patchClient diff @clientDoc, @serverDoc
+          @_pending.set @_pending.value & ~UPDATE_NOW
+          @_loop()
     else
       ++@serverDoc['_v']
       ++@clientDoc['_v']
       @serverDoc = diff.patch @serverDoc, outgoing
 
-      if code is 'u'
+      if ops
         @_pending.set @_pending.value & ~UPDATE_NOW
-        @serverUpdate arg1, OJSON.fromOJSON(arg2)
+        @serverUpdate version, ops
         unless @conflict.value
           @_pending.set @_pending.value | UPDATE_NOW
           @_update()
@@ -433,17 +417,12 @@ module.exports = class ModelBase extends Base
       @serverDelete()
     else
       @patchClient diff @clientDoc, null
-      @sock.emit 'delete', @aceType, @id, (code, msg) =>
-        Outlet.openBlock()
-        try
-          @handleDelete code, msg
-        finally
-          Outlet.closeBlock()
+      @sock.emit 'delete', @aceType, @id, (err) => @handleDelete err
     return
 
-  handleDelete: (code, msg) ->
-    if code is 'r'
-      @error.set msg || "can't delete"
+  handleDelete: (err) ->
+    if err?
+      @error.set "can't delete"
       @patchClient diff @clientDoc, @serverDoc
       @_loop()
     else
@@ -474,16 +453,11 @@ module.exports = class ModelBase extends Base
 
     [cmd, arg, cb] = arr
 
-    @sock.emit 'run', @aceType, @id, (@serverDoc?['_v'] || 0), cmd, OJSON.toOJSON(arg), (code) =>
-      if cb
-        Outlet.openBlock()
-        try
-          cb.apply this, arguments
-        finally
-          Outlet.closeBlock()
-
+    debug "running ",cmd,"on #{@aceType}..."
+    @sock.emit 'run', @aceType, @id, (@serverDoc?['_v'] || 0), cmd, arg, =>
+      debug "finished running ",cmd,"on #{@aceType}"
+      cb?.apply this, arguments
       @_run()
-      return
     return
 
   _loop: ->

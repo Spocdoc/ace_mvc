@@ -8,7 +8,7 @@ module.exports = class MediatorClient extends MediatorServer
   constructor: (@db, @sock) ->
     extend sock, Listener unless sock.listenOn
 
-  doSubscribe: (coll, id) ->
+  subscribe: (coll, id) ->
     unless already = @sock.isListening @db, channel=Db.channel(coll,id)
       debug "sock #{@sock.id} listen on #{channel}"
       @sock.listenOn @db, channel, (args) =>
@@ -16,10 +16,8 @@ module.exports = class MediatorClient extends MediatorServer
         @sock.emit.apply @sock, args[1..]
     !already
 
-  doUnsubscribe: (coll, id) ->
-    @sock.listenOff @db, Db.channel(coll,id)
-
-  isSubscribed: (coll, id) -> @sock.isListening Db.channel coll, id
+  unsubscribe: (coll, id) -> @sock.listenOff @db, Db.channel(coll,id)
+  subscribed: (coll, id) -> @sock.isListening Db.channel coll, id
 
   disconnect: -> @sock.listenOff @db
 

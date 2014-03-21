@@ -1,8 +1,10 @@
 mongodb = require 'mongo-fork'
-callback = require '../db/callback'
 OJSON = require 'ojson'
 {include} = require 'lodash-fork'
 debug = global.debug 'ace:error'
+Outlet = require 'outlet'
+AceError = require '../error'
+Reject = require '../error/reject'
 
 class Emitter
   id: 0
@@ -29,25 +31,27 @@ module.exports = class SockioEmulator
       @_unpend() if setPending
     return
 
+  # function pretends to receive the emitted content over the wire
   emit: (name, args...) ->
-    Callback = callback[name.charAt(0).toUpperCase() + name[1..]]
     cookies = name is 'cookies'
     setPending = false
 
-    for arg, i in args when typeof arg is 'object'
-      args[i] = OJSON.fromOJSON arg
-
-    # separate loop to avoid having to create a do wrap just for the arg closure
     for argFn,i in args when typeof argFn is 'function'
       setPending = ++@pending
       @_cookiesQueue = [] if cookies
 
-      args[i] = new Callback =>
+      args[i] = =>
         try
+          # ensure the first argument is an AceError
+          if arguments[0]? and !(arguments[0] instanceof AceError)
+            arguments[0] = new Reject 'UNKNOWN'
+
+          Outlet.openBlock()
           argFn.apply null, arguments
         catch _error
           debug _error?.stack
         finally
+          Outlet.closeBlock()
           if cookies
             queue = @_cookiesQueue; @_cookiesQueue = null
             @_runMediator.apply this, a for a in queue
@@ -59,8 +63,7 @@ module.exports = class SockioEmulator
     else
       @_runMediator setPending, name, args
 
-
-  on: (event, fn) -> @serverSock.on event, fn
+  on: (event, fn) -> @serverSock.on event, Outlet.block fn
 
   onIdle: (cb) ->
     unless @pending
@@ -68,3 +71,4 @@ module.exports = class SockioEmulator
     else
       @_idleCallbacks.push cb
     return
+

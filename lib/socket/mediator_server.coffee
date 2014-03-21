@@ -24,17 +24,32 @@ module.exports = class MediatorServer
 
   run: (coll, id, version, cmd, args, cb) -> cb new Reject "UNHANDLED"
 
-  for method in ['update','delete','distinct']
+  for method in ['update','delete','distinct','create','read']
     do (method) =>
       @prototype['_' + method] = @prototype[method] = ->
         @db[method].apply @db, [@sock, arguments...]
 
   # subscribe to updates when creating a document
-  @prototype.create = @prototype._create = (coll, doc, cb) ->
+  @prototype.create = (coll, doc, cb) ->
     @db.create @sock, coll, doc, (err) =>
       return cb err if err?
       @subscribe coll, ''+doc._id
       cb.apply null, arguments
+
+  @prototype._read = (coll, id, version, query, limit, sort, cb, validateDoc) ->
+    # allow optional args 
+    ARGS = 8
+    if (len = arguments.length) < ARGS
+      if typeof arguments[len-2] is 'function'
+        # then last 2 were passed
+        validateDoc = arguments[len-1]
+        arguments[len-1] = null
+        cb = arguments[len-2]
+        arguments[len-2] = null
+      else if len < ARGS-1
+        cb = arguments[len-1]
+        arguments[len-1] = null
+    @db.read @sock, coll, id, version, query, limit, sort, cb, validateDoc
 
   # can send array of ids to re-read or a query. 
   #   - an array of ids leads to map replies from id to array of arguments (full documents, array with error, or empty array)
@@ -43,7 +58,7 @@ module.exports = class MediatorServer
   # wrapper unsubscribes from rejects, subscribes new docs and changes the
   # returned array to be an array of full documents or ids (based on whether
   # it's subscribed or not)
-  @prototype.read = @prototype._read = (coll, id, version, query, limit, sort, cb, validateDoc) ->
+  @prototype.read = (coll, id, version, query, limit, sort, cb, validateDoc) ->
     # allow optional args 
     ARGS = 8
     if (len = arguments.length) < ARGS

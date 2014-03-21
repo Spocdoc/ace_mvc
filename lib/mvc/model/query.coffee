@@ -7,8 +7,6 @@ _ = require 'lodash-fork'
 debug = global.debug "ace:mvc:query"
 
 hash = (obj) ->
-  obj = OJSON.toOJSON obj
-
   str = "{"
   for k in Object.keys(obj).sort()
     v = obj[k]
@@ -52,12 +50,12 @@ module.exports = class Query
     @['results'] = @results = new Outlet []
     @navCache = new NavCache
 
-    @_hash = hash @_spec
+    @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
     @_readBootCache() if Query.useBootCache & CACHE_READ
 
     @_clientVersion = 0
     @_updater = new Outlet =>
-      @_hash = hash @_spec
+      @_hash = hash @_ojSpec = OJSON.toOJSON @_spec
 
       if Query.useBootCache & CACHE_READ
         @_readBootCache()
@@ -86,7 +84,7 @@ module.exports = class Query
     @pending.set true
     @_serverVersion = @_clientVersion
 
-    @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_spec, @limit.value, @sort.value, (err, docs) =>
+    @Model.prototype.sock.emit 'read', @Model.prototype.aceType, null, null, @_ojSpec, @limit.value, @sort.value, (err, docs) =>
       if @_clientVersion != @_serverVersion
         @_update()
       else
@@ -150,7 +148,7 @@ module.exports = class Query
         else if cached = navCache.get @_hash
           outlet.set cached
 
-        @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, @_spec, key, (err, docs) =>
+        @Model.prototype.sock.emit 'distinct', @Model.prototype.aceType, @_ojSpec, key, (err, docs) =>
           pending = false
           docs ||= emptyArray
           outlet.set docs if !outlet.value or arraysDiffer outlet.value, docs

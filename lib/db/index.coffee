@@ -153,6 +153,8 @@ module.exports = class Db extends Mongo
         search = query.$text
         delete query.$text
 
+        limit ?= 1
+
         # mongo treats full text searches totally differently from find commands that don't involve full text.
         # $text is used here to normalize the client API. it's not a valid mongo field
         if search
@@ -161,7 +163,7 @@ module.exports = class Db extends Mongo
             limit: limit
             filter: query
             next
-        else if limit? and limit > 1
+        else if limit > 1
           @run 'find', coll, query, limit: limit, sort: sort, next
         else
           @run 'findOne', coll, query, next

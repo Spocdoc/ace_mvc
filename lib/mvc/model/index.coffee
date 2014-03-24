@@ -48,8 +48,7 @@ OK_CONFLICT     = 3 << 4
 module.exports = class ModelBase extends Base
   @configs = new Configs
 
-  @init: (ace, json) ->
-    _this = this
+  @attachSocketHandlers: (ace) ->
     sock = ace.sock
 
     sock.on 'create', (coll, doc) =>
@@ -67,6 +66,12 @@ module.exports = class ModelBase extends Base
       debug "got delete on #{coll}, #{id}"
       model.serverDelete() if model = @[coll].models[id]
       return
+
+    return
+
+  @init: (ace, json) ->
+    _this = this
+    sock = ace.sock
 
     for type, config of @configs.configs
       @[type] = class Model extends @[type]
@@ -208,7 +213,7 @@ module.exports = class ModelBase extends Base
     return @_pending.set pending | CREATE_LATER if (pending = @_pending.value) & NOW
     @_pending.set pending | CREATE_NOW
 
-    @clientDoc ||= '_id': id
+    @clientDoc ||= '_id': @id
     @clientDoc['_v'] ||= 1
     clientDoc = clone @clientDoc
     @sock.emit 'create', @aceType, clientDoc, (err, version, ops) =>

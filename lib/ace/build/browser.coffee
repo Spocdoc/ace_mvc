@@ -72,9 +72,11 @@ module.exports = (Ace) ->
     (new Controller['body'] this, $inWindow: true)['appendTo'] $container
     @['booting'] = false
     Template.bootRoot = null
-
     Model.clearQueryCache()
     delete Template.bootstrapRoot
-
     debug "DONE WITH EVENT LOOP"
+
+    # now -- after everything has booted using only local models -- we can start receiving socket updates
+    Model.attachSocketHandlers this
+
 

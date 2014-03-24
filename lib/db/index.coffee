@@ -76,11 +76,8 @@ module.exports = class Db extends Mongo
       return
 
   @channel = (coll, id) ->
-    if id._id
-      id = id._id
-    else if id.oid
-      id = id.oid
-
+    id = id._id if id._id
+    id = id.oid if id.oid
     "#{coll}:#{id}"
 
   create: (origin, coll, doc, cb) ->

@@ -126,6 +126,7 @@ module.exports = (Ace) ->
       ace.uriToken = (uri) -> if id = session.value?.id then hash("#{id}#{uri}").substr(0,24) else ''
 
       Model.init ace
+      Model.attachSocketHandlers this
 
       ace.vars = (router = new Router @routes, globals).vars
       return next null unless router.route uri = new Uri req.url

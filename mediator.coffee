@@ -2,6 +2,7 @@ fs = require 'fs'
 path = require 'path'
 OJSON = require 'ojson'
 Reject = require './lib/error/reject'
+debug = global.debug 'ace:sock'
 
 defaultReject = (clazz, method) ->
   clazz.prototype[method] = (coll, args...) ->
@@ -47,7 +48,7 @@ module.exports = (mediatorPath, Session = Object) ->
       # proxy cookies to call all the handler's cookies functions before responding
       cookies: (cookies, cb) ->
         wait = 1
-        done = -> cb() unless --wait
+        done = => cb() unless --wait
 
         for coll, handler of @handlers when handler.cookies
           ++wait

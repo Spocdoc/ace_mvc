@@ -26,7 +26,7 @@ module.exports = (Ace) ->
     Controller.compile()
 
     sock = new OjsonSocket io.connect '/'
-    cookies = new Cookies sock
+    cookies = new Cookies sock, manifest['cookies']
     cookies.get() # emits cookies
 
     sock.once 'disconnect', =>

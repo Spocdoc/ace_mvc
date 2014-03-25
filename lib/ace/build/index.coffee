@@ -40,6 +40,8 @@ module.exports = (Ace) ->
       templates: templates = {}
       templateGlobals: @templateGlobals
 
+    clientManifest.cookies = cookies if cookies = options.cookies
+
     for name, relPath of manifest.templates
       templates[name] = html = template path.resolve(root,relPath), name, @templateGlobals
       Template.add name, html
@@ -105,10 +107,7 @@ module.exports = (Ace) ->
 
     @sock = @sockEmulator()
 
-    cookies = new Cookies @sock.serverSock, req, res
-    if oc = @options.cookies
-      cookies.domain = oc['domain']
-      cookies.secure = oc['secure']
+    cookies = new Cookies @sock.serverSock, req, res, @options.cookies
 
     @sock.emit 'cookies', cookies.toJSON(), ->
 

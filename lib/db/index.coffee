@@ -262,7 +262,7 @@ module.exports = class Db extends Mongo
     return unless checkMutation(origin, cb) and id = replaceId(id, cb)
 
     async.waterfall [
-      (next) ->
+      (next) =>
         if validateDelete
           @run 'findOne', coll, {_id: id}, (err, doc) =>
             return next err if err?
@@ -270,7 +270,7 @@ module.exports = class Db extends Mongo
         else
           next()
 
-      (next) ->
+      (next) =>
         @run 'remove', coll, {_id: id}, next
 
     ], (err) =>

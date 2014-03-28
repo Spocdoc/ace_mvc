@@ -1,6 +1,6 @@
 $ = require 'dom-fork'
 debug = global.debug 'ace:mvc'
-typeToClass = require 'manifest_mvc/type_to_class'
+typeToClass = require('lodash-fork').makeCssClass
 
 configs = new (require('./configs'))
 NAME_ELEMS = [

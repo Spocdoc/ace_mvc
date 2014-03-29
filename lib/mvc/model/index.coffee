@@ -505,6 +505,8 @@ module.exports = class ModelBase extends Base
     unless o['_']
       if d instanceof DBRef
         d = @Model[d.namespace].read d.oid
+      else if d instanceof ModelBase
+        d
       else
         d = clone d
 

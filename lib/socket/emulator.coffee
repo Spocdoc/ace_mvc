@@ -1,7 +1,8 @@
 mongodb = require 'mongo-fork'
 OJSON = require 'ojson'
 {include} = require 'lodash-fork'
-debug = global.debug 'ace:error'
+debugError = global.debug 'ace:error'
+debug = global.debug 'ace:sock'
 Outlet = require 'outlet'
 AceError = require '../error'
 Reject = require '../error/reject'
@@ -27,7 +28,7 @@ module.exports = class SockioEmulator
     try
       @mediator[name].apply @mediator, args
     catch _error
-      debug _error?.stack
+      debugError _error?.stack
       @_unpend() if setPending
     return
 
@@ -49,7 +50,7 @@ module.exports = class SockioEmulator
           Outlet.openBlock()
           argFn.apply null, arguments
         catch _error
-          debug _error?.stack
+          debugError _error?.stack
         finally
           Outlet.closeBlock()
           if cookies

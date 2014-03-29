@@ -141,7 +141,9 @@ module.exports = class Db extends Mongo
           limit: limit
 
         if validateQuery
-          validateQuery spec, next
+          validateQuery spec, (err, spec_) =>
+            return next err if err?
+            next null, spec_ or spec
         else
           next null, spec
 
@@ -280,8 +282,22 @@ module.exports = class Db extends Mongo
 
     return
 
-  distinct: (origin, coll, query, key, cb) ->
+  distinct: (origin, coll, query, key, cb, validateQuery) ->
     query = fixQuery(query)
     delete query.$text # not supported as a regular query type in mongoDB
-    @run 'distinct', coll, key, query, cb
+
+    async.waterfall [
+      (next) =>
+        if validateQuery
+          validateQuery query, (err, query_) =>
+            return next err if err?
+            next null, query_ or query
+        else
+          next null, query
+
+      (query, next) =>
+        @run 'distinct', coll, key, query, cb
+
+    ], cb
+
 

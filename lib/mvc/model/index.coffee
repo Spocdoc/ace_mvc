@@ -12,6 +12,8 @@ Outlet = require 'outlet'
 Query = require './query'
 Reject = require 'ace_mvc/lib/error/reject'
 Conflict = require 'ace_mvc/lib/error/conflict'
+_ = require 'lodash-fork'
+Emitter = require 'events-fork/emitter'
 patchOutlets = diff.toOutlets
 debug = global.debug 'ace:mvc:model'
 debugError = global.debug 'error'
@@ -75,6 +77,8 @@ module.exports = class ModelBase extends Base
 
     for type, config of @configs.configs
       @[type] = class Model extends @[type]
+        _.extend this, Emitter
+
         @models: {}
         @queryCache: {}
         sock: sock
@@ -107,7 +111,10 @@ module.exports = class ModelBase extends Base
               else
                 for id, args of reply
                   clazz.models[id].handleRead args[0], args[1]
+              clazz.emit 'reread'
               return
+        else # emit the event anyway -- if no docs, queries still need to refresh
+          clazz.emit 'reread'
       return
 
     @toJSON = ->

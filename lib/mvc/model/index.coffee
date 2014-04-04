@@ -77,17 +77,19 @@ module.exports = class ModelBase extends Base
 
     for type, config of @configs.configs
       @[type] = class Model extends @[type]
+        _type = type # to capture the variable for below
         _.extend this, Emitter
 
         @models: {}
         @queryCache: {}
+        @aceType: _type
+        @sock: sock
         sock: sock
         aceParent: ace
 
         Model: _this
         'Model': _this
 
-        _type = type # to capture the variable for below
         @Query = @['Query'] = (spec, limit, sort) ->
           new Query _this[_type], spec, limit, sort
 
@@ -456,6 +458,13 @@ module.exports = class ModelBase extends Base
     return @_pending.set pending | RUN_LATER if (pending = @_pending.value) & NOW
     @_pending.set pending | RUN_NOW
     @_run()
+
+  @['run'] = (cmd, arg, cb) ->
+    debug "running ",cmd,"on #{@aceType}..."
+    @sock.emit 'run', @aceType, 0, 0, cmd, arg, =>
+      debug "finished running ",cmd,"on #{@aceType}"
+      cb?.apply this, arguments
+      return
 
   _run: ->
     unless arr = @runQueue()

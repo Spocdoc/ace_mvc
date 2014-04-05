@@ -75,7 +75,7 @@ module.exports = class MediatorServer
     if Array.isArray id # reply will be a map
       @db.read @sock, coll, id, version, query, limit, sort, ((err, obj) =>
         for id, arr of obj
-          if (err = arr[0])?
+          if arr[0]?
             @unsubscribe coll, id
           else
             @subscribe coll, id

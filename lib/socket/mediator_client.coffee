@@ -5,7 +5,8 @@ MediatorServer = require './mediator_server'
 debug = global.debug 'ace:mediator'
 
 module.exports = class MediatorClient extends MediatorServer
-  constructor: (@db, @sock) ->
+  constructor: ->
+    super
     extend sock, Listener unless sock.listenOn
 
   subscribe: (coll, id) ->

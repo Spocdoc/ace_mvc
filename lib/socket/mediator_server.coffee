@@ -3,7 +3,7 @@ emptyFunc = ->
 trueFunc = -> true
 
 module.exports = class MediatorServer
-  constructor: (@db, @sock) ->
+  constructor: (@db, @sock, @manifest) ->
 
   # these should exist and be empty in case the app overrides Mediator and calls them during the server render
   @prototype[name] = emptyFunc for name in [

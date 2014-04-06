@@ -13,9 +13,9 @@ class Emitter
 
 # emulates the *client's* sock.io access
 module.exports = class SockioEmulator
-  constructor: (@db, Mediator) ->
+  constructor: (@db, Mediator, manifest) ->
     @serverSock = new Emitter
-    @mediator = new Mediator @db, @serverSock
+    @mediator = new Mediator @db, @serverSock, manifest
 
     @pending = 0
     @_idleCallbacks = []

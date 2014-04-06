@@ -19,11 +19,11 @@ module.exports = (server, manifest, options) ->
     MediatorServer = makeMediator MediatorServer
 
   SockioEmulator = require './lib/socket/emulator'
-  sockEmulator = -> new SockioEmulator db, MediatorServer
+  sockEmulator = -> new SockioEmulator db, MediatorServer, manifest
 
   sockServer.on 'connection', (sock) ->
     sock = new OjsonSocket sock # to serialize/deserialize args
-    sock.mediator = new MediatorClient db, sock
+    sock.mediator = new MediatorClient db, sock, manifest
     sockHandleConnection sock
 
   sigHandler = new SigHandler server, sockServer, db

@@ -25,7 +25,7 @@ module.exports = (server, manifest, options) ->
     return if initializing or resetter.running
     sock = new OjsonSocket sock # to serialize/deserialize args
     debugSock "new socket.io with id #{sock.id}"
-    sock.mediator = new MediatorClient db, sock
+    sock.mediator = new MediatorClient db, sock, manifest
     require('./lib/socket/handle_connection')(sock)
 
   reset = (done) ->
@@ -56,7 +56,7 @@ module.exports = (server, manifest, options) ->
             MediatorServer = makeMediator MediatorServer
 
           SockioEmulator = require './lib/socket/emulator'
-          sockEmulator = -> new SockioEmulator db, MediatorServer
+          sockEmulator = -> new SockioEmulator db, MediatorServer, manifest
 
           Ace = require './lib/ace'
           ace = new Ace manifest, options, sockEmulator

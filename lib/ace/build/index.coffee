@@ -39,7 +39,7 @@ module.exports = (Ace) ->
       routes: _.getInodeSync require.resolve path.resolve(root, manifest.routes)
       templates: templates = {}
       templateGlobals: @templateGlobals
-      assetServerRoot: manifest.assetServerRoot
+      assetServerRoot: manifest.options.assetServerRoot
 
     clientManifest.cookies = cookies if cookies = options.cookies
 

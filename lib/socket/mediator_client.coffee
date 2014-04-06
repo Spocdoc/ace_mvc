@@ -7,7 +7,7 @@ debug = global.debug 'ace:mediator'
 module.exports = class MediatorClient extends MediatorServer
   constructor: ->
     super
-    extend sock, Listener unless sock.listenOn
+    extend @sock, Listener unless @sock.listenOn
 
   subscribe: (coll, id) ->
     unless already = @sock.isListening @db, channel=Db.channel(coll,id)

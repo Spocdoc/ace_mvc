@@ -27,7 +27,7 @@ module.exports = (mediatorPath, Session = Object) ->
   (MediatorBase) ->
 
     class Handler extends MediatorBase
-      constructor: (db, sock, @coll, @session, @handlers) -> super
+      constructor: (db, sock, @manifest, @coll, @session, @handlers) -> super
 
       # the handler's read, delete, etc. don't take the coll as the first argument
       for method in ['create','read','update','delete','run','distinct']
@@ -43,7 +43,7 @@ module.exports = (mediatorPath, Session = Object) ->
 
         @session = new Session this
         @handlers = {}
-        @handlers[coll] = new clazz @db, @sock, coll, @session, @handlers for coll, clazz of handlerClasses
+        @handlers[coll] = new clazz @db, @sock, @manifest, coll, @session, @handlers for coll, clazz of handlerClasses
 
       # proxy cookies to call all the handler's cookies functions before responding
       cookies: (cookies, cb) ->

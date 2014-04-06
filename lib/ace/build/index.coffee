@@ -39,6 +39,7 @@ module.exports = (Ace) ->
       routes: _.getInodeSync require.resolve path.resolve(root, manifest.routes)
       templates: templates = {}
       templateGlobals: @templateGlobals
+      assetServerRoot: manifest.assetServerRoot
 
     clientManifest.cookies = cookies if cookies = options.cookies
 
@@ -120,6 +121,7 @@ module.exports = (Ace) ->
 
       ace = globals['ace'] = Object.create this
       ace.aceComponents = {}
+      ace['manifest'] = ace.manifest = @clientManifest
       ace['globals'] = globals
       ace['onServer'] = true
       ace.uriToken = (uri) -> if id = session.value?.id then hash("#{id}#{uri}").substr(0,24) else ''

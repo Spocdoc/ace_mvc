@@ -41,6 +41,7 @@ module.exports = (Ace) ->
       'ace': this
       'templates': manifest['templateGlobals']
 
+    @['manifest'] = @manifest = manifest
     @['booting'] = true
     globals['globals'] = globals
     @globals = globals

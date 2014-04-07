@@ -40,6 +40,7 @@ module.exports = (Ace) ->
       templates: templates = {}
       templateGlobals: @templateGlobals
       assetServerRoot: manifest.options.assetServerRoot
+      uploadsServerRoot: manifest.options.uploadsServerRoot
 
     clientManifest.cookies = cookies if cookies = options.cookies
 

@@ -20,6 +20,12 @@ module.exports = (Ace) ->
     View.add name, global['req'+exp] for name, exp of manifest['views']
     Controller.add name, global['req'+exp] for name, exp of manifest['controllers']
 
+    for name, exp of manifest['mixins']
+      mixin = global['req'+exp]
+      ModelBase.add name, mixin
+      View.add name, mixin
+      Controller.add name, mixin
+
     Template.compile()
     ModelBase.compile()
     View.compile()

@@ -52,9 +52,19 @@ module.exports = (Ace) ->
 
     require path.resolve(root,index) if index = manifest.index
 
+    # add all the mixins to the client manifest
+    cm = clientManifest["mixins"] = {}
+    mixins = {}
+    for name, relPath of manifest["mixins"]
+      fullPath = path.resolve root, relPath
+      cm[name] = _.getInodeSync fullPath
+      mixins[name] = require fullPath
+
+    # build each type, adding mixins and adding each to the client manifest
     for type in ['model','view','controller']
       clazz = require("../../mvc/#{type}")
       cm = clientManifest["#{type}s"] = {}
+      clazz.add name, mixin for name, mixin of mixins
       for name, relPath of manifest["#{type}s"]
         fullPath = path.resolve root, relPath
         clazz.add name, require fullPath

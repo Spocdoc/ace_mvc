@@ -37,6 +37,10 @@ module.exports = class SockioEmulator
     cookies = name is 'cookies'
     setPending = false
 
+    # nasty hack to work around transmitting objects in the query (which has to be ojson stringified)
+    if name is 'read' and query = args[3]
+      args[3] = OJSON.fromOJSON query
+
     for argFn,i in args when typeof argFn is 'function'
       setPending = ++@pending
       @_cookiesQueue = [] if cookies

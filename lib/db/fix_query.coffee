@@ -4,7 +4,12 @@ joinerOps =
   '$nor': 1
 
 parsePart = (field, spec, parent) ->
-  return true if field is '$text'
+  if field is '$text'
+    return false unless spec
+    parent[field] =
+      '$search': spec
+    return true
+
   return true unless typeof spec is 'object' and spec
 
   keptKeys = 0

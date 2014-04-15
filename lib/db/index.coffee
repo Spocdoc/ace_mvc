@@ -149,20 +149,21 @@ module.exports = class Db extends Mongo
 
       (spec, next) =>
         {query,sort,limit} = spec
-        search = query.$text
-        delete query.$text
 
         limit ?= 1
 
         # mongo treats full text searches totally differently from find commands that don't involve full text.
         # $text is used here to normalize the client API. it's not a valid mongo field
-        if search
-          @run 'text', coll,
-            search: search
-            limit: limit
-            filter: query
-            next
-        else if limit > 1
+        # search = query.$text
+        # delete query.$text
+        # if search
+        #   @run 'text', coll,
+        #     search: search
+        #     limit: limit
+        #     filter: query
+        #     next
+        # else
+        if limit > 1
           @run 'find', coll, query, limit: limit, sort: sort, next
         else
           @run 'findOne', coll, query, next
@@ -284,7 +285,7 @@ module.exports = class Db extends Mongo
 
   distinct: (origin, coll, query, key, cb, validateQuery) ->
     query = fixQuery(query)
-    delete query.$text # not supported as a regular query type in mongoDB
+    # delete query.$text # not supported as a regular query type in mongoDB
 
     async.waterfall [
       (next) =>

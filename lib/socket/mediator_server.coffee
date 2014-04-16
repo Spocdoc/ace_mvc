@@ -2,6 +2,8 @@ Reject = require '../error/reject'
 emptyFunc = ->
 trueFunc = -> true
 
+emptySock = id: 0
+
 module.exports = class MediatorServer
   constructor: (@db, @sock, @manifest) ->
 
@@ -28,6 +30,9 @@ module.exports = class MediatorServer
     do (method) =>
       @prototype['_' + method] = @prototype[method] = ->
         @db[method].apply @db, [@sock, arguments...]
+
+      @prototype['_' + method + "Client"] = ->
+        @db[method].apply @db, [emptySock, arguments...]
 
   # subscribe to updates when creating a document
   @prototype.create = (coll, doc, cb) ->

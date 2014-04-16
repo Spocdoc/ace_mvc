@@ -9,7 +9,7 @@ else
   MAX_CLOSE_MILLIS = 500
 
 module.exports = class SigHandler
-  constructor: (server, sockServer, db) ->
+  constructor: (server, sockServer, db, handler) ->
     @socketConnections = socketConnections = {}
 
     @terminating = didTerminate = terminating = false
@@ -26,6 +26,8 @@ module.exports = class SigHandler
       # once there are no outstanding connections, close the mongodb connections, which will also quit the redis connections
       db.close ->
         debug "Database closed."
+
+        handler.emit 'close'
 
         # disconnect from IPC channel
         process.disconnect?()

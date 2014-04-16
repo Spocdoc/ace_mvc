@@ -1,6 +1,7 @@
 Socket = require './lib/socket'
 Db = require './lib/db'
 _ = require 'lodash-fork'
+Emitter = require 'events-fork/emitter'
 fs = require 'fs'
 path = require 'path'
 require 'debug-fork'
@@ -11,6 +12,12 @@ debugSock = global.debug 'ace:sock'
 debugError = global.debug 'ace:error'
 
 module.exports = (server, manifest, options) ->
+  returnFn = (req, res, next) ->
+    return next null if initializing or resetter.running
+    ace.handle req, res, next
+
+  _.extend returnFn, Emitter
+
   {root} = manifest.private
   initializing = true
 
@@ -19,7 +26,7 @@ module.exports = (server, manifest, options) ->
   sockEmulator = undefined
   dirWatch = resetter = ace = MediatorClient = MediatorServer = undefined
 
-  sigHandler = new SigHandler server, sockServer, db
+  sigHandler = new SigHandler server, sockServer, db, returnFn
 
   sockServer.on 'connection', (sock) ->
     return if initializing or resetter.running
@@ -51,6 +58,12 @@ module.exports = (server, manifest, options) ->
         try
           MediatorClient = require './lib/socket/mediator_client'
           MediatorServer = require './lib/socket/mediator_server'
+
+          if mediatorGlobals = options.mediatorGlobals
+            for k, v of mediatorGlobals
+              MediatorClient.prototype[k] = v
+              MediatorServer.prototype[k] = v
+
           if makeMediator = manifest.mediator && require path.resolve(root,manifest.mediator)
             MediatorClient = makeMediator MediatorClient
             MediatorServer = makeMediator MediatorServer
@@ -73,6 +86,4 @@ module.exports = (server, manifest, options) ->
 
   resetter()
 
-  (req, res, next) ->
-    return next null if initializing or resetter.running
-    ace.handle req, res, next
+  returnFn

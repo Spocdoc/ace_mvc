@@ -5,6 +5,8 @@ path = require 'path'
 sockHandleConnection = require './lib/socket/handle_connection'
 SigHandler = require './sig_handler'
 OjsonSocket = require './lib/socket/ojson_socket'
+_ = require 'lodash-fork'
+Emitter = require 'events-fork/emitter'
 
 module.exports = (server, manifest, options) ->
   {root} = manifest.private
@@ -14,6 +16,12 @@ module.exports = (server, manifest, options) ->
 
   MediatorClient = require './lib/socket/mediator_client'
   MediatorServer = require './lib/socket/mediator_server'
+
+  if mediatorGlobals = options.mediatorGlobals
+    for k, v of mediatorGlobals
+      MediatorClient.prototype[k] = v
+      MediatorServer.prototype[k] = v
+
   if makeMediator = manifest.mediator && require path.resolve(root,manifest.mediator)
     MediatorClient = makeMediator MediatorClient
     MediatorServer = makeMediator MediatorServer
@@ -26,9 +34,9 @@ module.exports = (server, manifest, options) ->
     sock.mediator = new MediatorClient db, sock, manifest
     sockHandleConnection sock
 
-  sigHandler = new SigHandler server, sockServer, db
-
   options['release'] = true
-
-  new Ace manifest, options, sockEmulator
+  ace = new Ace manifest, options, sockEmulator
+  sigHandler = new SigHandler server, sockServer, db, ace
+  _.extend ace, Emitter
+  ace
 

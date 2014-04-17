@@ -115,6 +115,7 @@ module.exports = class ViewBase extends Base
       'text'
       'html'
       'view'
+      'viewPrepend'
       'val'
     ]
 
@@ -148,6 +149,13 @@ module.exports = class ViewBase extends Base
             outlet.addOutflow new Outlet =>
               oldView?['detach']()
               (oldView = outlet.value)?['appendTo'] e, this
+              return
+
+          when 'viewPrepend'
+            oldView = undefined
+            outlet.addOutflow new Outlet =>
+              oldView?['detach']()
+              (oldView = outlet.value)?['prependTo'] e, this
               return
 
           else

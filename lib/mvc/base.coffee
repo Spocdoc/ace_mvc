@@ -61,7 +61,7 @@ module.exports = class Base
           o.context = this
           o.set v
         else unless @vars["#{@varPrefix}#{k}"]?.outlet # i.e., can't set an outlet that's a routing var via defaults
-          o.set v
+          o.set v unless v is undefined
 
       delete @_outletDefaults[k] if @_outletDefaults
     return

@@ -249,7 +249,7 @@ module.exports = class Db extends Mongo
                 reindexed = true
                 @run 'reIndex', coll, (err) =>
                   return next err if err?
-                  doUpdate()
+                  setTimeout doUpdate, 3000 # XXX evidently the reindex isn't completed when the callback is invoked?
               next err, updated
           doUpdate()
 

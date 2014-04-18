@@ -266,7 +266,7 @@ module.exports = class ModelBase extends Base
     @_loop()
     return
 
-  @prototype['serverCreate'] = @serverCreate = (doc) ->
+  @prototype['serverCreate'] = @prototype.serverCreate = (doc) ->
     return if @conflict.value
 
     newVersion = doc['_v']

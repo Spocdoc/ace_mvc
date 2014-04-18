@@ -239,7 +239,20 @@ module.exports = class Db extends Mongo
         appliedToVersion = doc['_v']
 
         if version?
-          @run 'update', coll, {_id: id, _v: doc['_v']}, spec, next
+
+          # hack to work around 2.5+ btree text index corruption
+          reindexed = false
+          doUpdate = =>
+            @run 'update', coll, {_id: id, _v: doc['_v']}, spec, (err, updated) =>
+              if !reindexed and err? and err.code is 10287 # XXX HARDCODED mongo error requiring a reindex
+                debugError "Got Mongo error 10287 so doing reIndex",err
+                reindexed = true
+                @run 'reIndex', coll, (err) =>
+                  return next err if err?
+                  doUpdate()
+              next err, updated
+          doUpdate()
+
         else
           @run 'findAndModify', coll, {_id: id}, null, spec, {fields: _v: 1}, (err, doc) ->
             return next err if err?

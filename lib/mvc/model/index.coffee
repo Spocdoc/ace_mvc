@@ -266,7 +266,7 @@ module.exports = class ModelBase extends Base
     @_loop()
     return
 
-  serverCreate: (doc) ->
+  @prototype['serverCreate'] = @serverCreate = (doc) ->
     return if @conflict.value
 
     newVersion = doc['_v']
@@ -443,7 +443,7 @@ module.exports = class ModelBase extends Base
       @serverDelete()
     return
 
-  serverDelete: ->
+  @prototype['serverDelete'] = @prototype.serverDelete = ->
     delete @serverDoc
     @['reset']()
     return

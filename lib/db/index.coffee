@@ -7,6 +7,7 @@ diff = require 'diff-fork'
 OJSON = require 'ojson'
 Emitter = require 'events-fork/emitter'
 debug = global.debug 'ace:server:db'
+debugError = global.debug 'error'
 async = require 'async'
 fixQuery = require './fix_query'
 Reject = require '../error/reject'
@@ -256,7 +257,10 @@ module.exports = class Db extends Mongo
           cb()
           @pub.publish Db.channel(coll,id), OJSON.stringify([origin.id,'update',coll,id.toString(),appliedToVersion,ops])
 
-    ], cb
+    ], (err) =>
+      if err?
+        debugError "Database error doing update: ",err
+      cb err
 
     return
 
